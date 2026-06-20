@@ -4,25 +4,7 @@
 
 This document defines the corrected scoring architecture for the Egyptian Estimation Score Calculator MVP.
 
-The score engine must evaluate each player's bid, actual tricks, round role, and special state before applying formulas.
-
-## Core Flow
-
-1. Players enter estimates/bids.
-2. System validates the round is Over or Under; total estimates must not equal 13.
-3. System resolves the bid owner using contract number and suit hierarchy.
-4. After the round, players enter actual tricks.
-5. System validates total actual tricks = 13.
-6. For each player:
-   - Determine if actual tricks match estimated tricks.
-   - Calculate delta = absolute value of actual - bid.
-   - Assign role: bid owner, with player, normal player, dash, risk, high contract.
-   - Apply the correct formula.
-7. If all players lose, score zero for the current round and apply x2 multiplier to the next round.
-
 ## Display Tags
-
-Recommended short tags for UI and test tables:
 
 - `BO` = Bid Owner
 - `WITH` = With caller
@@ -34,13 +16,24 @@ Recommended short tags for UI and test tables:
 
 Avoid using crown/king icon for Bid Owner to prevent confusion with card ranks or game symbols.
 
+## Core Flow
+
+1. Players enter estimates/bids.
+2. Validate the round is Over or Under; total estimates must not equal 13.
+3. Resolve the Bid Owner using contract number and suit hierarchy.
+4. Store the bid order because risk depends on the bid sequence.
+5. After the round, enter actual tricks.
+6. Validate total actual tricks = 13.
+7. For each player, calculate delta, win/loss status, role modifiers, risk modifiers, and final score.
+8. If all players lose, score zero for the current round and apply x2 to the next non-high-contract round.
+
 ## Confirmed Bid Rules
 
 - Normal bids start at 4.
 - Normal bid range is 4 to 13.
 - Dash and Dash Call are special bids.
-- Another player may call the same contract as the bid owner; this is called With.
-- With follows bid-owner scoring rules for both win and loss.
+- Another player may call the same contract as the Bid Owner; this is called With.
+- With follows Bid Owner scoring rules for both win and loss.
 
 ## Confirmed Bidding Sequence and Risk Taker
 
@@ -50,14 +43,13 @@ After the Bid Owner is identified, bidding/estimate declarations continue from t
 
 The risk taker is the player whose declared bid creates or accepts the risk gap in the running total.
 
-Examples:
+Example:
 
 ```text
-If BO is Karim, the player to Karim's right declares first, then the next right-side player, and so on.
-The risk taker is the player at the point in this ordered sequence whose bid causes or accepts Under -2 / Over +2 or Under -4 / Over +4.
+If P1 is BO and P4 calls WITH, then P3 is the risk-taker decision point.
 ```
 
-This means risk cannot be assigned just from the final round total; the engine must store bid order.
+The engine must store bid order.
 
 ## Confirmed Suit Hierarchy
 
@@ -85,17 +77,7 @@ Where N is the difference from 13.
 delta = abs(actual tricks - estimated tricks)
 ```
 
-A player wins if:
-
-```text
-actual tricks = estimated tricks
-```
-
-A player loses if:
-
-```text
-actual tricks != estimated tricks
-```
+A player wins if actual tricks equal estimated tricks. A player loses if they do not match.
 
 Dash also uses delta. Since Dash estimate is 0:
 
@@ -120,41 +102,17 @@ For a normal non-owner player who wins:
 score = bid + winnerBaseBonus
 ```
 
-Examples when winnerBaseBonus = 10:
-
-```text
-Bid 2 => 12
-Bid 4 => 14
-Bid 7 => 17
-```
-
-Examples when winnerBaseBonus = 13:
-
-```text
-Bid 2 => 15
-Bid 4 => 17
-Bid 7 => 20
-```
-
 ## Confirmed Bid Owner Winner Formula
 
-If the bid owner wins, add an extra fixed +10 bid-owner bonus.
+If the Bid Owner wins, add an extra fixed +10 Bid Owner bonus.
 
 ```text
 score = bid + winnerBaseBonus + 10
 ```
 
-Example when winnerBaseBonus = 10:
-
-```text
-Bid owner bid 7 and wins => 7 + 10 + 10 = 27
-```
-
 ## Confirmed With Formula
 
-A With player calls the same contract/order as the bid owner.
-
-The With player takes the same scoring treatment as the bid owner in both win and loss.
+A With player calls the same contract/order as the Bid Owner and takes the same scoring treatment as the Bid Owner.
 
 ### With Win
 
@@ -168,16 +126,6 @@ score = bid + winnerBaseBonus + 10
 score = -delta - 10
 ```
 
-Example:
-
-```text
-P1 bid owner bids 4
-P2 calls With on 4
-P2 actual tricks = 3
-delta = 1
-P2 score = -1 -10 = -11
-```
-
 ## Confirmed Normal Loser Formula
 
 For a normal player who loses:
@@ -186,25 +134,12 @@ For a normal player who loses:
 score = -delta
 ```
 
-Example:
-
-```text
-Bid 4, actual 3 => delta 1 => -1
-Bid 5, actual 2 => delta 3 => -3
-```
-
 ## Confirmed Bid Owner Loser Formula
 
-If the bid owner loses, add an extra fixed -10 penalty.
+If the Bid Owner loses, add an extra fixed -10 penalty.
 
 ```text
 score = -delta - 10
-```
-
-Example:
-
-```text
-Bid owner bid 7, actual 5 => delta 2 => -12
 ```
 
 ## Confirmed Only Winner Bonus
@@ -225,6 +160,12 @@ If exactly one player loses the round, that player receives an additional fixed 
 only loser score = normal calculated loser score - 10
 ```
 
+This stacks with other penalties. Example for Risk + Only Loser:
+
+```text
+score = -delta - riskPenalty - onlyLoserPenalty
+```
+
 ## Confirmed All-Losers Round Rule
 
 If all four players lose in the same round:
@@ -234,21 +175,15 @@ current round score for all players = 0
 next round multiplier = x2
 ```
 
-The next round multiplier applies to the full calculated score of each player in the next round.
+The next round multiplier applies to the full calculated score of each player in the next round, except high-contract rounds.
 
-Example:
-
-```text
-Round 4: all players lose => P1=0, P2=0, P3=0, P4=0
-Round 5: normal calculated scores are 24, -1, 14, -1
-Round 5 with x2 multiplier => 48, -2, 28, -2
-```
+Confirmed: x2 does not apply to high-contract rounds.
 
 Open point: If two all-loser rounds happen consecutively, confirm whether the multiplier stays x2 or stacks.
 
 ## Confirmed Dash in Under Round
 
-If a player calls Dash and the round type is Under, Dash is a bonus/penalty layer but still uses delta.
+If a player calls Dash and the round type is Under, Dash is a bonus/penalty layer and still uses delta.
 
 Dash estimate is 0.
 
@@ -268,15 +203,16 @@ dashDelta = actual tricks
 score = -dashDelta - 10 penalty
 ```
 
+Dash always takes the risk in an Under round. This means Under-risk bonus/penalty is added to Dash score.
+
 Examples:
 
 ```text
-Dash actual 0 => +10
-Dash actual 1 => -1 -10 = -11
-Dash actual 2 => -2 -10 = -12
+Under -2 Dash actual 0 => +10 dash +10 risk = +20
+Under -2 Dash actual 1 => -1 delta -10 dash -10 risk = -21
+Under -4 Dash actual 0 => +10 dash +20 risk = +30
+Under -4 Dash actual 1 => -1 delta -10 dash -20 risk = -31
 ```
-
-Dash Under bonus/penalty must be considered in addition to applicable risk state.
 
 ## Confirmed Risk Bonus / Penalty
 
@@ -294,33 +230,11 @@ Risk taker wins => add positive risk bonus
 Risk taker loses => add negative risk penalty
 ```
 
-Examples:
-
-```text
-Under -2 risk taker wins => +10
-Under -2 risk taker loses => -10
-Over +2 risk taker wins => +10
-Over +2 risk taker loses => -10
-Under -4 risk taker wins => +20
-Under -4 risk taker loses => -20
-Over +4 risk taker wins => +20
-Over +4 risk taker loses => -20
-```
-
-Risk is an additive layer applied after the player's normal/owner/with/high-contract/dash base calculation.
+Risk is additive and stacks with Only Loser.
 
 ## Confirmed High Contract Winner Formula
 
 High contract starts at 8.
-
-Confirmed:
-
-```text
-8 win = 68
-9 win = 79
-```
-
-This implies:
 
 ```text
 high contract win score = 68 + ((bid - 8) * 11)
@@ -372,8 +286,8 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 
 ### With Player
 
-- Win: same as bid owner win.
-- Loss: same as bid owner loss.
+- Win: same as Bid Owner win.
+- Loss: same as Bid Owner loss.
 - High contract With handling still needs confirmation if With can apply to high contracts.
 
 ### Normal Player
@@ -388,16 +302,19 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 ### Only Loser
 
 - Add -10 after normal loser calculation.
+- Stacks with Risk penalty.
 
 ### All Players Lose
 
 - Current round scores are all zero.
 - Next round score is multiplied by x2.
+- x2 does not apply to high-contract rounds.
 
 ### Dash Under
 
-- Win: +10 bonus.
-- Loss: -dashDelta -10 penalty.
+- Win: +10 bonus, plus Under risk bonus.
+- Loss: -dashDelta -10 penalty, plus Under risk penalty.
+- Dash always takes risk in Under rounds.
 
 ### Risk Taker
 
@@ -407,8 +324,6 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 - Risk modifier is additive and negative on loss.
 
 ## Open Confirmation Questions
-
-The following still need confirmation:
 
 1. Dash behavior in Over rounds.
 2. Dash Call formula.
