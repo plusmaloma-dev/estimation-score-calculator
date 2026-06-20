@@ -54,6 +54,7 @@ export class ScoreCalculationService {
       errors.push('Total actual tricks must equal 13.');
     }
 
+    const roundRiskLevel = this.resolveRoundRiskLevel(input);
     const rawEvaluationsByPlayer = new Map<string, Omit<PlayerRoundEvaluation, 'isOnlyWinner' | 'isOnlyLoser'>>();
     for (const bid of input.bids) {
       const actualResult = actualResultsByPlayer.get(bid.playerId);
@@ -61,7 +62,7 @@ export class ScoreCalculationService {
         continue;
       }
 
-      rawEvaluationsByPlayer.set(bid.playerId, this.evaluatePlayerRound(bid, actualResult, input));
+      rawEvaluationsByPlayer.set(bid.playerId, this.evaluatePlayerRound(bid, actualResult, input, roundRiskLevel));
     }
 
     const winnerCount = Array.from(rawEvaluationsByPlayer.values()).filter((evaluation) => evaluation.didMatchBid).length;
@@ -84,6 +85,7 @@ export class ScoreCalculationService {
         valid: true,
         errors: [],
         ownerOutcome,
+        nextRoundMultiplier: 2,
         playerScores: input.bids.map((bid) => {
           const actualResult = actualResultsByPlayer.get(bid.playerId);
           const evaluation = evaluationsByPlayer.get(bid.playerId);
@@ -96,6 +98,9 @@ export class ScoreCalculationService {
             didMatchBid: false,
             role: evaluation?.role ?? this.resolveRole(bid, input.bidOwnerPlayerId),
             riskType: evaluation?.riskType ?? this.resolveRiskType(bid, input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY),
+            isRiskTaker: evaluation?.isRiskTaker ?? false,
+            riskModifier: evaluation?.riskModifier ?? 0,
+            isHighContract: evaluation?.isHighContract ?? false,
             isOnlyWinner: false,
             isOnlyLoser: false,
             status: 'failed',
@@ -114,7 +119,7 @@ export class ScoreCalculationService {
       }
 
       const evaluation = evaluationsByPlayer.get(bid.playerId) ?? {
-        ...this.evaluatePlayerRound(bid, actualResult, input),
+        ...this.evaluatePlayerRound(bid, actualResult, input, roundRiskLevel),
         isOnlyWinner: false,
         isOnlyLoser: false,
       };
@@ -123,6 +128,8 @@ export class ScoreCalculationService {
         this.strategy.calculatePlayerScore({
           roundNumber: input.roundNumber,
           roundType: input.roundType,
+          roundRiskLevel,
+          roundMultiplier: input.roundMultiplier,
           winningContractNumber: input.winningContractNumber,
           bidOwnerPlayerId: input.bidOwnerPlayerId,
           ownerOutcome,
@@ -147,10 +154,15 @@ export class ScoreCalculationService {
     bid: EstimationBid,
     actualResult: PlayerRoundActualResult,
     input: RoundScoreInput,
+    roundRiskLevel: number,
   ): Omit<PlayerRoundEvaluation, 'isOnlyWinner' | 'isOnlyLoser'> {
     const delta = Math.abs(actualResult.actualTricks - bid.tricks);
     const didMatchBid = delta === 0;
     const highContractThreshold = input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
+    const isHighContract = bid.tricks >= highContractThreshold;
+    const isDashUnderRisk = input.roundType === 'under' && bid.bidType === 'dash' && roundRiskLevel > 0;
+    const isSequenceRiskTaker = input.riskPlayerId === bid.playerId && roundRiskLevel > 0;
+    const isRiskTaker = isDashUnderRisk || isSequenceRiskTaker;
 
     return {
       playerId: bid.playerId,
@@ -158,9 +170,29 @@ export class ScoreCalculationService {
       actualTricks: actualResult.actualTricks,
       delta,
       didMatchBid,
-      role: this.resolveRole(bid, input.bidOwnerPlayerId),
-      riskType: this.resolveRiskType(bid, highContractThreshold),
+      role: isRiskTaker ? 'risk-taker' : this.resolveRole(bid, input.bidOwnerPlayerId),
+      riskType: isRiskTaker ? 'round-risk' : this.resolveRiskType(bid, highContractThreshold),
+      isRiskTaker,
+      riskModifier: this.resolveRiskModifier(roundRiskLevel),
+      isHighContract,
     };
+  }
+
+  private resolveRoundRiskLevel(input: RoundScoreInput): number {
+    const totalEstimatedTricks = input.bids.reduce((total, bid) => total + bid.tricks, 0);
+    return Math.abs(totalEstimatedTricks - 13);
+  }
+
+  private resolveRiskModifier(roundRiskLevel: number): number {
+    if (roundRiskLevel >= 4) {
+      return 20;
+    }
+
+    if (roundRiskLevel >= 2) {
+      return 10;
+    }
+
+    return 0;
   }
 
   private resolveOwnerOutcome(
