@@ -61,8 +61,8 @@ describe('EstimationMvpService', () => {
       [
         { playerId: 'player-a', totalScore: 25 },
         { playerId: 'player-b', totalScore: 14 },
-        { playerId: 'player-d', totalScore: -14 },
-        { playerId: 'player-c', totalScore: -21 },
+        { playerId: 'player-c', totalScore: -1 },
+        { playerId: 'player-d', totalScore: -12 },
       ],
     );
   });
