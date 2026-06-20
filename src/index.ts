@@ -4,6 +4,7 @@ export * from './domain/trick.js';
 export * from './services/BidValidationService.js';
 export * from './services/HighestBidResolver.js';
 export * from './services/TrickValidationService.js';
+export * from './services/LeaderboardService.js';
 export * from './scoring/types.js';
 export * from './scoring/ConfigurableScoringStrategy.js';
 export * from './scoring/ScoreCalculationService.js';
