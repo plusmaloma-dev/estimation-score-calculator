@@ -18,6 +18,7 @@ The score engine must evaluate each player's bid, actual tricks, round role, and
    - Calculate delta = absolute value of actual - bid.
    - Assign role: bid owner, with player, normal player, dash, risk, high contract.
    - Apply the correct formula.
+7. If all players lose, score zero for the current round and apply x2 multiplier to the next round.
 
 ## Confirmed Bid Rules
 
@@ -187,6 +188,27 @@ If exactly one player loses the round, that player receives an additional fixed 
 only loser score = normal calculated loser score - 10
 ```
 
+## Confirmed All-Losers Round Rule
+
+If all four players lose in the same round:
+
+```text
+current round score for all players = 0
+next round multiplier = x2
+```
+
+The next round multiplier applies to the full calculated score of each player in the next round.
+
+Example:
+
+```text
+Round 4: all players lose => P1=0, P2=0, P3=0, P4=0
+Round 5: normal calculated scores are 24, -1, 14, -1
+Round 5 with x2 multiplier => 48, -2, 28, -2
+```
+
+Open point: If two all-loser rounds happen consecutively, confirm whether the multiplier stays x2 or stacks.
+
 ## Confirmed Dash in Under Round
 
 If a player calls Dash and the round type is Under:
@@ -276,6 +298,11 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 
 - Add -10 after normal loser calculation.
 
+### All Players Lose
+
+- Current round scores are all zero.
+- Next round score is multiplied by x2.
+
 ### Dash Under
 
 - Win: +10
@@ -291,6 +318,7 @@ The following still need confirmation:
 4. Risk player formula in Over rounds.
 5. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
 6. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
+7. Whether consecutive all-loser rounds stack the next-round multiplier or keep it at x2.
 
 ## Decision
 
