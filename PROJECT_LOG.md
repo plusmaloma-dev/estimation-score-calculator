@@ -1,5 +1,51 @@
 # Project Log
 
+## 2026-06-20 - Run 5
+
+Completed:
+
+- Continued US-204 - ScoreCalculationService Shell using the newly confirmed Egyptian Estimation rules.
+- Confirmed from the existing docs that score calculation must resolve the bid owner from `bidOwnerPlayerId` and suit/contract resolution, not from player order.
+- Added explicit scoring metadata for `isOnlyWinner` and `isOnlyLoser`.
+- Added profile configuration fields for owner loss penalty, only-loser penalty, and high-contract fixed scoring.
+- Updated `ScoreCalculationService` to:
+  - Resolve the bid owner dynamically from `bidOwnerPlayerId`.
+  - Calculate only-winner and only-loser flags after evaluating all four players.
+  - Apply the all-loser rule by returning zero scores for all players and noting that the next round should receive x2.
+- Updated `ConfigurableScoringStrategy` to implement confirmed Egyptian formulas:
+  - Normal win: `bid + winnerBaseBonus`.
+  - Bid-owner / With win: normal win plus configured owner win bonus.
+  - Normal loss: `-delta`.
+  - Bid-owner / With loss: normal loss minus configured owner loss penalty.
+  - Only winner: additional configured +10.
+  - Only loser: additional configured -10.
+  - Under Dash win/loss: configured +10 / -10.
+  - High-contract win/loss fixed formulas when configured.
+- Added regression tests for realistic owner rotation:
+  - Bid owner is player B, not player A/player 1.
+  - Bid owner is player C with a With player.
+  - Only-winner scoring independent of owner position.
+  - All-loser round scoring to zero.
+- Updated `BACKLOG.md` to show score calculation at 82% and overall project progress at 62%.
+
+Current item in progress:
+
+- US-204 - ScoreCalculationService Shell finalization and remaining rule-confirmation cleanup.
+
+Blockers:
+
+- Risk-taker identification remains open. The docs currently state the likely rule but it needs final confirmation before implementing automatic risk bonus/penalty assignment.
+- Dash behavior in Over rounds is still unconfirmed.
+- Dash Call formula is still unconfirmed.
+- Whether With can apply to high contracts is still unconfirmed.
+- Whether only-winner/only-loser modifiers apply to high-contract and Dash rounds is still unconfirmed.
+- Consecutive all-loser multiplier behavior is still unconfirmed: keep x2 or stack.
+- Tests were committed but should be verified by GitHub Actions or a local `npm install && npm test` run.
+
+Overall progress:
+
+- 62% complete.
+
 ## 2026-06-20 - Run 4
 
 Completed:
