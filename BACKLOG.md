@@ -22,7 +22,7 @@
 | UI/API integration | Done | 100% |
 | Acceptance dataset | Done | 100% |
 | Persistence | Done | 100% |
-| Statistics | Backlog | 0% |
+| Statistics | In Progress | 80% |
 | Import/export | Backlog | 0% |
 
 Overall progress: **99%**
@@ -50,10 +50,14 @@ Status: **Done**
 - Add persistence boundary usage notes to README or dedicated docs. **Done**
 
 ### US-209 — Statistics
-Status: **Backlog**
+Status: **In Progress**
 
-- Define statistics outputs after score-sheet persistence stabilizes. **Next**
-- Suggested first slice: calculate per-player summary stats from persisted or calculated game results without introducing UI/database coupling.
+- Define statistics outputs after score-sheet persistence stabilizes. **Done**
+- Suggested first slice: calculate per-player summary stats from persisted or calculated game results without introducing UI/database coupling. **Done**
+- Add `StatisticsService` and statistics DTOs. **Done**
+- Add executable tests for statistics summaries. **Done**
+- Add README usage notes. **Done**
+- Remaining: confirm `npm test` / CI status before marking fully done.
 
 ### US-210 — Import/export
 Status: **Backlog**
