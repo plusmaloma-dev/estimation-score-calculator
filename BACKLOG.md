@@ -17,15 +17,15 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | Done | 95% |
+| Score calculation | Done | 97% |
 | Leaderboard | Done | 100% |
 | UI/API integration | In Progress | 65% |
-| Acceptance dataset | In Progress | 20% |
+| Acceptance dataset | In Progress | 30% |
 | Persistence | Backlog | 0% |
 | Statistics | Backlog | 0% |
 | Import/export | Backlog | 0% |
 
-Overall progress: **96%**
+Overall progress: **97%**
 
 ## Implementation Backlog
 
@@ -83,7 +83,7 @@ Acceptance criteria:
 - Implement Dash Call: success +35, failure delta * -1 -25. **Ready/Confirmed**
 - Apply Risk and Double Risk to the last bidder based on success/failure. **Ready/Confirmed**
 - Apply round x2 multiplier for configured follow-up rounds. **Done**
-- Track consecutive all-loser multiplier escalation x2 then x4 and onward unless capped. **Ready/Confirmed**
+- Track consecutive all-loser multiplier escalation x2 then x4 and onward unless capped. **Done**
 - Include tests for confirmed paths. **Partial**
 
 ### US-205 — LeaderboardService
@@ -119,7 +119,7 @@ Acceptance criteria:
 - WITH scenarios including high contracts. **Next**
 - Dash and Dash Call scenarios. **Next**
 - Risk and Double Risk scenarios. **Next**
-- Consecutive all-loser multiplier scenarios. **Next**
+- Consecutive all-loser multiplier scenarios. **Done**
 - Mixed scenarios covering bonus and risk combinations. **Next**
 
 ### US-208 — Persistence
