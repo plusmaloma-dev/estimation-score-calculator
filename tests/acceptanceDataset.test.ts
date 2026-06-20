@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ScoreCalculationService, type RoundScoreInput, type ScoringProfile } from '../src/index.js';
+import { ScoreCalculationService, type OwnerRoundOutcome, type RoundScoreInput, type ScoringProfile } from '../src/index.js';
 
 const profile: ScoringProfile = {
   id: 'egyptian-estimation-local',
@@ -27,7 +27,7 @@ interface AcceptanceCase {
   readonly name: string;
   readonly input: RoundScoreInput;
   readonly expectedScores: Readonly<Record<string, number>>;
-  readonly expectedOwnerOutcome?: RoundScoreInput['roundType'] extends never ? never : 'owner-won' | 'owner-lost';
+  readonly expectedOwnerOutcome?: OwnerRoundOutcome;
   readonly expectedNextRoundMultiplier?: number;
 }
 
