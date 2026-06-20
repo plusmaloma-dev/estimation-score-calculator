@@ -10,3 +10,5 @@ export * from './scoring/types.js';
 export * from './scoring/ConfigurableScoringStrategy.js';
 export * from './scoring/ScoreCalculationService.js';
 export * from './scoring/BalanceAccumulator.js';
+export * from './persistence/types.js';
+export * from './persistence/InMemoryScoreSheetRepository.js';
