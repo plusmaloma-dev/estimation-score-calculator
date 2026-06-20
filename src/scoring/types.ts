@@ -14,6 +14,9 @@ export interface ScoringProfile {
   readonly name: string;
   readonly type: ScoringProfileType;
   readonly scope?: ScoringScope;
+  readonly winnerBaseBonus?: 10 | 13;
+  readonly bidOwnerWinBonus?: number;
+  readonly onlyWinnerBonus?: 10;
   readonly normalBidSuccessBase?: number;
   readonly normalBidSuccessPerTrick?: number;
   readonly normalBidFailurePenaltyPerTrickDifference?: number;
@@ -50,6 +53,7 @@ export interface PlayerRoundEvaluation {
   readonly didMatchBid: boolean;
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
+  readonly isOnlyWinner: boolean;
 }
 
 export interface ScoreContext {
@@ -73,6 +77,7 @@ export interface PlayerScoreResult {
   readonly didMatchBid: boolean;
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
+  readonly isOnlyWinner: boolean;
   readonly status: ScoreStatus;
   readonly score: number;
   readonly notes: readonly string[];
