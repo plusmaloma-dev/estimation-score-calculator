@@ -15,12 +15,12 @@
 | Card and bid domain model | Done | 100% |
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
-| Trick validation | Next | 0% |
-| Score calculation | Planned | 0% |
+| Trick validation | Done | 100% |
+| Score calculation | Next | 0% |
 | Leaderboard | Planned | 0% |
 | UI/API integration | Planned | 0% |
 
-Overall progress: **36%**
+Overall progress: **46%**
 
 ## Implementation Backlog
 
@@ -50,7 +50,7 @@ Acceptance criteria:
 
 ### US-203 — TrickValidationService
 
-Status: **Next**
+Status: **Done**
 
 Acceptance criteria:
 
@@ -61,7 +61,7 @@ Acceptance criteria:
 
 ### US-204 — ScoreCalculationService Shell
 
-Status: **Planned**
+Status: **Next**
 
 Acceptance criteria:
 
