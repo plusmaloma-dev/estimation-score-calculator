@@ -13,6 +13,7 @@ Score calculation engine for the Egyptian Estimation card game (إستيميشن
 - WITH support
 - Leaderboard aggregation
 - Optional score-sheet persistence boundary
+- Game/player statistics summaries
 
 ## Usage Example
 
@@ -40,8 +41,8 @@ const result = service.calculateRound({
   ],
 });
 
-if (result.valid) {
-  console.log(result.playerScores);
+if (result.valid && result.scoreResult) {
+  console.log(result.scoreResult.playerScores);
 }
 ```
 
@@ -95,6 +96,27 @@ console.log(repository.list());
 ```
 
 Future storage adapters should implement `ScoreSheetRepository` and preserve the current DTO boundary instead of coupling the scoring engine to a specific database.
+
+## Statistics
+
+Use `StatisticsService` after calculating a game result. Statistics are derived from score results and do not introduce new Egyptian Estimation scoring rules, UI coupling, or database coupling.
+
+```ts
+import {
+  EstimationMvpService,
+  StatisticsService,
+} from './src/index.js';
+
+const gameResult = new EstimationMvpService().calculateGame(gameInput);
+const statistics = new StatisticsService().summarizeGame(gameResult, {
+  playerOrder: gameInput.playerOrder,
+});
+
+console.log(statistics.playerStatistics);
+console.log(statistics.highestScorePlayerId);
+```
+
+The player statistics DTO includes totals, rounds played, exact-bid rate, average score, best/worst round, Dash/Dash Call counters, risk counters, WITH participation, and high-contract counts.
 
 ## Project Rules
 
