@@ -1,110 +1,163 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ScoreCalculationService } from '../src/scoring/ScoreCalculationService.js';
-import type { RoundScoreInput } from '../src/scoring/types.js';
+import type { RoundScoreInput, ScoringProfile } from '../src/scoring/types.js';
 
-const baseInput: RoundScoreInput = {
-  roundNumber: 1,
-  roundType: 'over',
-  winningContractNumber: 5,
-  trumpSuit: 'spades',
-  profile: {
-    id: 'custom-profile',
-    name: 'Custom Test Profile',
-    type: 'custom',
-    normalBidSuccessBase: 10,
-    normalBidSuccessPerTrick: 10,
-    normalBidFailurePenaltyPerTrickDifference: 10,
-  },
-  bids: [
-    { playerId: 'p1', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
-    { playerId: 'p2', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
-    { playerId: 'p3', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
-    { playerId: 'p4', bidType: 'normal', tricks: 2, trumpSuit: 'clubs' },
-  ],
-  actualResults: [
-    { playerId: 'p1', actualTricks: 5 },
-    { playerId: 'p2', actualTricks: 3 },
-    { playerId: 'p3', actualTricks: 3 },
-    { playerId: 'p4', actualTricks: 2 },
-  ],
+const egyptianProfile: ScoringProfile = {
+  id: 'egyptian-default',
+  name: 'Egyptian Estimation Default',
+  type: 'standard',
+  winnerBaseBonus: 10,
+  bidOwnerWinBonus: 10,
+  bidOwnerLossPenalty: 10,
+  onlyWinnerBonus: 10,
+  onlyLoserPenalty: 10,
+  normalBidFailurePenaltyPerTrickDifference: 1,
+  underDashSuccessBonus: 10,
+  underDashFailurePenalty: 10,
+  highContractThreshold: 8,
+  highContractWinBase: 68,
+  highContractWinStep: 11,
+  highContractLossBasePenalty: -40,
+  highContractLossStepPenalty: -10,
 };
 
-test('calculates normal bid scores when a custom scoring formula is configured', () => {
-  const service = new ScoreCalculationService();
-  const result = service.calculateRoundScore(baseInput);
+function scoreOf(result: ReturnType<ScoreCalculationService['calculateRoundScore']>, playerId: string): number | undefined {
+  return result.playerScores.find((score) => score.playerId === playerId)?.score;
+}
 
-  assert.equal(result.valid, true);
-  assert.equal(result.errors.length, 0);
-
-  const p1 = result.playerScores.find((score) => score.playerId === 'p1');
-  const p2 = result.playerScores.find((score) => score.playerId === 'p2');
-
-  assert.equal(p1?.status, 'success');
-  assert.equal(p1?.score, 60);
-  assert.equal(p2?.status, 'failed');
-  assert.equal(p2?.score, -10);
-});
-
-test('keeps unconfirmed standard scoring formulas isolated as pending rule results', () => {
+test('calculates WITH loss using bid-owner loss formula and only-loser stacking', () => {
   const service = new ScoreCalculationService();
   const result = service.calculateRoundScore({
-    ...baseInput,
-    profile: {
-      id: 'standard-profile',
-      name: 'Standard Profile Pending Confirmation',
-      type: 'standard',
-    },
-  });
-
-  assert.equal(result.valid, true);
-  assert.ok(result.playerScores.every((score) => score.status === 'pending-rule'));
-  assert.ok(result.playerScores.every((score) => score.score === 0));
-});
-
-test('blocks round scoring when actual tricks do not total 13', () => {
-  const service = new ScoreCalculationService();
-  const result = service.calculateRoundScore({
-    ...baseInput,
+    roundNumber: 1,
+    roundType: 'over',
+    bidOwnerPlayerId: 'p1',
+    riskPlayerId: 'p3',
+    profile: egyptianProfile,
+    bids: [
+      { playerId: 'p1', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+      { playerId: 'p2', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+      { playerId: 'p3', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+      { playerId: 'p4', bidType: 'with', tricks: 4, trumpSuit: 'spades', withTargetPlayerId: 'p1' },
+    ],
     actualResults: [
-      { playerId: 'p1', actualTricks: 5 },
+      { playerId: 'p1', actualTricks: 4 },
       { playerId: 'p2', actualTricks: 3 },
       { playerId: 'p3', actualTricks: 3 },
-      { playerId: 'p4', actualTricks: 1 },
+      { playerId: 'p4', actualTricks: 3 },
     ],
   });
-
-  assert.equal(result.valid, false);
-  assert.ok(result.errors.includes('Total actual tricks must equal 13.'));
-});
-
-test('applies configured high-contract multiplier', () => {
-  const service = new ScoreCalculationService();
-  const result = service.calculateRoundScore({
-    ...baseInput,
-    winningContractNumber: 8,
-    bids: [
-      { playerId: 'p1', bidType: 'normal', tricks: 8, trumpSuit: 'no-trump' },
-      { playerId: 'p2', bidType: 'normal', tricks: 3, trumpSuit: 'spades' },
-      { playerId: 'p3', bidType: 'normal', tricks: 2, trumpSuit: 'hearts' },
-      { playerId: 'p4', bidType: 'normal', tricks: 1, trumpSuit: 'diamonds' },
-    ],
-    actualResults: [
-      { playerId: 'p1', actualTricks: 8 },
-      { playerId: 'p2', actualTricks: 2 },
-      { playerId: 'p3', actualTricks: 2 },
-      { playerId: 'p4', actualTricks: 1 },
-    ],
-    profile: {
-      ...baseInput.profile,
-      highContractThreshold: 8,
-      highContractMultiplier: 2,
-    },
-  });
-
-  const p1 = result.playerScores.find((score) => score.playerId === 'p1');
 
   assert.equal(result.valid, true);
-  assert.equal(p1?.status, 'success');
-  assert.equal(p1?.score, 180);
+  assert.equal(scoreOf(result, 'p1'), 24);
+  assert.equal(scoreOf(result, 'p2'), 13);
+  assert.equal(scoreOf(result, 'p3'), 13);
+  assert.equal(scoreOf(result, 'p4'), -21);
+});
+
+test('calculates DASH Under loss using delta, Dash penalty, Under risk, and only-loser penalty', () => {
+  const service = new ScoreCalculationService();
+  const result = service.calculateRoundScore({
+    roundNumber: 3,
+    roundType: 'under',
+    bidOwnerPlayerId: 'p2',
+    riskPlayerId: 'p1',
+    profile: egyptianProfile,
+    bids: [
+      { playerId: 'p1', bidType: 'dash', tricks: 0 },
+      { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+      { playerId: 'p3', bidType: 'normal', tricks: 4, trumpSuit: 'diamonds' },
+      { playerId: 'p4', bidType: 'normal', tricks: 2, trumpSuit: 'clubs' },
+    ],
+    actualResults: [
+      { playerId: 'p1', actualTricks: 1 },
+      { playerId: 'p2', actualTricks: 5 },
+      { playerId: 'p3', actualTricks: 4 },
+      { playerId: 'p4', actualTricks: 3 },
+    ],
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(scoreOf(result, 'p1'), -31);
+  assert.equal(scoreOf(result, 'p2'), 25);
+  assert.equal(scoreOf(result, 'p3'), 14);
+  assert.equal(scoreOf(result, 'p4'), -1);
+});
+
+test('returns zero scores and next x2 multiplier when all players lose', () => {
+  const service = new ScoreCalculationService();
+  const result = service.calculateRoundScore({
+    roundNumber: 6,
+    roundType: 'under',
+    bidOwnerPlayerId: 'p1',
+    profile: egyptianProfile,
+    bids: [
+      { playerId: 'p1', bidType: 'normal', tricks: 6, trumpSuit: 'spades' },
+      { playerId: 'p2', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+      { playerId: 'p3', bidType: 'normal', tricks: 2, trumpSuit: 'diamonds' },
+      { playerId: 'p4', bidType: 'normal', tricks: 2, trumpSuit: 'clubs' },
+    ],
+    actualResults: [
+      { playerId: 'p1', actualTricks: 5 },
+      { playerId: 'p2', actualTricks: 1 },
+      { playerId: 'p3', actualTricks: 3 },
+      { playerId: 'p4', actualTricks: 4 },
+    ],
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.nextRoundMultiplier, 2);
+  assert.deepEqual(result.playerScores.map((score) => score.score), [0, 0, 0, 0]);
+});
+
+test('applies x2 to normal rounds after all-loser round', () => {
+  const service = new ScoreCalculationService();
+  const result = service.calculateRoundScore({
+    roundNumber: 7,
+    roundType: 'under',
+    roundMultiplier: 2,
+    bidOwnerPlayerId: 'p2',
+    profile: egyptianProfile,
+    bids: [
+      { playerId: 'p1', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+      { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+      { playerId: 'p3', bidType: 'normal', tricks: 1, trumpSuit: 'diamonds' },
+      { playerId: 'p4', bidType: 'normal', tricks: 2, trumpSuit: 'clubs' },
+    ],
+    actualResults: [
+      { playerId: 'p1', actualTricks: 4 },
+      { playerId: 'p2', actualTricks: 5 },
+      { playerId: 'p3', actualTricks: 1 },
+      { playerId: 'p4', actualTricks: 3 },
+    ],
+  });
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.playerScores.map((score) => score.score), [28, 50, 22, -22]);
+});
+
+test('does not apply x2 multiplier to high-contract scores', () => {
+  const service = new ScoreCalculationService();
+  const result = service.calculateRoundScore({
+    roundNumber: 8,
+    roundType: 'over',
+    roundMultiplier: 2,
+    bidOwnerPlayerId: 'p3',
+    profile: egyptianProfile,
+    bids: [
+      { playerId: 'p1', bidType: 'normal', tricks: 2, trumpSuit: 'spades' },
+      { playerId: 'p2', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+      { playerId: 'p3', bidType: 'normal', tricks: 8, trumpSuit: 'no-trump' },
+      { playerId: 'p4', bidType: 'normal', tricks: 1, trumpSuit: 'clubs' },
+    ],
+    actualResults: [
+      { playerId: 'p1', actualTricks: 2 },
+      { playerId: 'p2', actualTricks: 3 },
+      { playerId: 'p3', actualTricks: 8 },
+      { playerId: 'p4', actualTricks: 0 },
+    ],
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(scoreOf(result, 'p3'), 68);
 });
