@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-06-20 - Run 4
+
+Completed:
+
+- Resumed US-204 - ScoreCalculationService Shell after clarifying the actual-tricks vs estimated-tricks rule.
+- Wired `PlayerRoundEvaluation` into `ScoreCalculationService`.
+- Added per-player `delta`, `didMatchBid`, role, and risk-type evaluation before score strategy execution.
+- Added `ownerOutcome` derivation from the bid owner's actual-vs-estimate result when `bidOwnerPlayerId` is provided.
+- Updated `ConfigurableScoringStrategy` so success/failure is based on `evaluation.didMatchBid` and failure penalties use `evaluation.delta`.
+- Added a regression test covering exact-match winners and delta-based losers.
+- Updated `BACKLOG.md` to show score calculation at 70% and overall project progress at 58%.
+
+Current item in progress:
+
+- US-204 - ScoreCalculationService Shell finalization and rule-confirmation cleanup.
+
+Blockers:
+
+- Final official Egyptian Estimation scoring formulas still need confirmation before StandardScoringStrategy can be finalized.
+- Dash, Dash Call, With, and high-contract variants remain configurable pending confirmation.
+- Existing older tests still reference the removed Planning Poker-style `mode` field; attempted direct test-file cleanup was blocked by the connector safety layer, so this remains a follow-up cleanup item.
+- Tests were committed but should be verified by GitHub Actions or a local `npm install && npm test` run.
+
+Overall progress:
+
+- 58% complete.
+
 ## 2026-06-20 - Run 3
 
 Completed:
