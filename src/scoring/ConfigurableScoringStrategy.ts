@@ -21,11 +21,11 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
       }
 
-      return this.calculateSpecialBidScore(context, profile.dashSuccessScore, profile.dashFailureScore, 'Dash');
+      return this.calculateDashScore(context);
     }
 
     if (playerBid.bidType === 'dash-call') {
-      return this.calculateSpecialBidScore(context, profile.dashCallSuccessScore, profile.dashCallFailureScore, 'Dash Call');
+      return this.calculateDashCallScore(context);
     }
 
     if (evaluation.isHighContract && evaluation.riskType === 'high-contract') {
@@ -104,6 +104,48 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     return this.result(context, score, 'failed', notes);
   }
 
+  private calculateDashScore(context: ScoreContext): PlayerScoreResult {
+    const { evaluation, profile } = context;
+    const notes: string[] = [];
+    let score: number;
+
+    if (evaluation.didMatchBid) {
+      score = profile.dashSuccessScore ?? 10;
+      notes.push('Dash successful.');
+    } else {
+      score = -evaluation.delta;
+      notes.push('Dash failed.');
+      notes.push(`Dash delta: ${evaluation.delta}.`);
+    }
+
+    score = this.applyRisk(score, context, notes);
+    score = this.applyOnlyWinnerLoser(score, context, notes);
+    score = this.applyRoundMultiplier(score, context, notes);
+
+    return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
+  }
+
+  private calculateDashCallScore(context: ScoreContext): PlayerScoreResult {
+    const { evaluation, profile } = context;
+    const notes: string[] = [];
+    let score: number;
+
+    if (evaluation.didMatchBid) {
+      score = profile.dashCallSuccessScore ?? 35;
+      notes.push('Dash Call successful.');
+    } else {
+      score = -evaluation.delta - 25;
+      notes.push('Dash Call failed.');
+      notes.push(`Dash Call delta: ${evaluation.delta}.`);
+    }
+
+    score = this.applyRisk(score, context, notes);
+    score = this.applyOnlyWinnerLoser(score, context, notes);
+    score = this.applyRoundMultiplier(score, context, notes);
+
+    return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
+  }
+
   private applyRisk(score: number, context: ScoreContext, notes: string[]): number {
     const { evaluation } = context;
     if (!evaluation.isRiskTaker || evaluation.riskModifier === 0) {
@@ -141,26 +183,6 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
 
     notes.push(`Round multiplier applied: x${multiplier}.`);
     return score * multiplier;
-  }
-
-  private calculateSpecialBidScore(
-    context: ScoreContext,
-    successScore: number | undefined,
-    failureScore: number | undefined,
-    label: string,
-  ): PlayerScoreResult {
-    const { evaluation } = context;
-
-    if (successScore === undefined || failureScore === undefined) {
-      return this.pendingResult(context, `${label} scoring is not confirmed yet.`);
-    }
-
-    return this.result(
-      context,
-      evaluation.didMatchBid ? successScore : failureScore,
-      evaluation.didMatchBid ? 'success' : 'failed',
-      [`${label} ${evaluation.didMatchBid ? 'successful' : 'failed'}.`],
-    );
   }
 
   private result(
