@@ -35,10 +35,10 @@ const allLoserRound: Omit<RoundScoreInput, 'roundNumber' | 'roundMultiplier'> = 
     { playerId: 'p4', bidType: 'normal', tricks: 1 },
   ],
   actualResults: [
-    { playerId: 'p1', actualTricks: 5 },
+    { playerId: 'p1', actualTricks: 6 },
     { playerId: 'p2', actualTricks: 4 },
     { playerId: 'p3', actualTricks: 3 },
-    { playerId: 'p4', actualTricks: 1 },
+    { playerId: 'p4', actualTricks: 0 },
   ],
   profile,
 };
