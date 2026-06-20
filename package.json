@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --test",
+    "test": "rm -rf dist && tsc --outDir dist && node --test dist/tests/**/*.test.js",
     "build": "tsc --noEmit"
   },
   "devDependencies": {
