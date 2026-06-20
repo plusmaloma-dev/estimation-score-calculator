@@ -38,9 +38,9 @@ const gameInput: MvpGameInput = {
       profile,
       bids: [
         { playerId: 'A', bidType: 'normal', tricks: 4 },
-        { playerId: 'B', bidType: 'normal', tricks: 3 },
+        { playerId: 'B', bidType: 'normal', tricks: 5 },
         { playerId: 'C', bidType: 'dash', tricks: 0 },
-        { playerId: 'D', bidType: 'normal', tricks: 4 },
+        { playerId: 'D', bidType: 'normal', tricks: 5 },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 4 },
@@ -54,7 +54,7 @@ const gameInput: MvpGameInput = {
       profile,
       bids: [
         { playerId: 'A', bidType: 'normal', tricks: 8 },
-        { playerId: 'B', bidType: 'normal', tricks: 2 },
+        { playerId: 'B', bidType: 'normal', tricks: 4 },
         { playerId: 'C', bidType: 'dash-call', tricks: 0 },
         { playerId: 'D', bidType: 'with', tricks: 2 },
       ],
