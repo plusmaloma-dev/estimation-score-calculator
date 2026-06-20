@@ -23,6 +23,8 @@ const profile: ScoringProfile = {
   highContractWinStep: 10,
   highContractLossBasePenalty: -80,
   highContractLossStepPenalty: -10,
+  dashSuccessScore: 10,
+  dashCallSuccessScore: 35,
 };
 
 const bids: readonly EstimationBid[] = [
@@ -89,5 +91,66 @@ describe('EstimationMvpService', () => {
     assert.equal(result.scoreResult, undefined);
     assert.ok(result.errors.some((error) => error.includes('Dash and Dash Call bids must use 0 estimated tricks')));
     assert.ok(result.errors.some((error) => error.includes('Total estimates cannot equal 13')));
+  });
+
+  it('returns DTO metadata for Dash Call and explicit round-risk scoring', () => {
+    const result = service.calculateRound({
+      roundNumber: 2,
+      riskPlayerId: 'player-a',
+      bids: [
+        { playerId: 'player-a', bidType: 'dash-call', tricks: 0 },
+        { playerId: 'player-b', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        { playerId: 'player-c', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+        { playerId: 'player-d', bidType: 'normal', tricks: 5, trumpSuit: 'clubs' },
+      ],
+      actualResults: [
+        { playerId: 'player-a', actualTricks: 2 },
+        { playerId: 'player-b', actualTricks: 5 },
+        { playerId: 'player-c', actualTricks: 4 },
+        { playerId: 'player-d', actualTricks: 2 },
+      ],
+      profile,
+    });
+
+    const dashCallScore = result.scoreResult?.playerScores.find((score) => score.playerId === 'player-a');
+
+    assert.equal(result.valid, true);
+    assert.equal(result.bidValidation.roundType, 'over');
+    assert.equal(dashCallScore?.role, 'risk-taker');
+    assert.equal(dashCallScore?.riskType, 'round-risk');
+    assert.equal(dashCallScore?.isRiskTaker, true);
+    assert.equal(dashCallScore?.riskModifier, 10);
+    assert.equal(dashCallScore?.delta, 2);
+    assert.equal(dashCallScore?.score, -37);
+  });
+
+  it('returns DTO metadata for WITH bids and all-loser next-round multipliers', () => {
+    const result = service.calculateRound({
+      roundNumber: 3,
+      roundMultiplier: 2,
+      bidOwnerPlayerId: 'player-b',
+      bids: [
+        { playerId: 'player-a', bidType: 'normal', tricks: 4, trumpSuit: 'clubs' },
+        { playerId: 'player-b', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+        { playerId: 'player-c', bidType: 'with', tricks: 4, trumpSuit: 'spades', withTargetPlayerId: 'player-b' },
+        { playerId: 'player-d', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+      ],
+      actualResults: [
+        { playerId: 'player-a', actualTricks: 5 },
+        { playerId: 'player-b', actualTricks: 3 },
+        { playerId: 'player-c', actualTricks: 2 },
+        { playerId: 'player-d', actualTricks: 3 },
+      ],
+      profile,
+    });
+
+    const withScore = result.scoreResult?.playerScores.find((score) => score.playerId === 'player-c');
+
+    assert.equal(result.valid, true);
+    assert.equal(result.scoreResult?.nextRoundMultiplier, 4);
+    assert.equal(withScore?.role, 'with-player');
+    assert.equal(withScore?.riskType, 'with');
+    assert.equal(withScore?.score, 0);
+    assert.ok(withScore?.notes.some((note) => note.includes('next round should receive the x4 multiplier')));
   });
 });
