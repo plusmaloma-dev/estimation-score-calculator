@@ -1,5 +1,43 @@
 # Project Log
 
+## 2026-06-20 - Run 7
+
+Completed:
+
+- Implemented US-205 - LeaderboardService.
+- Added `LeaderboardService` with:
+  - Round score aggregation by player.
+  - Descending total-score sorting.
+  - Deterministic tie ordering by first-seen player order or optional declared `playerOrder`.
+  - Validation for blank player ids, non-finite scores, and duplicate player entries in the same round input.
+- Exported `LeaderboardService` from the public package index.
+- Added unit tests for:
+  - Multi-round score aggregation.
+  - Descending total-score ordering.
+  - Tie stability using first-seen order.
+  - Optional declared player-order tie stability.
+  - Duplicate same-round player rejection.
+- Cleaned the older BidValidationService tests to match the Egyptian Estimation bid model and remove the obsolete Planning Poker-style `mode` field.
+- Updated `BACKLOG.md` to mark Leaderboard done, move UI/API integration to next, and raise overall progress to 72%.
+
+Current item in progress:
+
+- US-206 - UI/API Integration Shell.
+
+Blockers:
+
+- Need CI/local test execution confirmation.
+- ScoreCalculationService remains partly blocked by rule confirmations:
+  - Dash behavior in Over rounds.
+  - Dash Call formula.
+  - Whether With can apply to high contracts.
+  - Whether high-contract scores stack with Only Winner / Only Loser.
+  - Consecutive all-loser multiplier behavior.
+
+Overall progress:
+
+- 72% complete.
+
 ## 2026-06-20 - Run 6
 
 Completed:
