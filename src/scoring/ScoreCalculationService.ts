@@ -54,17 +54,57 @@ export class ScoreCalculationService {
       errors.push('Total actual tricks must equal 13.');
     }
 
-    const evaluationsByPlayer = new Map<string, PlayerRoundEvaluation>();
+    const rawEvaluationsByPlayer = new Map<string, Omit<PlayerRoundEvaluation, 'isOnlyWinner' | 'isOnlyLoser'>>();
     for (const bid of input.bids) {
       const actualResult = actualResultsByPlayer.get(bid.playerId);
       if (actualResult === undefined) {
         continue;
       }
 
-      evaluationsByPlayer.set(bid.playerId, this.evaluatePlayerRound(bid, actualResult, input));
+      rawEvaluationsByPlayer.set(bid.playerId, this.evaluatePlayerRound(bid, actualResult, input));
+    }
+
+    const winnerCount = Array.from(rawEvaluationsByPlayer.values()).filter((evaluation) => evaluation.didMatchBid).length;
+    const loserCount = Array.from(rawEvaluationsByPlayer.values()).filter((evaluation) => !evaluation.didMatchBid).length;
+    const allPlayersLost = rawEvaluationsByPlayer.size === 4 && loserCount === 4;
+
+    const evaluationsByPlayer = new Map<string, PlayerRoundEvaluation>();
+    for (const [playerId, evaluation] of rawEvaluationsByPlayer.entries()) {
+      evaluationsByPlayer.set(playerId, {
+        ...evaluation,
+        isOnlyWinner: evaluation.didMatchBid && winnerCount === 1,
+        isOnlyLoser: !evaluation.didMatchBid && loserCount === 1,
+      });
     }
 
     const ownerOutcome = this.resolveOwnerOutcome(input.bidOwnerPlayerId, evaluationsByPlayer);
+
+    if (errors.length === 0 && allPlayersLost) {
+      return {
+        valid: true,
+        errors: [],
+        ownerOutcome,
+        playerScores: input.bids.map((bid) => {
+          const actualResult = actualResultsByPlayer.get(bid.playerId);
+          const evaluation = evaluationsByPlayer.get(bid.playerId);
+
+          return {
+            playerId: bid.playerId,
+            bidTricks: bid.tricks,
+            actualTricks: actualResult?.actualTricks ?? 0,
+            delta: evaluation?.delta ?? 0,
+            didMatchBid: false,
+            role: evaluation?.role ?? this.resolveRole(bid, input.bidOwnerPlayerId),
+            riskType: evaluation?.riskType ?? this.resolveRiskType(bid, input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY),
+            isOnlyWinner: false,
+            isOnlyLoser: false,
+            status: 'failed',
+            score: 0,
+            notes: ['All players lost: current round scores are zero and the next round should receive the x2 multiplier.'],
+          };
+        }),
+      };
+    }
 
     for (const bid of input.bids) {
       const actualResult = actualResultsByPlayer.get(bid.playerId);
@@ -73,7 +113,11 @@ export class ScoreCalculationService {
         continue;
       }
 
-      const evaluation = evaluationsByPlayer.get(bid.playerId) ?? this.evaluatePlayerRound(bid, actualResult, input);
+      const evaluation = evaluationsByPlayer.get(bid.playerId) ?? {
+        ...this.evaluatePlayerRound(bid, actualResult, input),
+        isOnlyWinner: false,
+        isOnlyLoser: false,
+      };
 
       playerScores.push(
         this.strategy.calculatePlayerScore({
@@ -103,7 +147,7 @@ export class ScoreCalculationService {
     bid: EstimationBid,
     actualResult: PlayerRoundActualResult,
     input: RoundScoreInput,
-  ): PlayerRoundEvaluation {
+  ): Omit<PlayerRoundEvaluation, 'isOnlyWinner' | 'isOnlyLoser'> {
     const delta = Math.abs(actualResult.actualTricks - bid.tricks);
     const didMatchBid = delta === 0;
     const highContractThreshold = input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
