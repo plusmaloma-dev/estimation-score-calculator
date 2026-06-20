@@ -1,6 +1,9 @@
 import { FULL_DECK_SIZE, isValidContractSuit } from '../domain/card.js';
 import type { BidValidationOptions, EstimationBid, RoundBidValidationResult, ValidationResult } from '../domain/bid.js';
 
+const MIN_NORMAL_CONTRACT = 4;
+const MAX_NORMAL_CONTRACT = 13;
+
 export class BidValidationService {
   validateBid(
     bid: EstimationBid,
@@ -37,6 +40,10 @@ export class BidValidationService {
     }
 
     if (bid.bidType === 'normal') {
+      if (bid.tricks < MIN_NORMAL_CONTRACT || bid.tricks > MAX_NORMAL_CONTRACT) {
+        errors.push('Normal bids must be between 4 and 13 tricks.');
+      }
+
       if (bid.trumpSuit === undefined) {
         errors.push('Normal bids require a trump suit or no-trump contract.');
       } else if (!isValidContractSuit(bid.trumpSuit)) {
