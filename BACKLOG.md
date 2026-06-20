@@ -17,15 +17,15 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | Done | 97% |
+| Score calculation | Done | 98% |
 | Leaderboard | Done | 100% |
-| UI/API integration | In Progress | 65% |
-| Acceptance dataset | In Progress | 30% |
+| UI/API integration | In Progress | 85% |
+| Acceptance dataset | In Progress | 45% |
 | Persistence | Backlog | 0% |
 | Statistics | Backlog | 0% |
 | Import/export | Backlog | 0% |
 
-Overall progress: **97%**
+Overall progress: **98%**
 
 ## Implementation Backlog
 
@@ -79,9 +79,9 @@ Acceptance criteria:
 - Apply all-loser zero-score round rule. **Done**
 - Implement confirmed high-contract fixed score formulas. **Done**
 - Implement Under Dash bonus/penalty. **Done**
-- Implement Dash in Over: success +10, failure delta * -1. **Ready/Confirmed**
-- Implement Dash Call: success +35, failure delta * -1 -25. **Ready/Confirmed**
-- Apply Risk and Double Risk to the last bidder based on success/failure. **Ready/Confirmed**
+- Implement Dash in Over: success +10, failure delta * -1. **Done**
+- Implement Dash Call: success +35, failure delta * -1 -25. **Done**
+- Apply Risk and Double Risk to the last bidder based on success/failure. **Done**
 - Apply round x2 multiplier for configured follow-up rounds. **Done**
 - Track consecutive all-loser multiplier escalation x2 then x4 and onward unless capped. **Done**
 - Include tests for confirmed paths. **Partial**
@@ -106,8 +106,9 @@ Acceptance criteria:
 - Expose an implementation-ready application service for validating bids, calculating a round score, and aggregating leaderboard totals. **Done**
 - Keep the service framework-agnostic so it can be used by a future UI or API. **Done**
 - Return validation and scoring errors without throwing for normal user-input mistakes. **Done**
-- Include integration-style tests for a complete MVP scoring flow. **Partial**
-- Add/confirm DTO support for Dash Call, Risk, Double Risk, WITH, and all-loser multiplier metadata. **Next**
+- Include integration-style tests for a complete MVP scoring flow. **Done**
+- Add/confirm DTO support for Dash Call, Risk, Double Risk, WITH, and all-loser multiplier metadata. **Done**
+- Add a thin README usage example for future UI/API callers. **Next**
 
 ### US-207 — Acceptance Dataset
 
@@ -116,9 +117,9 @@ Status: **In Progress**
 Acceptance criteria:
 
 - Under and Over scoring scenarios. **Next**
-- WITH scenarios including high contracts. **Next**
-- Dash and Dash Call scenarios. **Next**
-- Risk and Double Risk scenarios. **Next**
+- WITH scenarios including high contracts. **Partial**
+- Dash and Dash Call scenarios. **Partial**
+- Risk and Double Risk scenarios. **Partial**
 - Consecutive all-loser multiplier scenarios. **Done**
 - Mixed scenarios covering bonus and risk combinations. **Next**
 
