@@ -16,11 +16,11 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | Next | 0% |
-| Leaderboard | Planned | 0% |
+| Score calculation | In Progress | 70% |
+| Leaderboard | Next | 0% |
 | UI/API integration | Planned | 0% |
 
-Overall progress: **46%**
+Overall progress: **58%**
 
 ## Implementation Backlog
 
@@ -61,18 +61,19 @@ Acceptance criteria:
 
 ### US-204 — ScoreCalculationService Shell
 
-Status: **Next**
+Status: **In Progress**
 
 Acceptance criteria:
 
-- Add clear score calculation interface and result type.
-- Implement only confirmed base scoring rules.
-- Mark unknown or variant Egyptian Estimation rules as research blockers.
-- Include tests for confirmed paths.
+- Add clear score calculation interface and result type. **Done**
+- Implement confirmed base scoring rules using actual tricks vs estimated tricks. **Done**
+- Calculate and return per-player `delta`, match status, role, and risk type. **Done**
+- Mark unknown or variant Egyptian Estimation rules as research blockers. **Open**
+- Include tests for confirmed paths. **Partial**
 
 ### US-205 — LeaderboardService
 
-Status: **Planned**
+Status: **Next**
 
 Acceptance criteria:
 
@@ -86,3 +87,4 @@ Acceptance criteria:
 - Confirm Egyptian Estimation exact scoring formula.
 - Confirm whether selected suit ordering is fixed or table-configurable.
 - Confirm penalties and bonuses for exact bids, missed bids, and special calls.
+- Confirm Dash, Dash Call, With, and high-contract bonus/penalty variants.
