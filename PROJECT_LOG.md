@@ -1,5 +1,36 @@
 # Project Log
 
+## 2026-06-20 - Run 3
+
+Completed:
+
+- Resumed US-204 - ScoreCalculationService Shell.
+- Removed Planning Poker leakage from the bid domain model.
+- Added explicit contract suit support including no-trump.
+- Preserved physical card suits separately from contract suits.
+- Strengthened BidValidationService around Egyptian Estimation defaults: exactly 4 players and exactly 13 cards per player.
+- Added round-bid validation to classify Over and Under and reject total estimates equal to 13.
+- Updated HighestBidResolver to use the agreed hierarchy: no-trump > spades > hearts > diamonds > clubs.
+- Added score engine types: ScoringProfile, ScoreContext, PlayerScoreResult, RoundScoreInput, RoundScoreResult, ScoringStrategy.
+- Added ConfigurableScoringStrategy to isolate official/house-rule score variants.
+- Added ScoreCalculationService shell.
+- Added tests for configured normal scoring, pending standard scoring rules, invalid actual trick totals, and high-contract multiplier behavior.
+- Exported score engine modules.
+
+Current item in progress:
+
+- US-205 - LeaderboardService.
+
+Blockers:
+
+- Final official scoring formulas still need confirmation before StandardScoringStrategy can be finalized.
+- Dash and Dash Call scoring remain configurable pending confirmation.
+- Tests were committed but should be verified by GitHub Actions or a local `npm install && npm test` run.
+
+Overall progress:
+
+- 52% complete.
+
 ## 2026-06-20 - Run 2
 
 Completed:
