@@ -1,5 +1,35 @@
 # Project Log
 
+## 2026-06-21 - Run 15
+
+Completed:
+
+- Started US-209 - Statistics.
+- Added framework-agnostic statistics DTOs in `src/statistics/types.ts`:
+  - `PlayerStatistics`
+  - `GameStatisticsSummary`
+- Added `StatisticsService` to summarize already-calculated `MvpGameResult` data without introducing new Egyptian Estimation scoring rules, UI coupling, or database coupling.
+- Exported statistics APIs from `src/index.ts`.
+- Added `tests/statisticsService.test.ts` covering:
+  - Player totals, rounds played, exact-bid rate, averages, high-contract counts, Dash/Dash Call counters, and WITH participation.
+  - Invalid-round metadata while excluding invalid rounds from player statistics.
+- Updated `README.md` with statistics usage notes.
+- Updated `BACKLOG.md` to show Statistics in progress at 80%.
+- Checked latest commit status and workflow runs; no GitHub status checks or workflow runs were attached to the latest commit.
+
+Current item in progress:
+
+- US-209 - Confirm tests/CI for Statistics, then mark Statistics Done.
+
+Blockers:
+
+- CI/local `npm test` execution still needs confirmation after adding statistics tests.
+- No GitHub Actions status checks or workflow runs are attached to the latest inspected commit.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 14
 
 Completed:
