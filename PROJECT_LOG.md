@@ -1,5 +1,54 @@
 # Project Log
 
+## 2026-06-20 - Run 6
+
+Completed:
+
+- Started rules-driven scoring hardening to avoid manual-table mistakes.
+- Added layered score metadata to scoring types:
+  - `isRiskTaker`
+  - `riskModifier`
+  - `isHighContract`
+  - `roundMultiplier`
+  - `nextRoundMultiplier`
+- Updated `ConfigurableScoringStrategy` to apply scoring as layers:
+  - Base win/loss
+  - BO / WITH modifiers
+  - Dash delta and Dash bonus/penalty
+  - Risk bonus/penalty
+  - Only Winner / Only Loser
+  - x2 round multiplier
+  - High-contract override with x2 excluded
+- Updated `ScoreCalculationService` to:
+  - Calculate round risk level from total bids vs 13.
+  - Apply Under Dash as automatic risk.
+  - Allow explicit sequence-based `riskPlayerId`.
+  - Return `nextRoundMultiplier = 2` for all-loser rounds.
+- Added accepted regression tests for:
+  - WITH loss + Only Loser stacking.
+  - Dash Under loss with delta + Dash penalty + Risk penalty + Only Loser.
+  - All-loser zero round and next x2 multiplier.
+  - x2 applying to normal rounds.
+  - x2 not applying to high-contract rounds.
+- Corrected the earlier invalid Dash example: `DASH 0/1` with all other players matching cannot total 13; the valid acceptance case is `DASH 0/2`, which scores `-32`.
+
+Current item in progress:
+
+- US-204 - ScoreCalculationService finalization and acceptance-suite expansion.
+
+Blockers:
+
+- Need CI/local test execution confirmation.
+- Dash behavior in Over rounds is still unconfirmed.
+- Dash Call formula is still unconfirmed.
+- Whether With can apply to high contracts is still unconfirmed.
+- Whether high-contract scores stack with Only Winner / Only Loser still needs final confirmation.
+- Consecutive all-loser multiplier behavior is still unconfirmed.
+
+Overall progress:
+
+- 66% complete.
+
 ## 2026-06-20 - Run 5
 
 Completed:
@@ -67,7 +116,7 @@ Blockers:
 - Final official Egyptian Estimation scoring formulas still need confirmation before StandardScoringStrategy can be finalized.
 - Dash, Dash Call, With, and high-contract variants remain configurable pending confirmation.
 - Existing older tests still reference the removed Planning Poker-style `mode` field; attempted direct test-file cleanup was blocked by the connector safety layer, so this remains a follow-up cleanup item.
-- Tests were committed but should be verified by GitHub Actions or a local `npm install && npm test` run.
+- Tests were committed but should be verified by GitHub Actions or a local run.
 
 Overall progress:
 
@@ -98,7 +147,7 @@ Blockers:
 
 - Final official scoring formulas still need confirmation before StandardScoringStrategy can be finalized.
 - Dash and Dash Call scoring remain configurable pending confirmation.
-- Tests were committed but should be verified by GitHub Actions or a local `npm install && npm test` run.
+- Tests were committed but should be verified by GitHub Actions or a local run.
 
 Overall progress:
 
