@@ -1,0 +1,16 @@
+{
+  "name": "estimation-score-calculator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP score calculation app for the Egyptian Estimation card game.",
+  "type": "module",
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
