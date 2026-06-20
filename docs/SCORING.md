@@ -42,6 +42,23 @@ Avoid using crown/king icon for Bid Owner to prevent confusion with card ranks o
 - Another player may call the same contract as the bid owner; this is called With.
 - With follows bid-owner scoring rules for both win and loss.
 
+## Confirmed Bidding Sequence and Risk Taker
+
+Risk taker identification depends on the bidding sequence, not arbitrary assignment.
+
+After the Bid Owner is identified, bidding/estimate declarations continue from the player on the Bid Owner's right side, then continue right-side player by right-side player until all players have declared.
+
+The risk taker is the player whose declared bid creates or accepts the risk gap in the running total.
+
+Examples:
+
+```text
+If BO is Karim, the player to Karim's right declares first, then the next right-side player, and so on.
+The risk taker is the player at the point in this ordered sequence whose bid causes or accepts Under -2 / Over +2 or Under -4 / Over +4.
+```
+
+This means risk cannot be assigned just from the final round total; the engine must store bid order.
+
 ## Confirmed Suit Hierarchy
 
 From strongest to weakest:
@@ -292,8 +309,6 @@ Over +4 risk taker loses => -20
 
 Risk is an additive layer applied after the player's normal/owner/with/high-contract/dash base calculation.
 
-Open point: confirm which player is the risk taker in every bidding sequence. Current understanding: the player whose bid creates or accepts the risk gap is the risk taker.
-
 ## Confirmed High Contract Winner Formula
 
 High contract starts at 8.
@@ -386,6 +401,7 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 
 ### Risk Taker
 
+- Determined from bid order, not final table position alone.
 - Under -2 / Over +2: +/-10 based on win/loss.
 - Under -4 / Over +4: +/-20 based on win/loss.
 - Risk modifier is additive and negative on loss.
@@ -397,10 +413,9 @@ The following still need confirmation:
 1. Dash behavior in Over rounds.
 2. Dash Call formula.
 3. Whether With can apply to high contracts and whether it follows high-contract scoring.
-4. Exact risk-taker identification rule in every bidding sequence.
-5. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
-6. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
-7. Whether consecutive all-loser rounds stack the next-round multiplier or keep it at x2.
+4. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
+5. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
+6. Whether consecutive all-loser rounds stack the next-round multiplier or keep it at x2.
 
 ## Decision
 
