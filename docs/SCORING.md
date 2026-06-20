@@ -4,245 +4,294 @@
 
 This document defines the corrected scoring architecture for the Egyptian Estimation Score Calculator MVP.
 
-The previous simplified model assumed one generic formula for every player. That is incorrect for the real game. The score engine must evaluate the player's role in the round and the scoring scope before applying formulas.
+The score engine must evaluate each player's bid, actual tricks, round role, and special state before applying formulas.
 
-## Key Correction
+## Core Flow
 
-Scoring is not only based on each player's own bid vs actual tricks.
+1. Players enter estimates/bids.
+2. System validates the round is Over or Under; total estimates must not equal 13.
+3. System resolves the bid owner using contract number and suit hierarchy.
+4. After the round, players enter actual tricks.
+5. System validates total actual tricks = 13.
+6. For each player:
+   - Determine if actual tricks match estimated tricks.
+   - Calculate delta = absolute value of actual - bid.
+   - Assign role: bid owner, with player, normal player, dash, risk, high contract.
+   - Apply the correct formula.
 
-The engine must consider:
+## Confirmed Bid Rules
 
-1. Bid owner / contract owner result.
-2. Other players' result against the bid owner.
-3. Risk taken by any player.
-4. Whether the round scoring scope is all players, winner-only, or loser-only.
-5. Whether the bid owner wins or loses.
-6. Whether a non-owner player caused the owner to fail.
-7. Whether a player took a special risk such as Dash, Dash Call, or a high-risk contract.
+- Normal bids start at 4.
+- Normal bid range is 4 to 13.
+- Dash and Dash Call are special bids.
+- Another player may call the same contract as the bid owner; this is called With.
+- With follows bid-owner scoring rules for both win and loss.
 
-## Round Roles
+## Confirmed Suit Hierarchy
+
+From strongest to weakest:
+
+1. No Trump
+2. Spades
+3. Hearts
+4. Diamonds
+5. Clubs
+
+## Round Type
+
+```text
+Total estimates > 13 => Over +N
+Total estimates < 13 => Under -N
+Total estimates = 13 => Invalid
+```
+
+Where N is the difference from 13.
+
+## Delta
+
+```text
+delta = abs(actual tricks - estimated tricks)
+```
+
+A player wins if:
+
+```text
+actual tricks = estimated tricks
+```
+
+A player loses if:
+
+```text
+actual tricks != estimated tricks
+```
+
+## Configurable Match Setup
+
+Before the match starts, players must choose the winner base bonus:
+
+- 10
+- 13
+
+The selected value is locked once the match starts.
+
+## Confirmed Normal Winner Formula
+
+For a normal non-owner player who wins:
+
+```text
+score = bid + winnerBaseBonus
+```
+
+Examples when winnerBaseBonus = 10:
+
+```text
+Bid 2 => 12
+Bid 4 => 14
+Bid 7 => 17
+```
+
+Examples when winnerBaseBonus = 13:
+
+```text
+Bid 2 => 15
+Bid 4 => 17
+Bid 7 => 20
+```
+
+## Confirmed Bid Owner Winner Formula
+
+If the bid owner wins, add an extra fixed +10 bid-owner bonus.
+
+```text
+score = bid + winnerBaseBonus + 10
+```
+
+Example when winnerBaseBonus = 10:
+
+```text
+Bid owner bid 7 and wins => 7 + 10 + 10 = 27
+```
+
+## Confirmed With Formula
+
+A With player calls the same contract/order as the bid owner.
+
+The With player takes the same scoring treatment as the bid owner in both win and loss.
+
+### With Win
+
+```text
+score = bid + winnerBaseBonus + 10
+```
+
+### With Loss
+
+```text
+score = -delta - 10
+```
+
+Example:
+
+```text
+P1 bid owner bids 4
+P2 calls With on 4
+P2 actual tricks = 3
+delta = 1
+P2 score = -1 -10 = -11
+```
+
+## Confirmed Normal Loser Formula
+
+For a normal player who loses:
+
+```text
+score = -delta
+```
+
+Example:
+
+```text
+Bid 4, actual 3 => delta 1 => -1
+Bid 5, actual 2 => delta 3 => -3
+```
+
+## Confirmed Bid Owner Loser Formula
+
+If the bid owner loses, add an extra fixed -10 penalty.
+
+```text
+score = -delta - 10
+```
+
+Example:
+
+```text
+Bid owner bid 7, actual 5 => delta 2 => -12
+```
+
+## Confirmed Only Winner Bonus
+
+If exactly one player wins the round, that player receives an additional fixed +10.
+
+This bonus stays 10 even if winnerBaseBonus is configured as 13.
+
+```text
+only winner score = normal calculated winner score + 10
+```
+
+## Confirmed Only Loser Penalty
+
+If exactly one player loses the round, that player receives an additional fixed -10.
+
+```text
+only loser score = normal calculated loser score - 10
+```
+
+## Confirmed Dash in Under Round
+
+If a player calls Dash and the round type is Under:
+
+```text
+Dash win => +10
+Dash loss => -10
+```
+
+## Confirmed High Contract Winner Formula
+
+High contract starts at 8.
+
+Confirmed:
+
+```text
+8 win = 68
+9 win = 79
+```
+
+This implies:
+
+```text
+high contract win score = 68 + ((bid - 8) * 11)
+```
+
+Table:
+
+```text
+8  => 68
+9  => 79
+10 => 90
+11 => 101
+12 => 112
+13 => 123
+```
+
+## Confirmed High Contract Loser Formula
+
+High contract loss uses delta and a base penalty by bid.
+
+```text
+score = -delta + basePenalty
+```
+
+Base penalties:
+
+```text
+8  => -40
+9  => -50
+10 => -60
+11 => -70
+12 => -80
+13 => -90
+```
+
+Example:
+
+```text
+Bid 9, actual 7 => delta 2 => -2 -50 = -52
+```
+
+## Role Summary
 
 ### Bid Owner
 
-The bid owner is the player who wins the bidding phase and owns the round contract.
+- Win: bid + winnerBaseBonus + 10
+- Loss: -delta - 10
+- High contract win/loss overrides normal owner formula.
 
-The bid owner needs separate formulas for:
+### With Player
 
-- Owner wins / contract achieved.
-- Owner loses / contract failed.
+- Win: same as bid owner win.
+- Loss: same as bid owner loss.
+- High contract With handling still needs confirmation if With can apply to high contracts.
 
-The owner formula may differ from formulas applied to the other three players.
+### Normal Player
 
-### Other Players
+- Win: bid + winnerBaseBonus
+- Loss: -delta
 
-The non-owner players are evaluated against the bid owner result and their own actions.
+### Only Winner
 
-They may have different score formulas depending on:
+- Add +10 after normal winner calculation.
 
-- Owner wins.
-- Owner loses.
-- They contributed to making the owner fail.
-- They took or avoided tricks according to the risk scenario.
-- They had their own special risk.
+### Only Loser
 
-### Risk Taker
+- Add -10 after normal loser calculation.
 
-A risk taker is any player who declares or is assigned a risky scoring condition.
+### Dash Under
 
-Examples to support:
-
-- Dash.
-- Dash Call.
-- High contract risk.
-- Other table-defined risks.
-
-Risk score must be applied separately from normal role scoring and may override or modify the round result.
-
-## Scoring Scope
-
-The score engine must support multiple scoring scopes.
-
-### All Players Scope
-
-All four players receive a calculated score for the round.
-
-### Winner-Only Scope
-
-Only the winning player or winning side receives points. Other players may receive zero unless the selected profile defines penalties.
-
-### Loser-Only Scope
-
-Only the losing player or losing side receives penalty points. Other players may receive zero unless the selected profile defines rewards.
-
-## Required Score Formula Groups
-
-The following formula groups must be represented in the scoring profile.
-
-### 1. Bid Owner Win Formula
-
-Applies when the bid owner achieves the contract.
-
-Open fields:
-
-- ownerWinBase
-- ownerWinPerContract
-- ownerWinRiskMultiplier
-- ownerWinHighContractMultiplier
-- ownerWinFixedBonus
-
-### 2. Bid Owner Loss Formula
-
-Applies when the bid owner fails the contract.
-
-Open fields:
-
-- ownerLossBase
-- ownerLossPerDifference
-- ownerLossPerContract
-- ownerLossRiskMultiplier
-- ownerLossHighContractMultiplier
-- ownerLossFixedPenalty
-
-### 3. Other Player Formula When Owner Wins
-
-Applies to non-owner players when the bid owner succeeds.
-
-Open fields:
-
-- otherWhenOwnerWinsScore
-- otherWhenOwnerWinsPenalty
-- otherWhenOwnerWinsByTricksTaken
-- otherWhenOwnerWinsByDifference
-
-### 4. Other Player Formula When Owner Loses
-
-Applies to non-owner players when the bid owner fails.
-
-Open fields:
-
-- otherWhenOwnerLosesScore
-- otherWhenOwnerLosesReward
-- otherWhenOwnerLosesByContribution
-- otherWhenOwnerLosesByTricksTaken
-
-### 5. Risk Formula
-
-Applies to players with special risk conditions.
-
-Open fields:
-
-- riskSuccessScore
-- riskFailureScore
-- riskMultiplier
-- riskOverridesNormalScore
-- riskAddsToNormalScore
-
-### 6. Dash Formula
-
-Pending confirmation.
-
-Open fields:
-
-- dashSuccessScore
-- dashFailureScore
-- dashScope
-- dashOverridesNormalScore
-- dashCanBeMultiplePlayers
-
-### 7. Dash Call Formula
-
-Pending confirmation.
-
-Open fields:
-
-- dashCallSuccessScore
-- dashCallFailureScore
-- dashCallScope
-- dashCallOverridesNormalScore
-- dashCallTargetPlayerId
-
-### 8. High Contract Formula
-
-Pending confirmation.
-
-Open fields:
-
-- highContractThreshold
-- highContractOwnerWinMultiplier
-- highContractOwnerLossMultiplier
-- highContractOtherPlayerMultiplier
-- highContractRiskFlag
-
-## Round Evaluation Flow
-
-```text
-1. Validate bids.
-2. Classify round as Over or Under.
-3. Resolve bid owner using contract number and suit hierarchy.
-4. Enter actual tricks.
-5. Validate total actual tricks = 13.
-6. Evaluate whether the bid owner won or lost.
-7. Detect risk takers.
-8. Determine scoring scope.
-9. Apply bid owner win/loss formula.
-10. Apply other-player formula based on owner result.
-11. Apply risk formula where relevant.
-12. Apply winner-only or loser-only scope if selected.
-13. Return per-player scores and scoring notes.
-```
-
-## Data Required for Calculation
-
-A scoring round must include:
-
-- Bids for all four players.
-- Winning bid / bid owner.
-- Trump suit or no-trump.
-- Round type: Over or Under.
-- Actual tricks for all four players.
-- Risk declarations.
-- Scoring scope.
-- Scoring profile.
-
-## Current Implementation Gap
-
-The current score engine has a configurable strategy shell, but it still needs to be revised to include:
-
-- Player role: bid-owner vs other-player.
-- Owner win/loss result.
-- Risk-taker model.
-- Winner-only and loser-only scoring scope.
-- Separate formula groups for owner and other players.
-
-## Implementation Recommendation
-
-Update the score engine types before adding any more formulas.
-
-Required additions:
-
-```text
-RoundRole = BidOwner | OtherPlayer
-OwnerRoundOutcome = OwnerWon | OwnerLost
-ScoringScope = AllPlayers | WinnerOnly | LoserOnly
-RiskType = None | Dash | DashCall | HighContract | Custom
-RiskApplication = Override | Additive | Multiplier
-```
+- Win: +10
+- Loss: -10
 
 ## Open Confirmation Questions
 
-These must be confirmed from official or player-validated rules:
+The following still need confirmation:
 
-1. Exact bid owner win formula.
-2. Exact bid owner loss formula.
-3. Score for non-owner players when owner wins.
-4. Score for non-owner players when owner loses.
-5. Risk scoring behavior.
-6. Dash scoring.
-7. Dash Call scoring.
-8. High contract scoring.
-9. Winner-only scope rules.
-10. Loser-only scope rules.
+1. Dash behavior in Over rounds.
+2. Dash Call formula.
+3. Whether With can apply to high contracts and whether it follows high-contract scoring.
+4. Risk player formula in Over rounds.
+5. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
+6. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
 
 ## Decision
 
-Until these formulas are confirmed, the app must not hardcode a single StandardScoringStrategy. The MVP should continue with a configurable scoring profile that can represent different table rules.
+The MVP scoring profile must be configurable before game start. The confirmed formulas above should be implemented as the default Egyptian profile, while unresolved formulas remain configurable until confirmed.
