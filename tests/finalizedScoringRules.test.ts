@@ -27,7 +27,9 @@ function scoreFor(input: RoundScoreInput, playerId: string): number {
   const result = new ScoreCalculationService().calculateRoundScore(input);
   assert.equal(result.valid, true, result.errors.join('; '));
   const player = result.playerScores.find((score) => score.playerId === playerId);
-  assert.ok(player, `Missing score for ${playerId}`);
+  if (player === undefined) {
+    throw new Error(`Missing score for ${playerId}`);
+  }
   return player.score;
 }
 
