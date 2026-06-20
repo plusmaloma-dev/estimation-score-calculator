@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-20 - Run 2
+
+Completed:
+
+- Implemented US-203 - TrickValidationService.
+- Added trick domain model with trick entries, round/trick numbers, and active-player validation options.
+- Added validation for positive round/trick numbers.
+- Added validation to reject duplicate cards in the same trick.
+- Added validation to reject duplicate player entries in the same trick.
+- Added validation to reject inactive players.
+- Added validation to ensure trick card count does not exceed active player count.
+- Added Node test coverage for valid partial tricks, duplicate cards, duplicate player entries, excess trick cards, and inactive players.
+- Added public exports for trick domain and TrickValidationService.
+- Updated BACKLOG.md to mark US-203 done and move US-204 to next.
+
+Current item in progress:
+
+- US-204 - ScoreCalculationService Shell.
+
+Blockers:
+
+- Final Egyptian Estimation scoring variants still need confirmation before full score calculation is finalized.
+- Selected suit ordering should remain configurable until table rules are confirmed.
+- Tests were prepared but not executed in this environment; CI or local run should execute npm install then npm test.
+
+Overall progress:
+
+- 46% complete.
+
 ## 2026-06-20 - Run 1
 
 Completed:
