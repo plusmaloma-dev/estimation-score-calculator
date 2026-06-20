@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-06-20 - Run 12
+
+Completed:
+
+- Completed US-207 - Acceptance Dataset.
+- Added executable acceptance coverage in `tests/acceptanceDataset.test.ts` for:
+  - Under Risk at total estimates 11.
+  - Over Double Risk at total estimates 17.
+  - Dash Call failure stacking delta, call penalty, and risk penalty.
+  - WITH partner following bid-owner win scoring.
+  - All-loser next-round x2 multiplier.
+  - Consecutive all-loser escalation from x2 to x4.
+- Added `ACCEPTANCE_DATASET.md` as the human-readable score table reference for MVP validation.
+- Updated `BACKLOG.md` to mark US-207 done and move the next backlog focus to persistence boundary definition.
+
+Current item in progress:
+
+- US-208 - Persistence boundary definition for future saved games and score sheets.
+
+Blockers:
+
+- CI/local `npm test` execution still needs confirmation after the latest acceptance tests.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-20 - Run 11
 
 Completed:
