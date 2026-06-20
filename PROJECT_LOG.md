@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-21 - Run 14
+
+Completed:
+
+- Completed US-208 - Persistence documentation and usage notes.
+- Updated `README.md` with:
+  - Persistence boundary explanation.
+  - `InMemoryScoreSheetRepository` usage example.
+  - Guidance that future storage adapters should implement `ScoreSheetRepository` without coupling the scoring engine to a database.
+- Updated `BACKLOG.md` to mark Persistence as Done at 100%.
+- Added implementation-ready notes for the next backlog slices:
+  - US-209 Statistics.
+  - US-210 Import/export.
+- Rechecked GitHub status for the latest known commit before this run; no status checks or workflow runs were attached.
+
+Current item in progress:
+
+- US-209 - Statistics output definition and first implementation slice.
+
+Blockers:
+
+- CI/local `npm test` execution still needs confirmation after the latest persistence tests and documentation changes.
+- No GitHub Actions status checks or workflow runs are attached to the latest inspected commit.
+- No production database choice has been made; current implementation intentionally keeps persistence optional and adapter-based.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 13
 
 Completed:
