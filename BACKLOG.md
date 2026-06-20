@@ -21,7 +21,7 @@
 | Leaderboard | Done | 100% |
 | UI/API integration | Done | 100% |
 | Acceptance dataset | Done | 100% |
-| Persistence | In Progress | 70% |
+| Persistence | Done | 100% |
 | Statistics | Backlog | 0% |
 | Import/export | Backlog | 0% |
 
@@ -41,20 +41,22 @@ Status: **Done**
 - Executable acceptance tests added in `tests/acceptanceDataset.test.ts`. **Done**
 
 ### US-208 — Persistence
-Status: **In Progress**
+Status: **Done**
 
 - Define storage boundary for future saved games and score sheets. **Done**
 - Keep persistence optional for MVP engine usage. **Done**
 - Add `ScoreSheetRepository` interface and persisted score-sheet DTOs. **Done**
 - Add in-memory repository adapter for MVP/testing without introducing database coupling. **Done**
-- Add persistence boundary usage notes to README or dedicated docs. **Next**
+- Add persistence boundary usage notes to README or dedicated docs. **Done**
 
 ### US-209 — Statistics
 Status: **Backlog**
 
 - Define statistics outputs after score-sheet persistence stabilizes. **Next**
+- Suggested first slice: calculate per-player summary stats from persisted or calculated game results without introducing UI/database coupling.
 
 ### US-210 — Import/export
 Status: **Backlog**
 
 - Define import/export formats after persistence DTOs stabilize. **Next**
+- Suggested first slice: JSON backup DTO with version metadata and validation path.
