@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-20 - Run 8
+
+Completed:
+
+- Added `BalanceAccumulator` to eliminate manual running-balance mistakes.
+- Exported `BalanceAccumulator` from the public package index.
+- Added tests for:
+  - Running balance accumulation across rounds.
+  - Standings sorted by highest balance.
+- This directly supports engine-generated score tables and reduces manual arithmetic risk.
+
+Current item in progress:
+
+- Acceptance dataset and table generation from engine output.
+
+Blockers:
+
+- Need CI/local test execution confirmation.
+- Dash behavior in Over rounds is still unconfirmed.
+- Dash Call formula is still unconfirmed.
+- Whether With can apply to high contracts is still unconfirmed.
+- Whether high-contract scores stack with Only Winner / Only Loser still needs final confirmation.
+- Consecutive all-loser multiplier behavior is still unconfirmed.
+
+Overall progress:
+
+- 74% complete.
+
 ## 2026-06-20 - Run 7
 
 Completed:
