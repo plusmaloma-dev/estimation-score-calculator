@@ -49,7 +49,7 @@
 
 ## Implementation-Ready User Stories
 
-### US-201 Bid validation service
+### US-201 Bid validation service - Done
 As a scorekeeper, I want the app to validate four player bids so invalid rounds are blocked before scoring.
 
 Acceptance criteria:
@@ -58,7 +58,7 @@ Acceptance criteria:
 - Total estimates below 13 classify the round as Under.
 - Total estimates above 13 classify the round as Over.
 
-### US-202 Highest bid resolver
+### US-202 Highest bid resolver - Done
 As a scorekeeper, I want the app to detect the highest bid so the round contract and trump suit are clear.
 
 Acceptance criteria:
@@ -66,7 +66,7 @@ Acceptance criteria:
 - Equal contract number is resolved by suit strength.
 - Suit strength is No Trump > Spades > Hearts > Diamonds > Clubs.
 
-### US-301 Trick validation service
+### US-301 Trick validation service - Done
 As a scorekeeper, I want the app to validate actual tricks so scoring is based on a valid round result.
 
 Acceptance criteria:
@@ -74,7 +74,7 @@ Acceptance criteria:
 - Total actual tricks must equal 13.
 - Round scoring is blocked if total actual tricks are not 13.
 
-### US-401 Configurable scoring profile
+### US-401 Configurable scoring profile - In Progress
 As a scorekeeper, I want scoring rules to be configurable so official and house-rule variations can be supported.
 
 Acceptance criteria:
@@ -82,7 +82,7 @@ Acceptance criteria:
 - The scoring profile is locked after the match starts.
 - Dash, Dash Call, and 8+ rules can be represented as profile settings.
 
-### US-402 Score calculation service shell
+### US-402 Score calculation service shell - Done
 As a developer, I want a score calculation service shell so scoring formulas can be added safely once confirmed.
 
 Acceptance criteria:
@@ -90,7 +90,7 @@ Acceptance criteria:
 - Service returns per-player score results.
 - Unconfirmed scoring rules are isolated behind strategy/configuration.
 
-### US-501 Leaderboard recalculation
+### US-501 Leaderboard recalculation - Next
 As a scorekeeper, I want totals to recalculate after each round or edit so the leaderboard is always accurate.
 
 Acceptance criteria:
@@ -99,14 +99,16 @@ Acceptance criteria:
 - Players are ranked by total score.
 
 ## Current Priority
-1. Confirm scoring formulas for normal bids.
-2. Confirm Dash and Dash Call behavior.
-3. Confirm scoring for contracts 8 and above.
-4. Implement BidValidationService and HighestBidResolver.
-5. Add unit tests for bidding and validation.
-6. Implement ScoreCalculationService shell.
+1. Verify CI for the latest score engine changes.
+2. Implement US-501 LeaderboardService.
+3. Confirm scoring formulas for normal bids.
+4. Confirm Dash and Dash Call behavior.
+5. Confirm scoring for contracts 8 and above.
+6. Convert confirmed formulas into StandardScoringStrategy.
 
 ## Completed Architecture Deliverables
 - Domain model documented in `docs/DOMAIN_MODEL.md`.
 - CI/CD baseline implemented with GitHub Actions.
 - Initial backlog epics documented.
+- ScoreCalculationService shell implemented.
+- Planning Poker references removed from domain code.
