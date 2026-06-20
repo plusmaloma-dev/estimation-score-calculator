@@ -14,13 +14,13 @@
 | Test execution setup | Done | 100% |
 | Card and bid domain model | Done | 100% |
 | Bid validation | Done | 100% |
-| Highest bid resolution | Next | 0% |
-| Trick validation | Planned | 0% |
+| Highest bid resolution | Done | 100% |
+| Trick validation | Next | 0% |
 | Score calculation | Planned | 0% |
 | Leaderboard | Planned | 0% |
 | UI/API integration | Planned | 0% |
 
-Overall progress: **26%**
+Overall progress: **36%**
 
 ## Implementation Backlog
 
@@ -39,7 +39,7 @@ Acceptance criteria:
 
 ### US-202 — HighestBidResolver
 
-Status: **Next**
+Status: **Done**
 
 Acceptance criteria:
 
@@ -50,7 +50,7 @@ Acceptance criteria:
 
 ### US-203 — TrickValidationService
 
-Status: **Planned**
+Status: **Next**
 
 Acceptance criteria:
 
