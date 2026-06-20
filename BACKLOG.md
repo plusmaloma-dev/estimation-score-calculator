@@ -16,11 +16,11 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | In Progress | 70% |
+| Score calculation | In Progress | 82% |
 | Leaderboard | Next | 0% |
 | UI/API integration | Planned | 0% |
 
-Overall progress: **58%**
+Overall progress: **62%**
 
 ## Implementation Backlog
 
@@ -68,6 +68,12 @@ Acceptance criteria:
 - Add clear score calculation interface and result type. **Done**
 - Implement confirmed base scoring rules using actual tricks vs estimated tricks. **Done**
 - Calculate and return per-player `delta`, match status, role, and risk type. **Done**
+- Resolve bid owner dynamically from `bidOwnerPlayerId`, not player position. **Done**
+- Apply With as bid-owner scoring treatment. **Done**
+- Apply only-winner and only-loser modifiers. **Done**
+- Apply all-loser zero-score round rule. **Done**
+- Implement confirmed high-contract fixed score formulas. **Done**
+- Implement Under Dash bonus/penalty. **Done**
 - Mark unknown or variant Egyptian Estimation rules as research blockers. **Open**
 - Include tests for confirmed paths. **Partial**
 
@@ -84,7 +90,9 @@ Acceptance criteria:
 
 ## Rule Research Backlog
 
-- Confirm Egyptian Estimation exact scoring formula.
-- Confirm whether selected suit ordering is fixed or table-configurable.
-- Confirm penalties and bonuses for exact bids, missed bids, and special calls.
-- Confirm Dash, Dash Call, With, and high-contract bonus/penalty variants.
+- Confirm risk-taker identification rule for each bidding sequence.
+- Confirm Dash behavior in Over rounds.
+- Confirm Dash Call formula.
+- Confirm whether With can apply to high contracts and whether it follows high-contract scoring.
+- Confirm whether only-winner/only-loser modifiers apply to high-contract and Dash rounds.
+- Confirm whether consecutive all-loser rounds keep x2 or stack.
