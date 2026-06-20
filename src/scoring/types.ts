@@ -7,7 +7,7 @@ export type ScoreStatus = 'success' | 'failed' | 'pending-rule';
 export type PlayerRoundRole = 'bid-owner' | 'with-player' | 'other-player' | 'risk-taker';
 export type OwnerRoundOutcome = 'owner-won' | 'owner-lost';
 export type ScoringScope = 'all-players' | 'winner-only' | 'loser-only';
-export type RiskType = 'none' | 'dash' | 'dash-call' | 'with' | 'high-contract' | 'custom';
+export type RiskType = 'none' | 'dash' | 'dash-call' | 'with' | 'high-contract' | 'round-risk' | 'custom';
 
 export interface ScoringProfile {
   readonly id: string;
@@ -59,6 +59,9 @@ export interface PlayerRoundEvaluation {
   readonly didMatchBid: boolean;
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
+  readonly isRiskTaker: boolean;
+  readonly riskModifier: number;
+  readonly isHighContract: boolean;
   readonly isOnlyWinner: boolean;
   readonly isOnlyLoser: boolean;
 }
@@ -66,6 +69,8 @@ export interface PlayerRoundEvaluation {
 export interface ScoreContext {
   readonly roundNumber: number;
   readonly roundType: RoundType;
+  readonly roundRiskLevel: number;
+  readonly roundMultiplier?: number;
   readonly winningContractNumber?: number;
   readonly bidOwnerPlayerId?: string;
   readonly ownerOutcome?: OwnerRoundOutcome;
@@ -84,6 +89,9 @@ export interface PlayerScoreResult {
   readonly didMatchBid: boolean;
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
+  readonly isRiskTaker: boolean;
+  readonly riskModifier: number;
+  readonly isHighContract: boolean;
   readonly isOnlyWinner: boolean;
   readonly isOnlyLoser: boolean;
   readonly status: ScoreStatus;
@@ -94,6 +102,8 @@ export interface PlayerScoreResult {
 export interface RoundScoreInput {
   readonly roundNumber: number;
   readonly roundType: RoundType;
+  readonly roundMultiplier?: number;
+  readonly riskPlayerId?: string;
   readonly winningContractNumber?: number;
   readonly bidOwnerPlayerId?: string;
   readonly trumpSuit?: ContractSuit;
@@ -106,6 +116,7 @@ export interface RoundScoreResult {
   readonly valid: boolean;
   readonly errors: readonly string[];
   readonly ownerOutcome?: OwnerRoundOutcome;
+  readonly nextRoundMultiplier?: number;
   readonly playerScores: readonly PlayerScoreResult[];
 }
 
