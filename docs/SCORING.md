@@ -211,12 +211,47 @@ Open point: If two all-loser rounds happen consecutively, confirm whether the mu
 
 ## Confirmed Dash in Under Round
 
-If a player calls Dash and the round type is Under:
+If a player calls Dash and the round type is Under, Dash is a bonus/penalty layer.
 
 ```text
-Dash win => +10
-Dash loss => -10
+Dash win => +10 bonus
+Dash loss => -10 penalty
 ```
+
+Dash Under bonus/penalty must be considered in addition to any applicable round/risk state, unless a future rule says Dash overrides normal scoring.
+
+## Confirmed Risk Bonus / Penalty
+
+Risk applies when the total estimated tricks differ from 13 by at least 2.
+
+```text
+Under -2 or Over +2 => risk bonus/penalty = 10
+Under -4 or Over +4 => risk bonus/penalty = 20
+```
+
+Risk sign depends on result:
+
+```text
+Risk taker wins => add positive risk bonus
+Risk taker loses => add negative risk penalty
+```
+
+Examples:
+
+```text
+Under -2 risk taker wins => +10
+Under -2 risk taker loses => -10
+Over +2 risk taker wins => +10
+Over +2 risk taker loses => -10
+Under -4 risk taker wins => +20
+Under -4 risk taker loses => -20
+Over +4 risk taker wins => +20
+Over +4 risk taker loses => -20
+```
+
+Risk is an additive layer applied after the player's normal/owner/with/high-contract base calculation.
+
+Open point: confirm which player is the risk taker in every bidding sequence. Current understanding: the player whose bid creates or accepts the risk gap is the risk taker.
 
 ## Confirmed High Contract Winner Formula
 
@@ -305,8 +340,14 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 
 ### Dash Under
 
-- Win: +10
-- Loss: -10
+- Win: +10 bonus.
+- Loss: -10 penalty.
+
+### Risk Taker
+
+- Under -2 / Over +2: +/-10 based on win/loss.
+- Under -4 / Over +4: +/-20 based on win/loss.
+- Risk modifier is additive and negative on loss.
 
 ## Open Confirmation Questions
 
@@ -315,7 +356,7 @@ The following still need confirmation:
 1. Dash behavior in Over rounds.
 2. Dash Call formula.
 3. Whether With can apply to high contracts and whether it follows high-contract scoring.
-4. Risk player formula in Over rounds.
+4. Exact risk-taker identification rule in every bidding sequence.
 5. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
 6. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
 7. Whether consecutive all-loser rounds stack the next-round multiplier or keep it at x2.
