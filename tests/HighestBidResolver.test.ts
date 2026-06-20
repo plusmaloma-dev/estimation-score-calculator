@@ -7,8 +7,8 @@ const resolver = new HighestBidResolver();
 
 function bid(playerId: string, tricks: number, trumpSuit?: EstimationBid['trumpSuit']): EstimationBid {
   return {
-    mode: 'egyptian-estimation',
     playerId,
+    bidType: 'normal',
     tricks,
     trumpSuit,
   };
