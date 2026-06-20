@@ -14,10 +14,13 @@ Completed:
 - Added Node test coverage for valid bids, invalid player ids, negative bids, over-limit bids, and impossible table sizes.
 - Added public exports.
 - Created BACKLOG.md with progress tracker and implementation-ready backlog.
+- Implemented HighestBidResolver.
+- Added tests for empty input, highest trick bid, configurable suit priority, and deterministic tie reporting.
+- Updated BACKLOG.md to mark US-202 done and move US-203 to next.
 
 Current item in progress:
 
-- US-202 - HighestBidResolver.
+- US-203 - TrickValidationService.
 
 Blockers:
 
@@ -27,4 +30,4 @@ Blockers:
 
 Overall progress:
 
-- 26% complete.
+- 36% complete.
