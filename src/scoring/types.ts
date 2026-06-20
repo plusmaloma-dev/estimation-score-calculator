@@ -16,7 +16,9 @@ export interface ScoringProfile {
   readonly scope?: ScoringScope;
   readonly winnerBaseBonus?: 10 | 13;
   readonly bidOwnerWinBonus?: number;
+  readonly bidOwnerLossPenalty?: number;
   readonly onlyWinnerBonus?: 10;
+  readonly onlyLoserPenalty?: 10;
   readonly normalBidSuccessBase?: number;
   readonly normalBidSuccessPerTrick?: number;
   readonly normalBidFailurePenaltyPerTrickDifference?: number;
@@ -34,6 +36,10 @@ export interface ScoringProfile {
   readonly underDashFailurePenalty?: number;
   readonly highContractThreshold?: number;
   readonly highContractMultiplier?: number;
+  readonly highContractWinBase?: number;
+  readonly highContractWinStep?: number;
+  readonly highContractLossBasePenalty?: number;
+  readonly highContractLossStepPenalty?: number;
   readonly dashSuccessScore?: number;
   readonly dashFailureScore?: number;
   readonly dashCallSuccessScore?: number;
@@ -54,6 +60,7 @@ export interface PlayerRoundEvaluation {
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
   readonly isOnlyWinner: boolean;
+  readonly isOnlyLoser: boolean;
 }
 
 export interface ScoreContext {
@@ -78,6 +85,7 @@ export interface PlayerScoreResult {
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
   readonly isOnlyWinner: boolean;
+  readonly isOnlyLoser: boolean;
   readonly status: ScoreStatus;
   readonly score: number;
   readonly notes: readonly string[];
