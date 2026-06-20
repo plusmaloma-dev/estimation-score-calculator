@@ -20,6 +20,20 @@ The score engine must evaluate each player's bid, actual tricks, round role, and
    - Apply the correct formula.
 7. If all players lose, score zero for the current round and apply x2 multiplier to the next round.
 
+## Display Tags
+
+Recommended short tags for UI and test tables:
+
+- `BO` = Bid Owner
+- `WITH` = With caller
+- `DASH` = Dash caller
+- `RISK` = Risk taker
+- `OW` = Only Winner
+- `OL` = Only Loser
+- `x2` = Multiplied round after all-loser round
+
+Avoid using crown/king icon for Bid Owner to prevent confusion with card ranks or game symbols.
+
 ## Confirmed Bid Rules
 
 - Normal bids start at 4.
@@ -64,6 +78,12 @@ A player loses if:
 
 ```text
 actual tricks != estimated tricks
+```
+
+Dash also uses delta. Since Dash estimate is 0:
+
+```text
+dashDelta = abs(actual tricks - 0)
 ```
 
 ## Configurable Match Setup
@@ -211,14 +231,35 @@ Open point: If two all-loser rounds happen consecutively, confirm whether the mu
 
 ## Confirmed Dash in Under Round
 
-If a player calls Dash and the round type is Under, Dash is a bonus/penalty layer.
+If a player calls Dash and the round type is Under, Dash is a bonus/penalty layer but still uses delta.
+
+Dash estimate is 0.
+
+### Dash Win
 
 ```text
-Dash win => +10 bonus
-Dash loss => -10 penalty
+actual tricks = 0
+dashDelta = 0
+score = +10 bonus
 ```
 
-Dash Under bonus/penalty must be considered in addition to any applicable round/risk state, unless a future rule says Dash overrides normal scoring.
+### Dash Loss
+
+```text
+actual tricks > 0
+dashDelta = actual tricks
+score = -dashDelta - 10 penalty
+```
+
+Examples:
+
+```text
+Dash actual 0 => +10
+Dash actual 1 => -1 -10 = -11
+Dash actual 2 => -2 -10 = -12
+```
+
+Dash Under bonus/penalty must be considered in addition to applicable risk state.
 
 ## Confirmed Risk Bonus / Penalty
 
@@ -249,7 +290,7 @@ Over +4 risk taker wins => +20
 Over +4 risk taker loses => -20
 ```
 
-Risk is an additive layer applied after the player's normal/owner/with/high-contract base calculation.
+Risk is an additive layer applied after the player's normal/owner/with/high-contract/dash base calculation.
 
 Open point: confirm which player is the risk taker in every bidding sequence. Current understanding: the player whose bid creates or accepts the risk gap is the risk taker.
 
@@ -341,7 +382,7 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 ### Dash Under
 
 - Win: +10 bonus.
-- Loss: -10 penalty.
+- Loss: -dashDelta -10 penalty.
 
 ### Risk Taker
 
