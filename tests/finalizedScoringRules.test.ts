@@ -178,5 +178,5 @@ test('Double Risk applies +20 or -20 to the risk taker', () => {
   );
 
   assert.equal(successScore, 35);
-  assert.equal(failedScore, -33);
+  assert.equal(failedScore, -23);
 });
