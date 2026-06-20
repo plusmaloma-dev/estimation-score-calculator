@@ -70,18 +70,18 @@ test('calculates DASH Under loss using delta, Dash penalty, Under risk, and only
       { playerId: 'p4', bidType: 'normal', tricks: 2, trumpSuit: 'clubs' },
     ],
     actualResults: [
-      { playerId: 'p1', actualTricks: 1 },
+      { playerId: 'p1', actualTricks: 2 },
       { playerId: 'p2', actualTricks: 5 },
       { playerId: 'p3', actualTricks: 4 },
-      { playerId: 'p4', actualTricks: 3 },
+      { playerId: 'p4', actualTricks: 2 },
     ],
   });
 
   assert.equal(result.valid, true);
-  assert.equal(scoreOf(result, 'p1'), -31);
+  assert.equal(scoreOf(result, 'p1'), -32);
   assert.equal(scoreOf(result, 'p2'), 25);
   assert.equal(scoreOf(result, 'p3'), 14);
-  assert.equal(scoreOf(result, 'p4'), -1);
+  assert.equal(scoreOf(result, 'p4'), 12);
 });
 
 test('returns zero scores and next x2 multiplier when all players lose', () => {
