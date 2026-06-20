@@ -16,11 +16,11 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | In Progress | 82% |
-| Leaderboard | Next | 0% |
-| UI/API integration | Planned | 0% |
+| Score calculation | In Progress | 86% |
+| Leaderboard | Done | 100% |
+| UI/API integration | Next | 0% |
 
-Overall progress: **62%**
+Overall progress: **72%**
 
 ## Implementation Backlog
 
@@ -74,19 +74,31 @@ Acceptance criteria:
 - Apply all-loser zero-score round rule. **Done**
 - Implement confirmed high-contract fixed score formulas. **Done**
 - Implement Under Dash bonus/penalty. **Done**
+- Apply round x2 multiplier for configured follow-up rounds. **Done**
 - Mark unknown or variant Egyptian Estimation rules as research blockers. **Open**
 - Include tests for confirmed paths. **Partial**
 
 ### US-205 — LeaderboardService
 
+Status: **Done**
+
+Acceptance criteria:
+
+- Aggregate player scores across rounds. **Done**
+- Sort by total score descending. **Done**
+- Preserve deterministic order for ties. **Done**
+- Include unit tests. **Done**
+
+### US-206 — UI/API Integration Shell
+
 Status: **Next**
 
 Acceptance criteria:
 
-- Aggregate player scores across rounds.
-- Sort by total score descending.
-- Preserve deterministic order for ties.
-- Include unit tests.
+- Expose an implementation-ready application service for validating bids, calculating a round score, and aggregating leaderboard totals.
+- Keep the service framework-agnostic so it can be used by a future UI or API.
+- Return validation and scoring errors without throwing for normal user-input mistakes.
+- Include integration-style tests for a complete MVP scoring flow.
 
 ## Rule Research Backlog
 
