@@ -18,9 +18,9 @@
 | Trick validation | Done | 100% |
 | Score calculation | In Progress | 86% |
 | Leaderboard | Done | 100% |
-| UI/API integration | Next | 0% |
+| UI/API integration | In Progress | 55% |
 
-Overall progress: **72%**
+Overall progress: **78%**
 
 ## Implementation Backlog
 
@@ -91,14 +91,14 @@ Acceptance criteria:
 
 ### US-206 — UI/API Integration Shell
 
-Status: **Next**
+Status: **In Progress**
 
 Acceptance criteria:
 
-- Expose an implementation-ready application service for validating bids, calculating a round score, and aggregating leaderboard totals.
-- Keep the service framework-agnostic so it can be used by a future UI or API.
-- Return validation and scoring errors without throwing for normal user-input mistakes.
-- Include integration-style tests for a complete MVP scoring flow.
+- Expose an implementation-ready application service for validating bids, calculating a round score, and aggregating leaderboard totals. **Done**
+- Keep the service framework-agnostic so it can be used by a future UI or API. **Done**
+- Return validation and scoring errors without throwing for normal user-input mistakes. **Done**
+- Include integration-style tests for a complete MVP scoring flow. **Partial**
 
 ## Rule Research Backlog
 
