@@ -1,12 +1,13 @@
 import type { ContractSuit } from './card.js';
 
-export type BidType = 'normal' | 'dash' | 'dash-call';
+export type BidType = 'normal' | 'dash' | 'dash-call' | 'with';
 
 export interface EstimationBid {
   readonly playerId: string;
   readonly bidType: BidType;
   readonly tricks: number;
   readonly trumpSuit?: ContractSuit;
+  readonly withTargetPlayerId?: string;
 }
 
 export interface BidValidationOptions {
