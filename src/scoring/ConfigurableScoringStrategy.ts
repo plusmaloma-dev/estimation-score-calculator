@@ -7,12 +7,18 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
 
     if (playerBid.bidType === 'dash') {
       if (context.roundType === 'under' && profile.underDashSuccessBonus !== undefined && profile.underDashFailurePenalty !== undefined) {
-        return this.result(
-          context,
-          evaluation.didMatchBid ? profile.underDashSuccessBonus : -profile.underDashFailurePenalty,
-          evaluation.didMatchBid ? 'success' : 'failed',
-          [`Dash Under ${evaluation.didMatchBid ? 'successful' : 'failed'}.`],
-        );
+        let score = evaluation.didMatchBid
+          ? profile.underDashSuccessBonus
+          : -evaluation.delta - profile.underDashFailurePenalty;
+
+        notes.push(`Dash Under ${evaluation.didMatchBid ? 'successful' : 'failed'}.`);
+        notes.push(`Dash delta: ${evaluation.delta}.`);
+
+        score = this.applyRisk(score, context, notes);
+        score = this.applyOnlyWinnerLoser(score, context, notes);
+        score = this.applyRoundMultiplier(score, context, notes);
+
+        return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
       }
 
       return this.calculateSpecialBidScore(context, profile.dashSuccessScore, profile.dashFailureScore, 'Dash');
@@ -22,10 +28,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       return this.calculateSpecialBidScore(context, profile.dashCallSuccessScore, profile.dashCallFailureScore, 'Dash Call');
     }
 
-    const highContractThreshold = profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
-    const isHighContract = playerBid.tricks >= highContractThreshold;
-
-    if (isHighContract && evaluation.riskType === 'high-contract') {
+    if (evaluation.isHighContract && evaluation.riskType === 'high-contract') {
       const highContractScore = this.calculateHighContractScore(context);
       if (highContractScore !== undefined) {
         return highContractScore;
@@ -51,12 +54,6 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         score += ownerWinBonus;
         notes.push(`${evaluation.role === 'with-player' ? 'With player' : 'Bid owner'} win bonus applied: ${ownerWinBonus}.`);
       }
-
-      if (evaluation.isOnlyWinner) {
-        const onlyWinnerBonus = profile.onlyWinnerBonus ?? 10;
-        score += onlyWinnerBonus;
-        notes.push(`Only winner bonus applied: ${onlyWinnerBonus}.`);
-      }
     } else {
       score = -evaluation.delta * failurePenaltyPerDelta;
       notes.push('Normal bid failed: actual tricks did not match estimated tricks.');
@@ -66,13 +63,11 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         score -= ownerLossPenalty;
         notes.push(`${evaluation.role === 'with-player' ? 'With player' : 'Bid owner'} loss penalty applied: ${ownerLossPenalty}.`);
       }
-
-      if (evaluation.isOnlyLoser) {
-        const onlyLoserPenalty = profile.onlyLoserPenalty ?? 10;
-        score -= onlyLoserPenalty;
-        notes.push(`Only loser penalty applied: ${onlyLoserPenalty}.`);
-      }
     }
+
+    score = this.applyRisk(score, context, notes);
+    score = this.applyOnlyWinnerLoser(score, context, notes);
+    score = this.applyRoundMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -80,14 +75,19 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
   private calculateHighContractScore(context: ScoreContext): PlayerScoreResult | undefined {
     const { playerBid, evaluation, profile } = context;
     const highContractThreshold = profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
+    const notes: string[] = [];
 
     if (evaluation.didMatchBid) {
       if (profile.highContractWinBase === undefined || profile.highContractWinStep === undefined) {
         return undefined;
       }
 
-      const score = profile.highContractWinBase + (playerBid.tricks - highContractThreshold) * profile.highContractWinStep;
-      return this.result(context, score, 'success', ['High contract successful: fixed high-contract winner formula applied.']);
+      let score = profile.highContractWinBase + (playerBid.tricks - highContractThreshold) * profile.highContractWinStep;
+      notes.push('High contract successful: fixed high-contract winner formula applied.');
+      score = this.applyRisk(score, context, notes);
+      score = this.applyOnlyWinnerLoser(score, context, notes);
+      // x2 deliberately not applied to high contracts.
+      return this.result(context, score, 'success', notes);
     }
 
     if (profile.highContractLossBasePenalty === undefined || profile.highContractLossStepPenalty === undefined) {
@@ -95,11 +95,52 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     }
 
     const basePenalty = profile.highContractLossBasePenalty + (playerBid.tricks - highContractThreshold) * profile.highContractLossStepPenalty;
-    const score = -evaluation.delta + basePenalty;
-    return this.result(context, score, 'failed', [
-      'High contract failed: high-contract base penalty plus delta applied.',
-      `Difference from bid: ${evaluation.delta}.`,
-    ]);
+    let score = -evaluation.delta + basePenalty;
+    notes.push('High contract failed: high-contract base penalty plus delta applied.');
+    notes.push(`Difference from bid: ${evaluation.delta}.`);
+    score = this.applyRisk(score, context, notes);
+    score = this.applyOnlyWinnerLoser(score, context, notes);
+    // x2 deliberately not applied to high contracts.
+    return this.result(context, score, 'failed', notes);
+  }
+
+  private applyRisk(score: number, context: ScoreContext, notes: string[]): number {
+    const { evaluation } = context;
+    if (!evaluation.isRiskTaker || evaluation.riskModifier === 0) {
+      return score;
+    }
+
+    const modifier = evaluation.didMatchBid ? evaluation.riskModifier : -evaluation.riskModifier;
+    notes.push(`Risk ${evaluation.didMatchBid ? 'bonus' : 'penalty'} applied: ${modifier}.`);
+    return score + modifier;
+  }
+
+  private applyOnlyWinnerLoser(score: number, context: ScoreContext, notes: string[]): number {
+    const { evaluation, profile } = context;
+
+    if (evaluation.didMatchBid && evaluation.isOnlyWinner) {
+      const onlyWinnerBonus = profile.onlyWinnerBonus ?? 10;
+      notes.push(`Only winner bonus applied: ${onlyWinnerBonus}.`);
+      return score + onlyWinnerBonus;
+    }
+
+    if (!evaluation.didMatchBid && evaluation.isOnlyLoser) {
+      const onlyLoserPenalty = profile.onlyLoserPenalty ?? 10;
+      notes.push(`Only loser penalty applied: ${onlyLoserPenalty}.`);
+      return score - onlyLoserPenalty;
+    }
+
+    return score;
+  }
+
+  private applyRoundMultiplier(score: number, context: ScoreContext, notes: string[]): number {
+    const multiplier = context.roundMultiplier ?? 1;
+    if (multiplier === 1 || context.evaluation.isHighContract) {
+      return score;
+    }
+
+    notes.push(`Round multiplier applied: x${multiplier}.`);
+    return score * multiplier;
   }
 
   private calculateSpecialBidScore(
@@ -138,6 +179,9 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       didMatchBid: evaluation.didMatchBid,
       role: evaluation.role,
       riskType: evaluation.riskType,
+      isRiskTaker: evaluation.isRiskTaker,
+      riskModifier: evaluation.riskModifier,
+      isHighContract: evaluation.isHighContract,
       isOnlyWinner: evaluation.isOnlyWinner,
       isOnlyLoser: evaluation.isOnlyLoser,
       status,
