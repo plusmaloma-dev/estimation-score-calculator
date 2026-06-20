@@ -9,8 +9,8 @@ const standardOptions = { playerCount: 4, cardsPerPlayer: 13 };
 describe('BidValidationService', () => {
   it('accepts a valid Egyptian Estimation bid', () => {
     const bid: EstimationBid = {
-      mode: 'egyptian-estimation',
       playerId: 'player-1',
+      bidType: 'normal',
       tricks: 7,
       trumpSuit: 'spades',
     };
@@ -23,9 +23,10 @@ describe('BidValidationService', () => {
 
   it('rejects empty players and negative trick bids', () => {
     const bid: EstimationBid = {
-      mode: 'egyptian-estimation',
       playerId: ' ',
+      bidType: 'normal',
       tricks: -1,
+      trumpSuit: 'spades',
     };
 
     const result = service.validateEgyptianEstimationBid(bid, standardOptions);
@@ -37,9 +38,10 @@ describe('BidValidationService', () => {
 
   it('rejects bids above the cards dealt to a player', () => {
     const bid: EstimationBid = {
-      mode: 'egyptian-estimation',
       playerId: 'player-1',
+      bidType: 'normal',
       tricks: 14,
+      trumpSuit: 'spades',
     };
 
     const result = service.validateEgyptianEstimationBid(bid, standardOptions);
@@ -50,9 +52,10 @@ describe('BidValidationService', () => {
 
   it('rejects impossible table sizes', () => {
     const bid: EstimationBid = {
-      mode: 'egyptian-estimation',
       playerId: 'player-1',
-      tricks: 1,
+      bidType: 'normal',
+      tricks: 4,
+      trumpSuit: 'spades',
     };
 
     const result = service.validateEgyptianEstimationBid(bid, {
@@ -61,6 +64,8 @@ describe('BidValidationService', () => {
     });
 
     assert.equal(result.valid, false);
+    assert.match(result.errors.join('\n'), /exactly 4 players/);
+    assert.match(result.errors.join('\n'), /exactly 13 cards/);
     assert.match(result.errors.join('\n'), /52-card deck size/);
   });
 });
