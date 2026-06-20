@@ -27,8 +27,8 @@ export class BidValidationService {
       errors.push('Player count and cards per player cannot exceed the 52-card deck size.');
     }
 
-    if (!['normal', 'dash', 'dash-call'].includes(bid.bidType)) {
-      errors.push('Bid type must be normal, dash, or dash-call.');
+    if (!['normal', 'dash', 'dash-call', 'with'].includes(bid.bidType)) {
+      errors.push('Bid type must be normal, dash, dash-call, or with.');
     }
 
     if (!Number.isInteger(bid.tricks)) {
@@ -39,19 +39,23 @@ export class BidValidationService {
       errors.push('Trick bid cannot exceed cards per player.');
     }
 
-    if (bid.bidType === 'normal') {
+    if (bid.bidType === 'normal' || bid.bidType === 'with') {
       if (bid.tricks < MIN_NORMAL_CONTRACT || bid.tricks > MAX_NORMAL_CONTRACT) {
-        errors.push('Normal bids must be between 4 and 13 tricks.');
+        errors.push('Normal and With bids must be between 4 and 13 tricks.');
       }
 
       if (bid.trumpSuit === undefined) {
-        errors.push('Normal bids require a trump suit or no-trump contract.');
+        errors.push('Normal and With bids require a trump suit or no-trump contract.');
       } else if (!isValidContractSuit(bid.trumpSuit)) {
         errors.push('Selected contract suit must be one of: no-trump, spades, hearts, diamonds, clubs.');
       }
     }
 
-    if (bid.bidType !== 'normal' && bid.tricks !== 0) {
+    if (bid.bidType === 'with' && !bid.withTargetPlayerId?.trim()) {
+      errors.push('With bids must reference the bid owner they are matching.');
+    }
+
+    if ((bid.bidType === 'dash' || bid.bidType === 'dash-call') && bid.tricks !== 0) {
       errors.push('Dash and Dash Call bids must use 0 estimated tricks until their scoring rules are confirmed.');
     }
 
