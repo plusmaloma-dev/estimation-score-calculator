@@ -81,11 +81,13 @@ export class ScoreCalculationService {
     const ownerOutcome = this.resolveOwnerOutcome(input.bidOwnerPlayerId, evaluationsByPlayer);
 
     if (errors.length === 0 && allPlayersLost) {
+      const nextRoundMultiplier = this.resolveNextAllLoserMultiplier(input.roundMultiplier);
+
       return {
         valid: true,
         errors: [],
         ownerOutcome,
-        nextRoundMultiplier: 2,
+        nextRoundMultiplier,
         playerScores: input.bids.map((bid) => {
           const actualResult = actualResultsByPlayer.get(bid.playerId);
           const evaluation = evaluationsByPlayer.get(bid.playerId);
@@ -105,7 +107,7 @@ export class ScoreCalculationService {
             isOnlyLoser: false,
             status: 'failed',
             score: 0,
-            notes: ['All players lost: current round scores are zero and the next round should receive the x2 multiplier.'],
+            notes: [`All players lost: current round scores are zero and the next round should receive the x${nextRoundMultiplier} multiplier.`],
           };
         }),
       };
@@ -193,6 +195,10 @@ export class ScoreCalculationService {
     }
 
     return 0;
+  }
+
+  private resolveNextAllLoserMultiplier(currentRoundMultiplier: number | undefined): number {
+    return (currentRoundMultiplier ?? 1) * 2;
   }
 
   private resolveOwnerOutcome(
