@@ -1,8 +1,8 @@
-import { SUITS, type Suit } from '../domain/card.js';
+import { CONTRACT_SUIT_PRIORITY, contractSuitStrength, type ContractSuit } from '../domain/card.js';
 import type { EstimationBid } from '../domain/bid.js';
 
 export interface HighestBidResolverOptions {
-  readonly suitPriority?: readonly Suit[];
+  readonly suitPriority?: readonly ContractSuit[];
 }
 
 export interface HighestBidResult {
@@ -10,19 +10,19 @@ export interface HighestBidResult {
   readonly tiedBids: readonly EstimationBid[];
 }
 
-const defaultSuitPriority: readonly Suit[] = SUITS;
-
 export class HighestBidResolver {
   resolve(
     bids: readonly EstimationBid[],
     options: HighestBidResolverOptions = {},
   ): HighestBidResult {
-    if (bids.length === 0) {
+    const normalBids = bids.filter((bid) => bid.bidType === 'normal');
+
+    if (normalBids.length === 0) {
       return { winningBid: null, tiedBids: [] };
     }
 
-    const suitPriority = options.suitPriority ?? defaultSuitPriority;
-    const ordered = [...bids].sort((left, right) => this.compareBids(right, left, suitPriority));
+    const suitPriority = options.suitPriority ?? CONTRACT_SUIT_PRIORITY;
+    const ordered = [...normalBids].sort((left, right) => this.compareBids(right, left, suitPriority));
     const winningBid = ordered[0] ?? null;
 
     if (winningBid === null) {
@@ -37,10 +37,10 @@ export class HighestBidResolver {
     };
   }
 
-  private compareBids(
+  compareBids(
     left: EstimationBid,
     right: EstimationBid,
-    suitPriority: readonly Suit[],
+    suitPriority: readonly ContractSuit[] = CONTRACT_SUIT_PRIORITY,
   ): number {
     if (left.tricks !== right.tricks) {
       return left.tricks - right.tricks;
@@ -49,11 +49,16 @@ export class HighestBidResolver {
     return this.suitScore(left.trumpSuit, suitPriority) - this.suitScore(right.trumpSuit, suitPriority);
   }
 
-  private suitScore(suit: Suit | undefined, suitPriority: readonly Suit[]): number {
+  private suitScore(suit: ContractSuit | undefined, suitPriority: readonly ContractSuit[]): number {
     if (suit === undefined) {
-      return -1;
+      return Number.NEGATIVE_INFINITY;
     }
 
-    return suitPriority.indexOf(suit);
+    const customIndex = suitPriority.indexOf(suit);
+    if (customIndex >= 0) {
+      return suitPriority.length - customIndex;
+    }
+
+    return contractSuitStrength(suit);
   }
 }
