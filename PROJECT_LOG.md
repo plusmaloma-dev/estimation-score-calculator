@@ -1,5 +1,35 @@
 # Project Log
 
+## 2026-06-20 - Run 10
+
+Completed:
+
+- Confirmed and documented remaining Egyptian Estimation scoring rules in `PROJECT_RULES.md`.
+- Confirmed Dash in Over: success is +10; failure is delta * -1.
+- Confirmed Dash delta is the difference between actual tricks and estimated tricks for the Dash player.
+- Confirmed Dash Call: announced before bidding starts; success is +35; failure is delta * -1 -25.
+- Confirmed WITH applies the same rule for high contracts as normal contracts.
+- Confirmed risk taker is the last bidder whose call determines Under or Over.
+- Confirmed Risk and Double Risk always impact the risk taker's score:
+  - Total estimates 11 or 15: +/-10 based on success/failure.
+  - Total estimates 9 or 17: +/-20 based on success/failure.
+- Confirmed consecutive all-loser multiplier: first all-loser makes next round x2; if that next round is also lost, following round becomes x4 and continues compounding unless later capped.
+- Updated `BACKLOG.md` to remove scoring rule blockers and move focus to US-206 and US-207.
+
+Current item in progress:
+
+- US-206 - UI/API Integration Shell hardening.
+- US-207 - Acceptance Dataset.
+
+Blockers:
+
+- None for scoring rules.
+- Test execution still needs CI or local confirmation after implementation changes.
+
+Overall progress:
+
+- 96% complete.
+
 ## 2026-06-20 - Run 9
 
 Completed:
