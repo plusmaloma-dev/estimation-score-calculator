@@ -3,7 +3,7 @@ import type { PlayerScoreResult, ScoreContext, ScoringStrategy } from './types.j
 export class ConfigurableScoringStrategy implements ScoringStrategy {
   calculatePlayerScore(context: ScoreContext): PlayerScoreResult {
     const notes: string[] = [];
-    const { playerBid, actualResult, profile } = context;
+    const { playerBid, actualResult, evaluation, profile } = context;
 
     if (playerBid.bidType === 'dash') {
       return this.calculateSpecialBidScore(context, profile.dashSuccessScore, profile.dashFailureScore, 'Dash');
@@ -13,29 +13,21 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       return this.calculateSpecialBidScore(context, profile.dashCallSuccessScore, profile.dashCallFailureScore, 'Dash Call');
     }
 
-    const wasSuccessful = playerBid.tricks === actualResult.actualTricks;
     const highContractThreshold = profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
     const highContractMultiplier = playerBid.tricks >= highContractThreshold
       ? (profile.highContractMultiplier ?? 1)
       : 1;
 
-    if (wasSuccessful) {
+    if (evaluation.didMatchBid) {
       const base = profile.normalBidSuccessBase ?? 0;
       const perTrick = profile.normalBidSuccessPerTrick;
 
       if (perTrick === undefined) {
-        return {
-          playerId: playerBid.playerId,
-          bidTricks: playerBid.tricks,
-          actualTricks: actualResult.actualTricks,
-          status: 'pending-rule',
-          score: 0,
-          notes: ['Normal bid success formula is not confirmed yet.'],
-        };
+        return this.pendingResult(context, 'Normal bid success formula is not confirmed yet.');
       }
 
       const score = (base + playerBid.tricks * perTrick) * highContractMultiplier;
-      notes.push('Normal bid successful.');
+      notes.push('Normal bid successful: actual tricks matched estimated tricks.');
       if (highContractMultiplier !== 1) {
         notes.push(`High contract multiplier applied: ${highContractMultiplier}.`);
       }
@@ -44,6 +36,10 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         playerId: playerBid.playerId,
         bidTricks: playerBid.tricks,
         actualTricks: actualResult.actualTricks,
+        delta: evaluation.delta,
+        didMatchBid: evaluation.didMatchBid,
+        role: evaluation.role,
+        riskType: evaluation.riskType,
         status: 'success',
         score,
         notes,
@@ -52,20 +48,12 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
 
     const penaltyPerDifference = profile.normalBidFailurePenaltyPerTrickDifference;
     if (penaltyPerDifference === undefined) {
-      return {
-        playerId: playerBid.playerId,
-        bidTricks: playerBid.tricks,
-        actualTricks: actualResult.actualTricks,
-        status: 'pending-rule',
-        score: 0,
-        notes: ['Normal bid failure formula is not confirmed yet.'],
-      };
+      return this.pendingResult(context, 'Normal bid failure formula is not confirmed yet.');
     }
 
-    const difference = Math.abs(playerBid.tricks - actualResult.actualTricks);
-    const score = -difference * penaltyPerDifference * highContractMultiplier;
-    notes.push('Normal bid failed.');
-    notes.push(`Difference from bid: ${difference}.`);
+    const score = -evaluation.delta * penaltyPerDifference * highContractMultiplier;
+    notes.push('Normal bid failed: actual tricks did not match estimated tricks.');
+    notes.push(`Difference from bid: ${evaluation.delta}.`);
     if (highContractMultiplier !== 1) {
       notes.push(`High contract multiplier applied: ${highContractMultiplier}.`);
     }
@@ -74,6 +62,10 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       playerId: playerBid.playerId,
       bidTricks: playerBid.tricks,
       actualTricks: actualResult.actualTricks,
+      delta: evaluation.delta,
+      didMatchBid: evaluation.didMatchBid,
+      role: evaluation.role,
+      riskType: evaluation.riskType,
       status: 'failed',
       score,
       notes,
@@ -86,27 +78,40 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     failureScore: number | undefined,
     label: string,
   ): PlayerScoreResult {
-    const { playerBid, actualResult } = context;
-    const wasSuccessful = actualResult.actualTricks === 0;
+    const { playerBid, actualResult, evaluation } = context;
 
     if (successScore === undefined || failureScore === undefined) {
-      return {
-        playerId: playerBid.playerId,
-        bidTricks: playerBid.tricks,
-        actualTricks: actualResult.actualTricks,
-        status: 'pending-rule',
-        score: 0,
-        notes: [`${label} scoring is not confirmed yet.`],
-      };
+      return this.pendingResult(context, `${label} scoring is not confirmed yet.`);
     }
 
     return {
       playerId: playerBid.playerId,
       bidTricks: playerBid.tricks,
       actualTricks: actualResult.actualTricks,
-      status: wasSuccessful ? 'success' : 'failed',
-      score: wasSuccessful ? successScore : failureScore,
-      notes: [`${label} ${wasSuccessful ? 'successful' : 'failed'}.`],
+      delta: evaluation.delta,
+      didMatchBid: evaluation.didMatchBid,
+      role: evaluation.role,
+      riskType: evaluation.riskType,
+      status: evaluation.didMatchBid ? 'success' : 'failed',
+      score: evaluation.didMatchBid ? successScore : failureScore,
+      notes: [`${label} ${evaluation.didMatchBid ? 'successful' : 'failed'}.`],
+    };
+  }
+
+  private pendingResult(context: ScoreContext, note: string): PlayerScoreResult {
+    const { playerBid, actualResult, evaluation } = context;
+
+    return {
+      playerId: playerBid.playerId,
+      bidTricks: playerBid.tricks,
+      actualTricks: actualResult.actualTricks,
+      delta: evaluation.delta,
+      didMatchBid: evaluation.didMatchBid,
+      role: evaluation.role,
+      riskType: evaluation.riskType,
+      status: 'pending-rule',
+      score: 0,
+      notes: [note],
     };
   }
 }
