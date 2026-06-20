@@ -5,9 +5,10 @@
   "description": "MVP score calculation app for the Egyptian Estimation card game.",
   "type": "module",
   "scripts": {
+    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "rm -rf dist && tsc --outDir dist && node --test dist/tests/**/*.test.js",
+    "test": "npm run clean && tsc --outDir dist && node --test dist/tests/**/*.test.js",
     "build": "tsc --noEmit"
   },
   "devDependencies": {
