@@ -1,5 +1,37 @@
 # Project Log
 
+## 2026-06-20 - Run 9
+
+Completed:
+
+- Started US-206 - UI/API Integration Shell.
+- Added framework-agnostic `EstimationMvpService` to coordinate:
+  - Round bid validation.
+  - Round score calculation using the inferred Over/Under round type.
+  - Multi-round leaderboard aggregation.
+- Exported `EstimationMvpService` from the public package index.
+- Added integration-style tests for:
+  - Complete MVP scoring flow from bids to leaderboard.
+  - Returning validation errors without throwing for normal user-input mistakes.
+- Updated `BACKLOG.md` to move UI/API integration into progress and align overall project progress with the latest completed work.
+
+Current item in progress:
+
+- US-206 - UI/API Integration Shell hardening and acceptance dataset/table generation.
+
+Blockers:
+
+- Need CI/local test execution confirmation.
+- Dash behavior in Over rounds is still unconfirmed.
+- Dash Call formula is still unconfirmed.
+- Whether With can apply to high contracts is still unconfirmed.
+- Whether high-contract scores stack with Only Winner / Only Loser still needs final confirmation.
+- Consecutive all-loser multiplier behavior is still unconfirmed.
+
+Overall progress:
+
+- 78% complete.
+
 ## 2026-06-20 - Run 8
 
 Completed:
