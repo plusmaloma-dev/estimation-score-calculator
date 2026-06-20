@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-20 - Run 11
+
+Completed:
+
+- Continued US-206 - UI/API Integration Shell hardening.
+- Added integration-style MVP tests confirming returned DTO metadata for:
+  - Dash Call failure with explicit round-risk taker metadata.
+  - Risk modifier exposure on the score result.
+  - WITH role and risk-type metadata.
+  - Consecutive all-loser next-round multiplier escalation from x2 to x4.
+- Updated `BACKLOG.md` to mark US-206 metadata coverage done and move the next focus to README usage examples plus acceptance dataset expansion.
+
+Current item in progress:
+
+- US-206 - Thin README usage example for future UI/API callers.
+- US-207 - Acceptance Dataset expansion.
+
+Blockers:
+
+- Test execution still needs CI or local confirmation after the latest test additions.
+
+Overall progress:
+
+- 98% complete.
+
 ## 2026-06-20 - Run 10
 
 Completed:
