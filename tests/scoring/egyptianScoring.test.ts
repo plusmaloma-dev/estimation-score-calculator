@@ -94,17 +94,17 @@ test('applies only-winner bonus independent of bid owner position', () => {
     ],
     actualResults: [
       { playerId: 'A', actualTricks: 5 },
-      { playerId: 'B', actualTricks: 3 },
+      { playerId: 'B', actualTricks: 2 },
       { playerId: 'C', actualTricks: 2 },
-      { playerId: 'D', actualTricks: 3 },
+      { playerId: 'D', actualTricks: 4 },
     ],
     profile: egyptianProfile,
   });
 
   assert.equal(scores.get('A'), -1);
-  assert.equal(scores.get('B'), -1);
+  assert.equal(scores.get('B'), -2);
   assert.equal(scores.get('C'), 22);
-  assert.equal(scores.get('D'), 23);
+  assert.equal(scores.get('D'), -11);
 });
 
 test('sets all scores to zero when all players lose', () => {
