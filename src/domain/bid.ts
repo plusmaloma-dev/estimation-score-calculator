@@ -1,21 +1,13 @@
-import type { Suit } from './card.js';
+import type { ContractSuit } from './card.js';
 
-export type BidMode = 'egyptian-estimation' | 'planning-poker';
+export type BidType = 'normal' | 'dash' | 'dash-call';
 
 export interface EstimationBid {
-  readonly mode: 'egyptian-estimation';
   readonly playerId: string;
+  readonly bidType: BidType;
   readonly tricks: number;
-  readonly trumpSuit?: Suit;
+  readonly trumpSuit?: ContractSuit;
 }
-
-export interface PlanningPokerVote {
-  readonly mode: 'planning-poker';
-  readonly playerId: string;
-  readonly value: number | '?' | 'coffee';
-}
-
-export type Bid = EstimationBid | PlanningPokerVote;
 
 export interface BidValidationOptions {
   readonly playerCount: number;
@@ -25,4 +17,9 @@ export interface BidValidationOptions {
 export interface ValidationResult {
   readonly valid: boolean;
   readonly errors: readonly string[];
+}
+
+export interface RoundBidValidationResult extends ValidationResult {
+  readonly totalEstimatedTricks: number;
+  readonly roundType?: 'over' | 'under';
 }
