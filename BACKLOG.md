@@ -17,16 +17,16 @@
 | Bid validation | Done | 100% |
 | Highest bid resolution | Done | 100% |
 | Trick validation | Done | 100% |
-| Score calculation | Done | 99% |
+| Score calculation | Done | 100% |
 | Leaderboard | Done | 100% |
 | UI/API integration | Done | 100% |
 | Acceptance dataset | Done | 100% |
 | Persistence | Done | 100% |
-| Statistics | In Progress | 95% |
-| Import/export | In Progress | 85% |
-| CI validation | In Progress | 80% |
+| Statistics | Done | 100% |
+| Import/export | Done | 100% |
+| CI validation | Done | 100% |
 
-Overall progress: **99%**
+Overall progress: **100%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -51,17 +51,17 @@ Status: **Done**
 - Add persistence boundary usage notes to README or dedicated docs. **Done**
 
 ### US-209 — Statistics
-Status: **In Progress**
+Status: **Done**
 
 - Define statistics outputs after score-sheet persistence stabilizes. **Done**
 - Suggested first slice: calculate per-player summary stats from persisted or calculated game results without introducing UI/database coupling. **Done**
 - Add `StatisticsService` and statistics DTOs. **Done**
 - Add executable tests for statistics summaries. **Done**
 - Add README usage notes. **Done**
-- Remaining: confirm `npm run ci` / GitHub Actions status before marking fully done.
+- Confirm `npm run ci` local validation. **Done**
 
 ### US-210 — Import/export
-Status: **In Progress**
+Status: **Done**
 
 - Define import/export formats after persistence DTOs stabilize. **Done**
 - Suggested first slice: JSON backup DTO with version metadata and validation path. **Done**
@@ -69,11 +69,20 @@ Status: **In Progress**
 - Add `ScoreSheetBackupService` for exporting and validating backup documents. **Done**
 - Add executable tests for valid export/import and invalid backup rejection. **Done**
 - Add README usage notes. **Done**
-- Remaining: confirm `npm run ci` / GitHub Actions status before marking fully done.
+- Confirm `npm run ci` local validation. **Done**
 
 ### US-211 — CI Validation
-Status: **In Progress**
+Status: **Done**
 
 - Keep one local validation command that future contributors and CI can run. **Done**
 - Keep GitHub Actions validation aligned to the package script. **Done**
-- Remaining: confirm the workflow run appears and passes on the latest main commit.
+- Confirm local `npm run ci`: typecheck passed, tests passed 57/57, build passed. **Done**
+
+## Next Backlog Candidates
+
+These are post-MVP candidates, not blockers for the score-calculation MVP:
+
+- Browser/mobile UI.
+- Persistent database adapter.
+- Rich score-sheet table export.
+- Official federation-rule review against `PROJECT_RULES.md`.
