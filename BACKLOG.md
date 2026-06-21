@@ -29,14 +29,14 @@
 | Post-MVP roadmap | Done | 100% |
 | Browser/mobile UI planning | Done | 100% |
 | Local-storage adapter | Implemented | 85% |
-| Browser UI shell | Implemented | 70% |
+| Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Backlog | 0% |
 | Rich score-sheet export | Backlog | 0% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **22%**
+Post-MVP progress: **24%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -119,7 +119,7 @@ Status: **Implemented, pending validation**
 - Create a four-player score-sheet setup flow. **Done**
 - Add one valid round-entry flow wired to `EstimationMvpService`. **Done**
 - Show validation messages before saving invalid rounds. **Done**
-- Show leaderboard and round history boundary. **Partially done: leaderboard service output is exposed; round history remains in persisted score sheet.**
+- Show leaderboard and round history boundary. **Done**
 - Export JSON backup through the existing backup service. **Done**
 - Confirm `npm run ci` local validation. **Pending**
 
