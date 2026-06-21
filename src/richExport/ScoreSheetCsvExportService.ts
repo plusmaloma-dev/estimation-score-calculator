@@ -12,6 +12,7 @@ export interface ScoreSheetCsvExportInput {
 export class ScoreSheetCsvExportService {
   exportScoreSheet(input: ScoreSheetCsvExportInput): string {
     const rows: string[][] = [];
+    const runningScores = new Map(input.gameInput.playerOrder.map((playerId) => [playerId, 0]));
 
     if (input.includeMetadataRows === true) {
       rows.push(['metric', 'value']);
@@ -44,6 +45,7 @@ export class ScoreSheetCsvExportService {
       const roundResult = input.gameResult.rounds[roundIndex];
       const roundType = roundResult?.bidValidation.roundType ?? 'invalid';
       const scoreResult = roundResult?.scoreResult;
+      const bidTypeByPlayerId = new Map(roundInput.bids.map((bid) => [bid.playerId, bid.bidType]));
 
       if (scoreResult === undefined || scoreResult.playerScores.length === 0) {
         rows.push([
@@ -66,19 +68,35 @@ export class ScoreSheetCsvExportService {
       }
 
       for (const playerScore of scoreResult.playerScores) {
-        rows.push(this.formatPlayerScoreRow(roundInput.roundNumber, roundType, playerScore));
+        const previousRunningScore = runningScores.get(playerScore.playerId) ?? 0;
+        const updatedRunningScore = previousRunningScore + playerScore.score;
+        runningScores.set(playerScore.playerId, updatedRunningScore);
+
+        rows.push(this.formatPlayerScoreRow(
+          roundInput.roundNumber,
+          roundType,
+          playerScore,
+          bidTypeByPlayerId.get(playerScore.playerId) ?? '',
+          updatedRunningScore,
+        ));
       }
     });
 
     return rows.map((row) => row.map((cell) => this.escapeCell(cell)).join(',')).join('\n');
   }
 
-  private formatPlayerScoreRow(roundNumber: number, roundType: string, playerScore: PlayerScoreResult): string[] {
+  private formatPlayerScoreRow(
+    roundNumber: number,
+    roundType: string,
+    playerScore: PlayerScoreResult,
+    bidType: string,
+    runningScore: number,
+  ): string[] {
     return [
       roundNumber.toString(),
       roundType,
       playerScore.playerId,
-      '',
+      bidType,
       playerScore.bidTricks.toString(),
       playerScore.actualTricks.toString(),
       playerScore.delta.toString(),
@@ -87,7 +105,7 @@ export class ScoreSheetCsvExportService {
       playerScore.role,
       playerScore.riskType,
       playerScore.riskModifier.toString(),
-      playerScore.score.toString(),
+      runningScore.toString(),
       this.formatNotes(playerScore),
     ];
   }
