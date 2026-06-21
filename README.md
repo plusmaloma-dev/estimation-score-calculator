@@ -14,6 +14,7 @@ Score calculation engine for the Egyptian Estimation card game (إستيميشن
 - Leaderboard aggregation
 - Optional score-sheet persistence boundary
 - Game/player statistics summaries
+- Versioned JSON backup import/export boundary
 
 ## Usage Example
 
@@ -117,6 +118,31 @@ console.log(statistics.highestScorePlayerId);
 ```
 
 The player statistics DTO includes totals, rounds played, exact-bid rate, average score, best/worst round, Dash/Dash Call counters, risk counters, WITH participation, and high-contract counts.
+
+## Import/export
+
+Use `ScoreSheetBackupService` to create or validate versioned JSON backup documents for persisted score sheets. The backup format is explicitly named for Egyptian Estimation score sheets and is not compatible with Planning Poker estimates.
+
+```ts
+import { ScoreSheetBackupService } from './src/index.js';
+
+const backupService = new ScoreSheetBackupService();
+
+const backup = backupService.exportScoreSheets({
+  scoreSheets: [saved],
+  source: 'web-ui',
+});
+
+const imported = backupService.importScoreSheets(backup);
+
+if (imported.valid) {
+  console.log(imported.document.scoreSheets);
+} else {
+  console.error(imported.errors);
+}
+```
+
+Future adapters can serialize the backup document to a file, browser download, cloud object, or API response without changing the scoring engine.
 
 ## Project Rules
 
