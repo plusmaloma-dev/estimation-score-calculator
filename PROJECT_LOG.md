@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-21 - Run 28
+
+Completed:
+
+- Continued from US-215 - Rich Score-Sheet Export and moved to the next unfinished backlog item, US-216 - Federation-Rule Review.
+- Checked the current local rule baseline in `PROJECT_RULES.md`.
+- Checked the public Egyptian Bridge Federation Estimation site for broad scope evidence: Estimation is described as a four-player 52-card trick-estimation game, and the Estimation Committee is described as responsible for officially recognized laws/rules, arbitration, tournament procedures, licensing, ranking, and player classification.
+- Could not directly retrieve the public `rules.html` or `documents.html` pages through the available web fetcher during this run; detailed official scoring evidence remains pending.
+- Added `FEDERATION_RULE_REVIEW.md` as a rule-audit tracker covering source notes, local baseline decisions, implementation impact, and pending evidence.
+- Added follow-up stories US-216A, US-216B, and US-216C to separate source capture, rule-difference confirmation, and code changes.
+- Updated `BACKLOG.md` to mark US-216 as In progress and raise post-MVP progress to 44%.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-216 - Federation-Rule Review.
+- Next implementation-ready slice: US-216A - Federation Source Capture.
+
+Blockers:
+
+- Detailed federation Rules/Documents pages were not retrievable through the available web fetcher in this run.
+- Local `npm run ci` is still needed before marking US-213A, US-213B, US-214, or US-215 fully Done.
+- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 44% complete.
+
 ## 2026-06-21 - Run 27
 
 Completed:
@@ -88,61 +117,3 @@ Overall progress:
 ## 2026-06-21 - Run 24
 
 Completed:
-
-- Continued from US-213B - Browser UI Shell.
-- Added `BrowserUiShellService` as a framework-neutral TypeScript application shell for future browser/mobile components.
-- The shell now supports:
-  - Four-player score-sheet setup validation.
-  - Draft score-sheet creation through `ScoreSheetRepository`.
-  - Round preview through `EstimationMvpService` before save.
-  - Valid-round save flow with updated game result and leaderboard.
-  - Leaderboard retrieval for a saved score sheet.
-  - JSON backup export through `ScoreSheetBackupService`.
-- Exported the browser UI shell from `src/index.ts`.
-- Added `tests/browserUiShellService.test.ts` covering setup validation, draft creation/listing, invalid-round preview, valid-round save/leaderboard, and backup export.
-- Updated README with browser UI shell usage guidance.
-- Updated `BACKLOG.md` to mark US-213B as implemented pending validation and raise post-MVP progress.
-- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
-
-Current item in progress:
-
-- US-213B - Browser UI Shell is implemented but pending `npm run ci` validation.
-- US-213A - Local-Storage Score-Sheet Repository Adapter is also still pending `npm run ci` validation.
-
-Blockers:
-
-- Local `npm run ci` needs to be run or confirmed before marking US-213A or US-213B fully Done.
-- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 22% complete.
-
-## 2026-06-21 - Run 23
-
-Completed:
-
-- Continued from US-213A - Local-Storage Score-Sheet Repository Adapter.
-- Added `LocalStorageScoreSheetRepository` with:
-  - `ScoreSheetRepository` interface compatibility.
-  - One namespaced browser storage key: `egyptian-estimation:score-sheets:v1`.
-  - Injected `ScoreSheetStorageLike` dependency for browser and non-browser tests.
-  - Save, update, list, get, delete, and clear behavior.
-  - Safe fallback to an empty repository when stored data is missing, invalid, or corrupt.
-- Exported the adapter from `src/index.ts`.
-- Added repository tests covering save/get/list/update/delete, shared storage state, corrupt-data recovery, and required-field validation.
-- Updated README usage examples to include required scoring profile and trump suit fields, plus local-storage adapter usage notes.
-- Updated `BACKLOG.md` to mark US-213A as implemented pending validation and set US-213B - Browser UI Shell as the next Ready item.
-- Checked latest commit status and workflow runs through the connector; no statuses or workflow runs were visible.
-- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
-
-Current item in progress:
-
-- US-213A is implemented but still pending `npm run ci` validation.
-- Next implementation-ready item after validation is US-213B - Browser UI Shell.
-
-Blockers:
-
-- GitHub Actions status/workflow visibility is still unavailable through the connector for the latest inspected commit.
-- Local `npm run ci` still needs to be run or confirmed before marking US-213A fully Done.
