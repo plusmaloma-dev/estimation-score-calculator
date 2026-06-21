@@ -66,7 +66,19 @@ test('LocalStorageScoreSheetRepository saves, retrieves, lists, updates, and del
   assert.equal(saved.status, 'draft');
   assert.deepEqual(saved.playerOrder, ['A', 'B', 'C', 'D']);
   assert.equal(saved.roundCount, 1);
-  assert.deepEqual(repository.getById(saved.id), saved);
+
+  const retrieved = repository.getById(saved.id);
+  assert.equal(retrieved?.gameResult, undefined);
+  assert.deepEqual(retrieved, {
+    id: saved.id,
+    name: saved.name,
+    status: saved.status,
+    createdAtIso: saved.createdAtIso,
+    updatedAtIso: saved.updatedAtIso,
+    playerOrder: saved.playerOrder,
+    roundCount: saved.roundCount,
+    gameInput: saved.gameInput,
+  });
 
   assert.deepEqual(repository.list(), [
     {
