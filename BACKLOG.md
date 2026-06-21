@@ -33,10 +33,11 @@
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
 | Federation-rule review | In progress | 45% |
+| Player analytics dashboard service | Implemented | 85% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **46%**
+Post-MVP progress: **50%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -171,3 +172,13 @@ Status: **Blocked until differences are confirmed**
 - Implement only confirmed scoring changes.
 - Add acceptance dataset rows for every changed rule.
 - Update `PROJECT_RULES.md`, tests, README, and backlog with final decisions.
+
+### US-217A — Player Performance Analytics
+Status: **Implemented, pending validation**
+
+- Add dashboard-ready analytics DTOs. **Done**
+- Add `PlayerAnalyticsService`. **Done**
+- Include exact bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, ranking, and consistency metadata. **Done**
+- Add tests using calculated game results without recalculating scores. **Done**
+- Export analytics APIs from the public package index. **Done**
+- Confirm `npm run ci` local validation. **Pending**
