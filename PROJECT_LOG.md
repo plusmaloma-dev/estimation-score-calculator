@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-06-21 - Run 25
+
+Completed:
+
+- Continued from US-213B - Browser UI Shell.
+- Closed the remaining round-history acceptance gap by adding `getRoundHistory` to `BrowserUiShellService`.
+- Added a `UiRoundHistoryEntry` projection for score-sheet screens with round number, Over/Under type, validation state, bid/actual rows, player scores, risk type, and next-round multiplier.
+- Added test coverage proving the browser UI shell exposes saved round history and player scores.
+- Updated README browser UI shell usage notes to document round-history retrieval.
+- Updated `BACKLOG.md` to mark the Browser UI shell round-history boundary as Done and raise post-MVP progress.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-213B - Browser UI Shell is implemented but pending `npm run ci` validation.
+- US-213A - Local-Storage Score-Sheet Repository Adapter is also still pending `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` needs to be run or confirmed before marking US-213A or US-213B fully Done.
+- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 24% complete.
+
 ## 2026-06-21 - Run 24
 
 Completed:
@@ -94,32 +121,3 @@ Overall progress:
 
 - MVP: 100% complete.
 - Post-MVP: 10% complete.
-
-## 2026-06-21 - Run 21
-
-Completed:
-
-- Continued from the completed MVP and moved into post-MVP backlog planning.
-- Added `POST_MVP_ROADMAP.md` to convert loose future candidates into implementation-ready post-MVP stories.
-- Structured the next post-MVP backlog sequence in `BACKLOG.md`:
-  - US-213 - Browser/Mobile UI Planning.
-  - US-214 - Persistent Database Adapter.
-  - US-215 - Rich Score-Sheet Export.
-  - US-216 - Federation-Rule Review.
-- Marked US-212 - Post-MVP Roadmap as Done.
-- Set Browser/Mobile UI Planning as the next Ready item.
-- Made no Egyptian Estimation scoring changes and did not introduce Planning Poker concepts.
-
-Current item in progress:
-
-- US-213 - Browser/Mobile UI Planning is Ready and should start with a screen map and UI-to-engine DTO mapping.
-
-Blockers:
-
-- None for post-MVP planning.
-- Implementation of a real browser/mobile UI still needs a framework/storage direction before code should be added.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 5% complete.
