@@ -34,10 +34,11 @@
 | Rich score-sheet export | Implemented | 80% |
 | Federation-rule review | In progress | 45% |
 | Player analytics dashboard service | Implemented | 85% |
+| Player analytics exports | Implemented | 85% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **50%**
+Post-MVP progress: **56%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -181,4 +182,24 @@ Status: **Implemented, pending validation**
 - Include exact bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, ranking, and consistency metadata. **Done**
 - Add tests using calculated game results without recalculating scores. **Done**
 - Export analytics APIs from the public package index. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-217B — Player Analytics Markdown Export
+Status: **Implemented, pending validation**
+
+- Add `PlayerAnalyticsMarkdownExportService` for dashboard/report presentation. **Done**
+- Add deterministic Markdown table tests. **Done**
+- Export the Markdown analytics formatter from the public package index. **Done**
+- Document usage in README. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-217C — Player Analytics CSV Export
+Status: **Implemented, pending validation**
+
+- Add `PlayerAnalyticsCsvExportService` for spreadsheet-friendly analytics export. **Done**
+- Include optional summary metadata rows. **Done**
+- Escape quoted/comma/newline cells safely for CSV consumers. **Done**
+- Add deterministic CSV tests. **Done**
+- Export the CSV analytics formatter from the public package index. **Done**
+- Document usage in README. **Done**
 - Confirm `npm run ci` local validation. **Pending**
