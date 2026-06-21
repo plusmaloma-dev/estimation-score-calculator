@@ -17,3 +17,4 @@ export * from './statistics/types.js';
 export * from './statistics/StatisticsService.js';
 export * from './importExport/types.js';
 export * from './importExport/ScoreSheetBackupService.js';
+export * from './ui/BrowserUiShellService.js';
