@@ -287,4 +287,4 @@ const csv = new ScoreSheetCsvExportService().exportScoreSheet({
 console.log(csv);
 ```
 
-Score-sheet CSV exports include round number, Over/Under type, player bid/actual/delta/score, status, role, risk metadata, running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format.
+Score-sheet CSV exports include round number, Over/Under type, player bid type, bid/actual/delta/score, status, role, risk metadata, cumulative running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format.
