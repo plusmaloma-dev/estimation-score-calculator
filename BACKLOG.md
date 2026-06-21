@@ -6,6 +6,7 @@
 - Prefer implementation-ready slices with tests.
 - Update `PROJECT_LOG.md` after each automation run.
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
+- Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 
 ## Progress Tracker
 
@@ -25,8 +26,15 @@
 | Statistics | Done | 100% |
 | Import/export | Done | 100% |
 | CI validation | Done | 100% |
+| Post-MVP roadmap | Done | 100% |
+| Browser/mobile UI | Ready | 0% |
+| Persistent database adapter | Backlog | 0% |
+| Rich score-sheet export | Backlog | 0% |
+| Federation-rule review | Backlog | 0% |
 
-Overall progress: **100%**
+MVP progress: **100%**
+
+Post-MVP progress: **5%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -78,11 +86,37 @@ Status: **Done**
 - Keep GitHub Actions validation aligned to the package script. **Done**
 - Confirm local `npm run ci`: typecheck passed, tests passed 57/57, build passed. **Done**
 
-## Next Backlog Candidates
+### US-212 — Post-MVP Roadmap
+Status: **Done**
 
-These are post-MVP candidates, not blockers for the score-calculation MVP:
+- Convert loose post-MVP candidates into implementation-ready backlog items. **Done**
+- Document post-MVP sequencing and acceptance notes in `POST_MVP_ROADMAP.md`. **Done**
 
-- Browser/mobile UI.
-- Persistent database adapter.
-- Rich score-sheet table export.
-- Official federation-rule review against `PROJECT_RULES.md`.
+### US-213 — Browser/Mobile UI Planning
+Status: **Ready**
+
+- Draft screen map for player setup, round entry, scoring result, leaderboard, statistics, and import/export. **Next**
+- Define UI input DTO mapping to the existing engine DTOs.
+- List validation messages that should be shown before score calculation.
+- Confirm whether UI state should start with in-memory storage, browser local storage, or API-backed persistence.
+
+### US-214 — Persistent Database Adapter
+Status: **Backlog**
+
+- Choose storage target after UI/API direction is known.
+- Implement a repository adapter that satisfies `ScoreSheetRepository`.
+- Add tests proving save, update, list, get, and delete behavior matches the in-memory adapter contract.
+
+### US-215 — Rich Score-Sheet Export
+Status: **Backlog**
+
+- Define table layout for rounds, player deltas, running balances, final standings, and statistics.
+- Add a formatting service that consumes calculated game results without recalculating scores.
+- Add tests for deterministic table structure and ordering.
+
+### US-216 — Federation-Rule Review
+Status: **Backlog**
+
+- Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references.
+- Record source, decision, and impact for each confirmed rule.
+- Create follow-up implementation stories only for confirmed scoring changes.
