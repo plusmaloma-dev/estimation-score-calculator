@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-21 - Run 22
+
+Completed:
+
+- Continued post-MVP work from US-213 - Browser/Mobile UI Planning.
+- Added `UI_PLANNING.md` with:
+  - Browser/mobile screen map.
+  - Round-entry validation messages.
+  - UI-to-engine DTO mapping.
+  - Recommended first storage direction: browser local storage for the UI prototype.
+  - Implementation-ready follow-up slices US-213A and US-213B.
+- Updated `BACKLOG.md` to mark US-213 as Done and make US-213A - Local-Storage Score-Sheet Repository Adapter the next Ready item.
+- Made no Egyptian Estimation scoring changes and did not introduce any non-Egyptian Estimation estimation workflow.
+
+Current item in progress:
+
+- US-213A - Local-Storage Score-Sheet Repository Adapter.
+
+Blockers:
+
+- None for repository-adapter implementation.
+- A full UI implementation still needs final framework direction before UI code is added.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 10% complete.
+
 ## 2026-06-21 - Run 21
 
 Completed:
@@ -75,61 +103,6 @@ Blockers:
 
 - GitHub connector still exposes no workflow runs for the inspected latest CI blocker commit.
 - Combined commit status for the inspected commit is empty.
-- Local `npm run ci` execution still needs confirmation outside the connector environment.
-
-Overall progress:
-
-- 99% complete.
-
-## 2026-06-21 - Run 18
-
-Completed:
-
-- Continued from US-211 - CI Validation.
-- Rechecked workflow visibility for recent implementation, documentation, persistence, statistics, import/export, and CI commits; the connector returned no workflow runs for each inspected commit.
-- Checked combined commit status for the latest CI-related commit; no statuses were returned.
-- Confirmed `package.json` contains the consolidated validation command:
-  - `npm run typecheck`
-  - `npm test`
-  - `npm run build`
-- Confirmed `.github/workflows/ci.yml` is present, runs on push/PR to `main`, uses Node.js 20, installs dependencies, and executes `npm run ci`.
-- Made no Egyptian Estimation scoring changes and avoided introducing any Planning Poker concepts.
-
-Current item in progress:
-
-- US-211 - CI Validation remains in progress until a visible GitHub Actions run or local `npm run ci` result confirms the package is green.
-
-Blockers:
-
-- GitHub connector still exposes no workflow runs for inspected commits.
-- Combined commit status for the latest CI-related commit is empty.
-- Local `npm run ci` execution still needs confirmation outside the connector environment.
-
-Overall progress:
-
-- 99% complete.
-
-## 2026-06-21 - Run 17
-
-Completed:
-
-- Continued from US-209 Statistics and US-210 Import/export, where the only remaining acceptance step was validation confirmation.
-- Verified the previous latest commit had no associated GitHub Actions workflow runs exposed through the connector.
-- Confirmed `.github/workflows/ci.yml` already exists and validates pushes/PRs on Node.js 20.
-- Added a consolidated `npm run ci` script to `package.json` so local and CI validation use the same command:
-  - `npm run typecheck`
-  - `npm test`
-  - `npm run build`
-- Updated the GitHub Actions workflow to run `npm run ci` instead of duplicating package scripts in workflow YAML.
-- Updated `BACKLOG.md` with US-211 - CI Validation and raised Statistics/Import-export progress now that a single validation command exists.
-
-Current item in progress:
-
-- US-211 - Confirm the GitHub Actions workflow run appears and passes on the latest main commit, then mark Statistics and Import/export done if green.
-
-Blockers:
-
-- The connector still returned no workflow runs for the inspected latest CI-related commit immediately after pushing the workflow update.
 - Local `npm run ci` execution still needs confirmation outside the connector environment.
 
 Overall progress:
