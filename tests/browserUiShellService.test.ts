@@ -131,6 +131,34 @@ test('browser UI shell saves a valid round and exposes leaderboard output', () =
   assert.deepEqual(service.getLeaderboard(created.scoreSheet?.id ?? '').map((entry) => entry.playerId), ['A', 'B', 'C', 'D']);
 });
 
+test('browser UI shell exposes round history for score-sheet screens', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+  const created = service.createScoreSheet({ name: 'Friday Game', players });
+  assert.equal(created.valid, true, created.errors.join('; '));
+
+  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
+  assert.equal(saved.valid, true, saved.errors.join('; '));
+
+  const history = service.getRoundHistory(created.scoreSheet?.id ?? '');
+
+  assert.equal(history.length, 1);
+  assert.equal(history[0]?.roundNumber, 1);
+  assert.equal(history[0]?.roundType, 'under');
+  assert.equal(history[0]?.valid, true);
+  assert.deepEqual(history[0]?.bids.map((bid) => [bid.playerId, bid.tricks]), [
+    ['A', 3],
+    ['B', 3],
+    ['C', 3],
+    ['D', 2],
+  ]);
+  assert.deepEqual(history[0]?.playerScores.map((score) => [score.playerId, score.score]), [
+    ['A', 13],
+    ['B', 13],
+    ['C', -1],
+    ['D', -11],
+  ]);
+});
+
 test('browser UI shell exports a JSON backup for the current score sheet', () => {
   const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
   const created = service.createScoreSheet({ name: 'Friday Game', players });
