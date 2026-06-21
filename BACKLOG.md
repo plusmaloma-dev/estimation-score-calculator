@@ -22,8 +22,9 @@
 | UI/API integration | Done | 100% |
 | Acceptance dataset | Done | 100% |
 | Persistence | Done | 100% |
-| Statistics | In Progress | 90% |
-| Import/export | In Progress | 70% |
+| Statistics | In Progress | 95% |
+| Import/export | In Progress | 85% |
+| CI validation | In Progress | 80% |
 
 Overall progress: **99%**
 
@@ -57,7 +58,7 @@ Status: **In Progress**
 - Add `StatisticsService` and statistics DTOs. **Done**
 - Add executable tests for statistics summaries. **Done**
 - Add README usage notes. **Done**
-- Remaining: confirm `npm test` / CI status before marking fully done.
+- Remaining: confirm `npm run ci` / GitHub Actions status before marking fully done.
 
 ### US-210 — Import/export
 Status: **In Progress**
@@ -68,4 +69,11 @@ Status: **In Progress**
 - Add `ScoreSheetBackupService` for exporting and validating backup documents. **Done**
 - Add executable tests for valid export/import and invalid backup rejection. **Done**
 - Add README usage notes. **Done**
-- Remaining: confirm `npm test` / CI status before marking fully done.
+- Remaining: confirm `npm run ci` / GitHub Actions status before marking fully done.
+
+### US-211 — CI Validation
+Status: **In Progress**
+
+- Keep one local validation command that future contributors and CI can run. **Done**
+- Keep GitHub Actions validation aligned to the package script. **Done**
+- Remaining: confirm the workflow run appears and passes on the latest main commit.
