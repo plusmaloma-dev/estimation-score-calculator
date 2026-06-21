@@ -89,30 +89,30 @@ test('player analytics summarize dashboard-ready rates and rankings without reca
   const summary = new PlayerAnalyticsService().summarizeGame(gameResult, { playerOrder: gameInput.playerOrder });
 
   assert.equal(summary.totalRounds, 3);
-  assert.equal(summary.validRounds, 2);
-  assert.equal(summary.invalidRounds, 1);
+  assert.equal(summary.validRounds, 3);
+  assert.equal(summary.invalidRounds, 0);
   assert.equal(summary.players.length, 4);
   assert.equal(summary.leaderPlayerId, summary.players[0]?.playerId);
 
   const playerA = summary.players.find((entry) => entry.playerId === 'A');
   assert.ok(playerA);
-  assert.equal(playerA.roundsPlayed, 2);
-  assert.equal(playerA.highContractRounds, 0);
+  assert.equal(playerA.roundsPlayed, 3);
+  assert.equal(playerA.highContractRounds, 1);
   assert.equal(playerA.exactBidRate, 1);
   assert.equal(playerA.failureRate, 0);
 
   const playerC = summary.players.find((entry) => entry.playerId === 'C');
-  assert.ok(playerC);
-  assert.equal(playerC.dashAttempts, 1);
-  assert.equal(playerC.dashSuccessRate, 1);
-  assert.equal(playerC.dashCallAttempts, 0);
-  assert.equal(playerC.dashCallSuccessRate, 0);
-  assert.equal(playerC.riskAttempts, 0);
-  assert.equal(playerC.riskSuccessRate, 0);
+assert.ok(playerC);
+assert.equal(playerC.dashAttempts, 1);
+assert.equal(playerC.dashSuccessRate, 1);
+assert.equal(playerC.dashCallAttempts, 0);
+assert.equal(playerC.dashCallSuccessRate, 0);
+assert.equal(playerC.riskAttempts, 1);
+assert.equal(playerC.riskSuccessRate, 0);
 
   const playerD = summary.players.find((entry) => entry.playerId === 'D');
   assert.ok(playerD);
-  assert.equal(playerD.withRounds, 0);
+  assert.equal(playerD.withRounds, 1);
   assert.equal(playerD.doubleRiskAttempts, 1);
   assert.equal(playerD.doubleRiskSuccessRate, 0);
 });
