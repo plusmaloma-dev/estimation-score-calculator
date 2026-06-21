@@ -32,11 +32,11 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | Backlog | 0% |
+| Federation-rule review | In progress | 35% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **40%**
+Post-MVP progress: **44%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -142,8 +142,32 @@ Status: **Implemented, pending validation**
 - Confirm `npm run ci` local validation. **Pending**
 
 ### US-216 — Federation-Rule Review
+Status: **In progress**
+
+- Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references. **In progress**
+- Record source, decision, and impact for each confirmed rule. **Started in `FEDERATION_RULE_REVIEW.md`**
+- Create follow-up implementation stories only for confirmed scoring changes. **Started: US-216A/US-216B/US-216C**
+- Confirm `npm run ci` local validation if code changes are introduced. **Not required yet: docs-only slice**
+
+### US-216A — Federation Source Capture
+Status: **Ready**
+
+- Locate accessible official rules/regulations documents.
+- Record document title, URL or file name, publication/update date if available, and relevant sections.
+- Add citations or source notes for every reviewed scoring rule.
+- Do not change code.
+
+### US-216B — Confirm Rule Differences
 Status: **Backlog**
 
-- Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references.
-- Record source, decision, and impact for each confirmed rule.
-- Create follow-up implementation stories only for confirmed scoring changes.
+- Compare official rules against the local project baseline.
+- List exact differences and recommended project decision for each difference.
+- Separate official tournament rules from user-preferred house rules.
+- Create scoring implementation stories only for accepted differences.
+
+### US-216C — Rule Change Implementation
+Status: **Blocked until differences are confirmed**
+
+- Implement only confirmed scoring changes.
+- Add acceptance dataset rows for every changed rule.
+- Update `PROJECT_RULES.md`, tests, README, and backlog with final decisions.
