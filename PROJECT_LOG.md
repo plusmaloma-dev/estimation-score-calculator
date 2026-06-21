@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-21 - Run 30
+
+Completed:
+
+- Continued from US-216A - Federation Source Capture.
+- Re-ran official-rule searches using English and Arabic terms for federation rules, scoring, regulations, Estimation Committee, and PDF documents.
+- Confirmed again that no directly usable official scoring or rules document was captured in this run.
+- Updated `FEDERATION_RULE_REVIEW.md` with another source-capture log entry and clarified that no scoring/code changes should be made from unrelated false-positive sources.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-216A - Federation Source Capture remains open.
+
+Blockers:
+
+- Detailed official federation scoring rules/documents remain unavailable through current public search.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+- Local `npm run ci` is still needed before marking US-213A, US-213B, US-214, and US-215 fully Done.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 46% complete.
+
 ## 2026-06-21 - Run 29
 
 Completed:
@@ -78,39 +103,5 @@ Current item in progress:
 
 Blockers:
 
-- Local `npm run ci` needs to be run or confirmed before marking US-213A, US-213B, US-214, or US-215 fully Done.
-- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 40% complete.
-
-## 2026-06-21 - Run 26
-
-Completed:
-
-- Continued from US-214 - Persistent Database Adapter.
-- Added `DocumentScoreSheetRepository` as a database-agnostic repository adapter around a small `ScoreSheetDocumentStore` boundary.
-- The adapter supports save, update, get, list, and delete while preserving the existing `ScoreSheetRepository` contract.
-- Added deterministic id allocation that chooses the first available `score-sheet-N` id when creating new score sheets.
-- Added tests covering save/retrieve, update metadata, sorted list metadata, delete behavior, id allocation around imported ids, and validation before store upsert.
-- Exported the document repository adapter from `src/index.ts`.
-- Updated README persistence documentation with the document-store adapter pattern.
-- Updated `BACKLOG.md` to mark US-214 as implemented pending validation and make US-215 - Rich Score-Sheet Export the next Ready item.
-- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
-
-Current item in progress:
-
-- US-214 - Persistent Database Adapter is implemented but pending `npm run ci` validation.
-- US-213A and US-213B are also still pending `npm run ci` validation.
-
-Blockers:
-
-- Local `npm run ci` needs to be run or confirmed before marking US-213A, US-213B, or US-214 fully Done.
-- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 32% complete.
+- Local `npm run ci` validation is needed.
+- GitHub Actions/status visibility through the connector remains unavailable.
