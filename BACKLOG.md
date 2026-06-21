@@ -27,14 +27,15 @@
 | Import/export | Done | 100% |
 | CI validation | Done | 100% |
 | Post-MVP roadmap | Done | 100% |
-| Browser/mobile UI | Ready | 0% |
+| Browser/mobile UI planning | Done | 100% |
+| Local-storage adapter | Ready | 0% |
 | Persistent database adapter | Backlog | 0% |
 | Rich score-sheet export | Backlog | 0% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **5%**
+Post-MVP progress: **10%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -93,12 +94,21 @@ Status: **Done**
 - Document post-MVP sequencing and acceptance notes in `POST_MVP_ROADMAP.md`. **Done**
 
 ### US-213 — Browser/Mobile UI Planning
+Status: **Done**
+
+- Draft screen map for player setup, round entry, scoring result, leaderboard, statistics, and import/export. **Done**
+- Define UI input DTO mapping to the existing engine DTOs. **Done**
+- List validation messages that should be shown before score calculation. **Done**
+- Recommend first storage direction for UI prototype. **Done**
+- Document planning artifact in `UI_PLANNING.md`. **Done**
+
+### US-213A — Local-Storage Score-Sheet Repository Adapter
 Status: **Ready**
 
-- Draft screen map for player setup, round entry, scoring result, leaderboard, statistics, and import/export. **Next**
-- Define UI input DTO mapping to the existing engine DTOs.
-- List validation messages that should be shown before score calculation.
-- Confirm whether UI state should start with in-memory storage, browser local storage, or API-backed persistence.
+- Implement a browser local-storage adapter that satisfies `ScoreSheetRepository`.
+- Use one namespaced local-storage key.
+- Add tests using an injected storage-like object instead of browser globals.
+- Handle missing or corrupt stored data safely.
 
 ### US-214 — Persistent Database Adapter
 Status: **Backlog**
