@@ -130,6 +130,28 @@ console.log(repository.getById(saved.id));
 
 The adapter uses one namespaced key: `egyptian-estimation:score-sheets:v1`. Missing or corrupt stored data is treated as an empty repository so the UI can recover safely.
 
+### Document Store Adapter
+
+Use `DocumentScoreSheetRepository` when an API or database layer can provide basic document-store operations. The adapter satisfies `ScoreSheetRepository` while keeping database-specific clients outside the scoring engine.
+
+```ts
+import {
+  DocumentScoreSheetRepository,
+  type ScoreSheetDocumentStore,
+} from './src/index.js';
+
+const store: ScoreSheetDocumentStore = {
+  upsert: (document) => database.scoreSheets.upsert(document),
+  getById: (id) => database.scoreSheets.findById(id),
+  list: () => database.scoreSheets.findAll(),
+  deleteById: (id) => database.scoreSheets.delete(id),
+};
+
+const repository = new DocumentScoreSheetRepository(store);
+```
+
+The document-store adapter intentionally does not import database libraries. A server, IndexedDB wrapper, SQLite layer, or cloud database adapter can translate these four operations into its own persistence calls without changing Egyptian Estimation scoring services.
+
 ## Browser UI Shell
 
 `BrowserUiShellService` is a framework-neutral application shell for the first browser/mobile UI. It keeps screens and storage outside the scoring engine while giving React, Vue, Svelte, vanilla TypeScript, or mobile wrappers one stable service to call.
