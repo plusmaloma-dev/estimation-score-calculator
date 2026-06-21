@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-21 - Run 34
+
+Completed:
+
+- Reviewed local test output shared by the user: 77 passing tests and 6 failing tests.
+- Confirmed the CI failure root cause shown in GitHub Actions was not a scoring-engine failure; the workflow failed because npm dependency caching expected a lockfile that was not committed.
+- Updated `.github/workflows/ci.yml` to remove the npm cache lockfile requirement and move CI to Node.js 22.
+- Confirmed current repository test fixtures for browser UI shell, local storage, analytics, and markdown export have already been repaired on `main`; the user should pull the latest `main` before rerunning tests locally.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- CI stabilization verification after the workflow change.
+- Post-MVP validation cleanup remains focused on making local `npm run ci` and GitHub Actions green.
+
+Blockers:
+
+- Need the latest GitHub Actions run or a fresh local `git pull && npm install && npm test` confirmation after commit `caa59e3026d2c303466f6fef346a5bc6ce079b90`.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 57% complete.
+
 ## 2026-06-21 - Run 33
 
 Completed:
