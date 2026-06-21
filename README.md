@@ -28,11 +28,17 @@ const service = new EstimationMvpService();
 
 const result = service.calculateRound({
   roundNumber: 1,
+  profile: {
+    id: 'standard',
+    name: 'Standard',
+    type: 'standard',
+    winnerBaseBonus: 10,
+  },
   bids: [
-    { playerId: 'A', bidType: 'normal', tricks: 4 },
-    { playerId: 'B', bidType: 'normal', tricks: 3 },
-    { playerId: 'C', bidType: 'normal', tricks: 3 },
-    { playerId: 'D', bidType: 'normal', tricks: 4 },
+    { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+    { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+    { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+    { playerId: 'D', bidType: 'normal', tricks: 4, trumpSuit: 'clubs' },
   ],
   actualResults: [
     { playerId: 'A', actualTricks: 4 },
@@ -67,11 +73,17 @@ const gameInput = {
   rounds: [
     {
       roundNumber: 1,
+      profile: {
+        id: 'standard',
+        name: 'Standard',
+        type: 'standard',
+        winnerBaseBonus: 10,
+      },
       bids: [
-        { playerId: 'A', bidType: 'normal', tricks: 4 },
-        { playerId: 'B', bidType: 'normal', tricks: 3 },
-        { playerId: 'C', bidType: 'normal', tricks: 3 },
-        { playerId: 'D', bidType: 'normal', tricks: 4 },
+        { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+        { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+        { playerId: 'D', bidType: 'normal', tricks: 4, trumpSuit: 'clubs' },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 4 },
@@ -97,6 +109,26 @@ console.log(repository.list());
 ```
 
 Future storage adapters should implement `ScoreSheetRepository` and preserve the current DTO boundary instead of coupling the scoring engine to a specific database.
+
+### Browser Local Storage Adapter
+
+Use `LocalStorageScoreSheetRepository` for the first browser/mobile prototype. It implements the same repository interface and accepts an injected storage-like object, so tests can run without browser globals.
+
+```ts
+import { LocalStorageScoreSheetRepository } from './src/index.js';
+
+const repository = new LocalStorageScoreSheetRepository(window.localStorage);
+
+const saved = repository.save({
+  name: 'Browser Game',
+  status: 'draft',
+  gameInput,
+});
+
+console.log(repository.getById(saved.id));
+```
+
+The adapter uses one namespaced key: `egyptian-estimation:score-sheets:v1`. Missing or corrupt stored data is treated as an empty repository so the UI can recover safely.
 
 ## Statistics
 
