@@ -35,10 +35,11 @@
 | Federation-rule review | In progress | 45% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
+| Score-sheet CSV export | Implemented | 85% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **56%**
+Post-MVP progress: **60%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -201,5 +202,17 @@ Status: **Implemented, pending validation**
 - Escape quoted/comma/newline cells safely for CSV consumers. **Done**
 - Add deterministic CSV tests. **Done**
 - Export the CSV analytics formatter from the public package index. **Done**
+- Document usage in README. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-218 — Score-Sheet CSV Export
+Status: **Implemented, pending validation**
+
+- Add `ScoreSheetCsvExportService` for spreadsheet-friendly score-sheet round exports. **Done**
+- Include optional metadata rows for title, generated timestamp, round count, validity, and error count. **Done**
+- Include per-player round score rows with bid, actual, delta, score, status, role, risk, running score, and notes. **Done**
+- Include invalid-round rows with validation notes. **Done**
+- Add deterministic CSV tests. **Done**
+- Export the CSV score-sheet formatter from the public package index. **Done**
 - Document usage in README. **Done**
 - Confirm `npm run ci` local validation. **Pending**
