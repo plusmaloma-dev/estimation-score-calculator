@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-21 - Run 18
+
+Completed:
+
+- Continued from US-211 - CI Validation.
+- Rechecked workflow visibility for recent implementation, documentation, persistence, statistics, import/export, and CI commits; the connector returned no workflow runs for each inspected commit.
+- Checked combined commit status for the latest CI-related commit; no statuses were returned.
+- Confirmed `package.json` contains the consolidated validation command:
+  - `npm run typecheck`
+  - `npm test`
+  - `npm run build`
+- Confirmed `.github/workflows/ci.yml` is present, runs on push/PR to `main`, uses Node.js 20, installs dependencies, and executes `npm run ci`.
+- Made no Egyptian Estimation scoring changes and avoided introducing any Planning Poker concepts.
+
+Current item in progress:
+
+- US-211 - CI Validation remains in progress until a visible GitHub Actions run or local `npm run ci` result confirms the package is green.
+
+Blockers:
+
+- GitHub connector still exposes no workflow runs for inspected commits.
+- Combined commit status for the latest CI-related commit is empty.
+- Local `npm run ci` execution still needs confirmation outside the connector environment.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 17
 
 Completed:
