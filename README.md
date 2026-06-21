@@ -268,3 +268,23 @@ console.log(markdown);
 ```
 
 Markdown score-sheet exports include final standings, invalid-round notes, per-round deltas, and running scores. JSON backup remains the machine-readable import/export format.
+
+## Score-Sheet CSV Export
+
+Use `ScoreSheetCsvExportService` when a UI or API needs spreadsheet-friendly round rows for a calculated score sheet. It consumes the existing `MvpGameInput` and `MvpGameResult`; it does not recalculate scores or introduce new Egyptian Estimation rules.
+
+```ts
+import { ScoreSheetCsvExportService } from './src/index.js';
+
+const csv = new ScoreSheetCsvExportService().exportScoreSheet({
+  title: 'Friday Game',
+  gameInput,
+  gameResult,
+  includeMetadataRows: true,
+  generatedAt: new Date(),
+});
+
+console.log(csv);
+```
+
+Score-sheet CSV exports include round number, Over/Under type, player bid/actual/delta/score, status, role, risk metadata, running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format.
