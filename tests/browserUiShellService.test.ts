@@ -35,16 +35,16 @@ const validRound = {
   profile,
   riskPlayerId: 'D',
   bids: [
-    { playerId: 'A', bidType: 'normal', tricks: 3 },
-    { playerId: 'B', bidType: 'normal', tricks: 3 },
-    { playerId: 'C', bidType: 'normal', tricks: 3 },
-    { playerId: 'D', bidType: 'normal', tricks: 2 },
+    { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+    { playerId: 'B', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
+    { playerId: 'C', bidType: 'normal', tricks: 4, trumpSuit: 'diamonds' },
+    { playerId: 'D', bidType: 'dash', tricks: 0 },
   ],
   actualResults: [
-    { playerId: 'A', actualTricks: 3 },
-    { playerId: 'B', actualTricks: 3 },
-    { playerId: 'C', actualTricks: 4 },
-    { playerId: 'D', actualTricks: 3 },
+    { playerId: 'A', actualTricks: 4 },
+    { playerId: 'B', actualTricks: 4 },
+    { playerId: 'C', actualTricks: 3 },
+    { playerId: 'D', actualTricks: 2 },
   ],
 } as const;
 
@@ -93,10 +93,10 @@ test('browser UI shell previews validation errors before saving invalid rounds',
     roundNumber: 1,
     profile,
     bids: [
-      { playerId: 'A', bidType: 'normal', tricks: 4 },
-      { playerId: 'B', bidType: 'normal', tricks: 3 },
-      { playerId: 'C', bidType: 'normal', tricks: 3 },
-      { playerId: 'D', bidType: 'normal', tricks: 3 },
+      { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+      { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+      { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+      { playerId: 'D', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
     ],
     actualResults: [
       { playerId: 'A', actualTricks: 4 },
@@ -122,10 +122,10 @@ test('browser UI shell saves a valid round and exposes leaderboard output', () =
   assert.deepEqual(
     saved.gameResult?.leaderboard.map((entry) => [entry.playerId, entry.totalScore]),
     [
-      ['A', 13],
-      ['B', 13],
+      ['A', 14],
+      ['B', 14],
       ['C', -1],
-      ['D', -11],
+      ['D', -12],
     ],
   );
   assert.deepEqual(service.getLeaderboard(created.scoreSheet?.id ?? '').map((entry) => entry.playerId), ['A', 'B', 'C', 'D']);
@@ -146,17 +146,18 @@ test('browser UI shell exposes round history for score-sheet screens', () => {
   assert.equal(history[0]?.roundType, 'under');
   assert.equal(history[0]?.valid, true);
   assert.deepEqual(history[0]?.bids.map((bid) => [bid.playerId, bid.tricks]), [
-    ['A', 3],
-    ['B', 3],
-    ['C', 3],
-    ['D', 2],
+    ['A', 4],
+    ['B', 4],
+    ['C', 4],
+    ['D', 0],
   ]);
   assert.deepEqual(history[0]?.playerScores.map((score) => [score.playerId, score.score]), [
-    ['A', 13],
-    ['B', 13],
+    ['A', 14],
+    ['B', 14],
     ['C', -1],
-    ['D', -11],
+    ['D', -12],
   ]);
+  assert.deepEqual(history[0]?.riskTypes, ['dash']);
 });
 
 test('browser UI shell exports a JSON backup for the current score sheet', () => {
