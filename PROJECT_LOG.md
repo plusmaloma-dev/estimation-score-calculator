@@ -1,5 +1,38 @@
 # Project Log
 
+## 2026-06-21 - Run 23
+
+Completed:
+
+- Continued from US-213A - Local-Storage Score-Sheet Repository Adapter.
+- Added `LocalStorageScoreSheetRepository` with:
+  - `ScoreSheetRepository` interface compatibility.
+  - One namespaced browser storage key: `egyptian-estimation:score-sheets:v1`.
+  - Injected `ScoreSheetStorageLike` dependency for browser and non-browser tests.
+  - Save, update, list, get, delete, and clear behavior.
+  - Safe fallback to an empty repository when stored data is missing, invalid, or corrupt.
+- Exported the adapter from `src/index.ts`.
+- Added repository tests covering save/get/list/update/delete, shared storage state, corrupt-data recovery, and required-field validation.
+- Updated README usage examples to include required scoring profile and trump suit fields, plus local-storage adapter usage notes.
+- Updated `BACKLOG.md` to mark US-213A as implemented pending validation and set US-213B - Browser UI Shell as the next Ready item.
+- Checked latest commit status and workflow runs through the connector; no statuses or workflow runs were visible.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-213A is implemented but still pending `npm run ci` validation.
+- Next implementation-ready item after validation is US-213B - Browser UI Shell.
+
+Blockers:
+
+- GitHub Actions status/workflow visibility is still unavailable through the connector for the latest inspected commit.
+- Local `npm run ci` still needs to be run or confirmed before marking US-213A fully Done.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 15% complete.
+
 ## 2026-06-21 - Run 22
 
 Completed:
