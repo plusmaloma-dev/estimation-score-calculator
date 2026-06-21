@@ -18,6 +18,7 @@ export * from './statistics/types.js';
 export * from './statistics/StatisticsService.js';
 export type { PlayerAnalyticsEntry, PlayerAnalyticsSummary } from './statistics/playerAnalyticsTypes.js';
 export { PlayerAnalyticsService } from './statistics/PlayerAnalyticsService.js';
+export * from './statistics/PlayerAnalyticsMarkdownExportService.js';
 export * from './importExport/types.js';
 export * from './importExport/ScoreSheetBackupService.js';
 export * from './richExport/ScoreSheetMarkdownExportService.js';
