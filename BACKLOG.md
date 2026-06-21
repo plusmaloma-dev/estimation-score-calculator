@@ -29,14 +29,14 @@
 | Post-MVP roadmap | Done | 100% |
 | Browser/mobile UI planning | Done | 100% |
 | Local-storage adapter | Implemented | 85% |
-| Browser UI shell | Ready | 0% |
+| Browser UI shell | Implemented | 70% |
 | Persistent database adapter | Backlog | 0% |
 | Rich score-sheet export | Backlog | 0% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **15%**
+Post-MVP progress: **22%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -113,14 +113,15 @@ Status: **Implemented, pending validation**
 - Confirm `npm run ci` local validation. **Pending**
 
 ### US-213B — Browser UI Shell
-Status: **Ready**
+Status: **Implemented, pending validation**
 
-- Choose a lightweight browser UI framework or vanilla TypeScript shell.
-- Create a four-player score-sheet setup flow.
-- Add one valid round-entry flow wired to `EstimationMvpService`.
-- Show validation messages before saving invalid rounds.
-- Show leaderboard and round history.
-- Export JSON backup through the existing backup service.
+- Choose a lightweight browser UI framework or vanilla TypeScript shell. **Done: framework-neutral TypeScript shell first.**
+- Create a four-player score-sheet setup flow. **Done**
+- Add one valid round-entry flow wired to `EstimationMvpService`. **Done**
+- Show validation messages before saving invalid rounds. **Done**
+- Show leaderboard and round history boundary. **Partially done: leaderboard service output is exposed; round history remains in persisted score sheet.**
+- Export JSON backup through the existing backup service. **Done**
+- Confirm `npm run ci` local validation. **Pending**
 
 ### US-214 — Persistent Database Adapter
 Status: **Backlog**
