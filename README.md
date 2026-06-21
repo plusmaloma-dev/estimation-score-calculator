@@ -217,6 +217,25 @@ console.log(statistics.highestScorePlayerId);
 
 The player statistics DTO includes totals, rounds played, exact-bid rate, average score, best/worst round, Dash/Dash Call counters, risk counters, WITH participation, and high-contract counts.
 
+## Rich Markdown Score-Sheet Export
+
+Use `ScoreSheetMarkdownExportService` when a UI or API needs a human-readable score-sheet export. It consumes an already calculated `MvpGameResult`; it does not recalculate scores or introduce new Egyptian Estimation rules.
+
+```ts
+import { ScoreSheetMarkdownExportService } from './src/index.js';
+
+const markdown = new ScoreSheetMarkdownExportService().exportScoreSheet({
+  title: 'Friday Game',
+  gameInput,
+  gameResult,
+  generatedAt: new Date(),
+});
+
+console.log(markdown);
+```
+
+The Markdown export includes final standings, per-round player bid/actual/delta/score rows, status/notes, next-round multiplier notes, and validation errors for invalid unscored rounds.
+
 ## Import/export
 
 Use `ScoreSheetBackupService` to create or validate versioned JSON backup documents for persisted score sheets. The backup format is explicitly named for Egyptian Estimation score sheets and is not compatible with Planning Poker estimates.
@@ -257,7 +276,3 @@ The command intentionally matches the GitHub Actions workflow and runs:
 3. `npm run build`
 
 If GitHub Actions is not visible for a commit, use a local `npm run ci` result as the acceptance evidence and record the result in `PROJECT_LOG.md` before marking backlog items complete.
-
-## Project Rules
-
-This repository follows Egyptian Estimation rules only and intentionally does not implement Planning Poker concepts.
