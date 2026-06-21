@@ -36,16 +36,16 @@ const gameInput: MvpGameInput = {
       profile,
       riskPlayerId: 'D',
       bids: [
-        { playerId: 'A', bidType: 'normal', tricks: 3 },
-        { playerId: 'B', bidType: 'normal', tricks: 3 },
-        { playerId: 'C', bidType: 'normal', tricks: 3 },
-        { playerId: 'D', bidType: 'normal', tricks: 2 },
+        { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
+        { playerId: 'C', bidType: 'normal', tricks: 4, trumpSuit: 'diamonds' },
+        { playerId: 'D', bidType: 'dash', tricks: 0 },
       ],
       actualResults: [
-        { playerId: 'A', actualTricks: 3 },
-        { playerId: 'B', actualTricks: 3 },
-        { playerId: 'C', actualTricks: 4 },
-        { playerId: 'D', actualTricks: 3 },
+        { playerId: 'A', actualTricks: 4 },
+        { playerId: 'B', actualTricks: 4 },
+        { playerId: 'C', actualTricks: 3 },
+        { playerId: 'D', actualTricks: 2 },
       ],
     },
   ],
@@ -64,12 +64,12 @@ test('exports final standings and per-player round scores as markdown tables', (
   assert.match(markdown, /Generated: 2026-06-21T17:08:24\+03:00/);
   assert.match(markdown, /## Final Standings/);
   assert.match(markdown, /\| Rank \| Player \| Total Score \| Rounds Played \|/);
-  assert.match(markdown, /\| 1 \| A \| 13 \| 1 \|/);
-  assert.match(markdown, /\| 2 \| B \| 13 \| 1 \|/);
+  assert.match(markdown, /\| 1 \| A \| 14 \| 1 \|/);
+  assert.match(markdown, /\| 2 \| B \| 14 \| 1 \|/);
   assert.match(markdown, /## Round Scores/);
-  assert.match(markdown, /\| 1 \| under \| A \| 3 \| 3 \| 0 \| 13 \| success \|/);
-  assert.match(markdown, /\| 1 \| under \| D \| 2 \| 3 \| 1 \| -11 \| failed \|/);
-  assert.match(markdown, /round-risk/);
+  assert.match(markdown, /\| 1 \| under \| A \| 4 \| 4 \| 0 \| 14 \| success \|/);
+  assert.match(markdown, /\| 1 \| under \| D \| 0 \| 2 \| 2 \| -12 \| failed \|/);
+  assert.match(markdown, /dash/);
 });
 
 test('exports validation errors for invalid unscored rounds', () => {
@@ -79,10 +79,10 @@ test('exports validation errors for invalid unscored rounds', () => {
         roundNumber: 1,
         profile,
         bids: [
-          { playerId: 'A', bidType: 'normal', tricks: 4 },
-          { playerId: 'B', bidType: 'normal', tricks: 3 },
-          { playerId: 'C', bidType: 'normal', tricks: 3 },
-          { playerId: 'D', bidType: 'normal', tricks: 3 },
+          { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+          { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+          { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+          { playerId: 'D', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
         ],
         actualResults: [
           { playerId: 'A', actualTricks: 4 },
@@ -104,5 +104,5 @@ test('exports validation errors for invalid unscored rounds', () => {
   assert.match(markdown, /No scored rounds yet\./);
   assert.match(markdown, /\| 1 \| invalid \| - \| - \| - \| - \| - \| invalid \|/);
   assert.match(markdown, /## Validation Errors/);
-  assert.match(markdown, /Total estimated tricks must not equal 13/);
+  assert.match(markdown, /Total estimates cannot equal 13/);
 });
