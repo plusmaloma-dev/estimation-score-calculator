@@ -1,5 +1,5 @@
 import type { EstimationBid } from '../domain/bid.js';
-import type { PlayerRoundActualResult, ScoringProfile } from '../scoring/types.js';
+import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
 import type { PersistedScoreSheet, ScoreSheetRepository } from '../persistence/types.js';
@@ -65,8 +65,8 @@ export interface UiRoundHistoryEntry {
   readonly errors: readonly string[];
   readonly bids: readonly EstimationBid[];
   readonly actualResults: readonly PlayerRoundActualResult[];
-  readonly playerScores: readonly NonNullable<MvpRoundResult['scoreResult']>['playerScores'];
-  readonly riskType?: NonNullable<MvpRoundResult['scoreResult']>['riskType'];
+  readonly playerScores: NonNullable<MvpRoundResult['scoreResult']>['playerScores'];
+  readonly riskTypes: readonly RiskType[];
   readonly nextRoundMultiplier?: number;
 }
 
@@ -194,6 +194,7 @@ export class BrowserUiShellService {
 
     return scoreSheet.gameInput.rounds.map((roundInput, index) => {
       const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound(roundInput);
+      const playerScores = roundResult.scoreResult?.playerScores ?? [];
       return {
         roundNumber: roundInput.roundNumber,
         roundType: roundResult.bidValidation.roundType,
@@ -201,8 +202,8 @@ export class BrowserUiShellService {
         errors: roundResult.errors,
         bids: roundInput.bids,
         actualResults: roundInput.actualResults,
-        playerScores: roundResult.scoreResult?.playerScores ?? [],
-        riskType: roundResult.scoreResult?.riskType,
+        playerScores,
+        riskTypes: this.resolveRiskTypes(playerScores),
         nextRoundMultiplier: roundResult.scoreResult?.nextRoundMultiplier,
       };
     });
@@ -225,6 +226,17 @@ export class BrowserUiShellService {
     });
 
     return { valid: true, errors: [], document };
+  }
+
+  private resolveRiskTypes(playerScores: NonNullable<MvpRoundResult['scoreResult']>['playerScores']): readonly RiskType[] {
+    const riskTypes = new Set<RiskType>();
+    for (const playerScore of playerScores) {
+      if (playerScore.riskType !== 'none') {
+        riskTypes.add(playerScore.riskType);
+      }
+    }
+
+    return [...riskTypes];
   }
 
   private toMvpRoundInput(input: UiRoundEntryInput): MvpRoundInput {
