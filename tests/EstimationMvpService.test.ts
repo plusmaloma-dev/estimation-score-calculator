@@ -28,9 +28,9 @@ const profile: ScoringProfile = {
 };
 
 const bids: readonly EstimationBid[] = [
-  { playerId: 'player-a', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+  { playerId: 'player-a', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
   { playerId: 'player-b', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
-  { playerId: 'player-c', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
+  { playerId: 'player-c', bidType: 'normal', tricks: 4, trumpSuit: 'clubs' },
   { playerId: 'player-d', bidType: 'dash', tricks: 0 },
 ];
 
@@ -44,9 +44,9 @@ describe('EstimationMvpService', () => {
           bidOwnerPlayerId: 'player-a',
           bids,
           actualResults: [
-            { playerId: 'player-a', actualTricks: 5 },
+            { playerId: 'player-a', actualTricks: 4 },
             { playerId: 'player-b', actualTricks: 4 },
-            { playerId: 'player-c', actualTricks: 2 },
+            { playerId: 'player-c', actualTricks: 3 },
             { playerId: 'player-d', actualTricks: 2 },
           ],
           profile,
@@ -61,7 +61,7 @@ describe('EstimationMvpService', () => {
     assert.deepEqual(
       result.leaderboard.map((entry) => ({ playerId: entry.playerId, totalScore: entry.totalScore })),
       [
-        { playerId: 'player-a', totalScore: 25 },
+        { playerId: 'player-a', totalScore: 24 },
         { playerId: 'player-b', totalScore: 14 },
         { playerId: 'player-c', totalScore: -1 },
         { playerId: 'player-d', totalScore: -12 },
@@ -133,7 +133,7 @@ describe('EstimationMvpService', () => {
         { playerId: 'player-a', bidType: 'normal', tricks: 4, trumpSuit: 'clubs' },
         { playerId: 'player-b', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
         { playerId: 'player-c', bidType: 'with', tricks: 4, trumpSuit: 'spades', withTargetPlayerId: 'player-b' },
-        { playerId: 'player-d', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+        { playerId: 'player-d', bidType: 'normal', tricks: 4, trumpSuit: 'diamonds' },
       ],
       actualResults: [
         { playerId: 'player-a', actualTricks: 5 },
