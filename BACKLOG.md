@@ -31,12 +31,12 @@
 | Local-storage adapter | Implemented | 85% |
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
-| Rich score-sheet export | Ready | 0% |
+| Rich score-sheet export | Implemented | 80% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **32%**
+Post-MVP progress: **40%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -133,11 +133,13 @@ Status: **Implemented, pending validation**
 - Confirm `npm run ci` local validation. **Pending**
 
 ### US-215 — Rich Score-Sheet Export
-Status: **Ready**
+Status: **Implemented, pending validation**
 
-- Define table layout for rounds, player deltas, running balances, final standings, and statistics. **Next**
-- Add a formatting service that consumes calculated game results without recalculating scores.
-- Add tests for deterministic table structure and ordering.
+- Define Markdown table layout for final standings and per-round player deltas/scores. **Done**
+- Add a formatting service that consumes calculated game results without recalculating scores. **Done**
+- Add tests for deterministic table structure and invalid-round validation sections. **Done**
+- Export `ScoreSheetMarkdownExportService` from the public package index. **Done**
+- Confirm `npm run ci` local validation. **Pending**
 
 ### US-216 — Federation-Rule Review
 Status: **Backlog**
