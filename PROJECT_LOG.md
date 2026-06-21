@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-21 - Run 35
+
+Completed:
+
+- Continued from the next unblocked implementation-ready post-MVP item after player analytics exports.
+- Added `ScoreSheetCsvExportService` to format calculated score-sheet round results as deterministic spreadsheet-friendly CSV rows.
+- Added optional metadata rows for title, generated timestamp, round count, validity, and error count.
+- Added per-player CSV rows covering round type, bid/actual/delta/score, status, role, risk metadata, running score, and notes.
+- Added invalid-round CSV rows carrying validation notes so spreadsheet exports preserve scoring-validation failures.
+- Added deterministic tests for valid rows, metadata rows, CSV escaping, and invalid-round notes.
+- Exported the score-sheet CSV formatter from `src/index.ts`.
+- Updated README usage notes and `BACKLOG.md` with US-218 status.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-218 - Score-Sheet CSV Export is implemented and pending local `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` is needed before marking US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218 fully Done.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 60% complete.
+
 ## 2026-06-21 - Run 34
 
 Completed:
