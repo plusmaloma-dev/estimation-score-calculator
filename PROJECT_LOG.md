@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-21 - Run 29
+
+Completed:
+
+- Continued from US-216 - Federation-Rule Review into US-216A - Federation Source Capture.
+- Re-ran public searches for official federation rules, regulations, PDF documents, and Arabic rule terms.
+- Confirmed that no retrievable detailed official scoring document was found through available public search during this run.
+- Recorded negative source-capture evidence in `FEDERATION_RULE_REVIEW.md` so future work does not accidentally infer rules from unrelated card-game results.
+- Expanded the source capture log and marked US-216A as In progress.
+- Updated `BACKLOG.md` to reflect US-216A progress and raise post-MVP progress to 46%.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-216A - Federation Source Capture.
+
+Blockers:
+
+- Detailed official federation scoring rules/documents remain unavailable through the current public search path.
+- US-216B - Confirm Rule Differences remains blocked until an official document or user-confirmed source is available.
+- Local `npm run ci` is still needed before marking US-213A, US-213B, US-214, or US-215 fully Done.
+- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 46% complete.
+
 ## 2026-06-21 - Run 28
 
 Completed:
@@ -86,34 +114,3 @@ Overall progress:
 
 - MVP: 100% complete.
 - Post-MVP: 32% complete.
-
-## 2026-06-21 - Run 25
-
-Completed:
-
-- Continued from US-213B - Browser UI Shell.
-- Closed the remaining round-history acceptance gap by adding `getRoundHistory` to `BrowserUiShellService`.
-- Added a `UiRoundHistoryEntry` projection for score-sheet screens with round number, Over/Under type, validation state, bid/actual rows, player scores, risk type, and next-round multiplier.
-- Added test coverage proving the browser UI shell exposes saved round history and player scores.
-- Updated README browser UI shell usage notes to document round-history retrieval.
-- Updated `BACKLOG.md` to mark the Browser UI shell round-history boundary as Done and raise post-MVP progress.
-- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
-
-Current item in progress:
-
-- US-213B - Browser UI Shell is implemented but pending `npm run ci` validation.
-- US-213A - Local-Storage Score-Sheet Repository Adapter is also still pending `npm run ci` validation.
-
-Blockers:
-
-- Local `npm run ci` needs to be run or confirmed before marking US-213A or US-213B fully Done.
-- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 24% complete.
-
-## 2026-06-21 - Run 24
-
-Completed:
