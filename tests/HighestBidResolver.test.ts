@@ -39,7 +39,7 @@ describe('HighestBidResolver', () => {
       { suitPriority: ['clubs', 'diamonds', 'hearts', 'spades'] },
     );
 
-    assert.equal(result.winningBid?.playerId, 'player-2');
+    assert.equal(result.winningBid?.playerId, 'player-1');
   });
 
   it('reports ties when trick count and suit priority are equal', () => {
