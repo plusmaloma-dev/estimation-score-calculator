@@ -7,6 +7,7 @@
 - Update `PROJECT_LOG.md` after each automation run.
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
+- Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
 
 ## Progress Tracker
 
@@ -36,10 +37,11 @@
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
+| Post-MVP validation checklist | Done | 100% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **63%**
+Post-MVP progress: **64%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -217,3 +219,10 @@ Status: **Implemented, pending validation**
 - Document usage in README. **Done**
 - Repair bid-type and cumulative running-score export behavior after merge. **Done**
 - Confirm `npm run ci` local validation. **Pending**
+
+### US-219 — Post-MVP Validation Checklist
+Status: **Done**
+
+- Add `VALIDATION_CHECKLIST.md` with local validation commands, boundary checks, and evidence requirements. **Done**
+- List implemented post-MVP items that can move to Done after a green `npm run ci`. **Done**
+- Keep validation guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
