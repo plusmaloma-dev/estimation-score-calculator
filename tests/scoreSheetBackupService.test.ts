@@ -102,7 +102,8 @@ test('imports a valid backup document and returns a defensive clone', () => {
   assert.deepEqual(result.errors, []);
   assert.equal(result.document?.scoreSheets[0]?.id, 'sheet-1');
 
-  backup.scoreSheets[0]?.gameInput.rounds.at(0)?.bids.push({ playerId: 'E', bidType: 'normal', tricks: 1 });
+  const mutableBackup = backup as unknown as { scoreSheets: Array<{ gameInput: { rounds: Array<{ bids: unknown[] }> } }> };
+  mutableBackup.scoreSheets[0]?.gameInput.rounds[0]?.bids.push({ playerId: 'E', bidType: 'normal', tricks: 1 });
   assert.equal(result.document?.scoreSheets[0]?.gameInput.rounds[0]?.bids.length, 4);
 });
 
