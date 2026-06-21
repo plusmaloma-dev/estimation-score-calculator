@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-21 - Run 36
+
+Completed:
+
+- Merged PR #1 for US-218 Score-Sheet CSV Export into `main` with squash commit `41cc1e2`.
+- Reviewed the latest PR CI failure and confirmed the failing job was the Validate step for the PR head.
+- Fixed the remaining player analytics assertion reported by the user's local test run: player C has one risk attempt from round 2 and zero risk success rate.
+- Committed the test correction in `tests/playerAnalyticsService.test.ts` with commit `7e890dc`.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- Post-MVP validation cleanup for analytics/export items after US-218 merge.
+
+Blockers:
+
+- Local `git pull && npm test` or `npm run ci` is still needed to confirm the full suite after commit `7e890dc`.
+- No new GitHub Actions workflow run was visible for the direct `main` commit through the connector.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 61% complete.
+
 ## 2026-06-21 - Run 35
 
 Completed:
