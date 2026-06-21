@@ -40,10 +40,10 @@ const gameInput: MvpGameInput = {
       roundNumber: 1,
       profile,
       bids: [
-        { playerId: 'A', bidType: 'normal', tricks: 4 },
-        { playerId: 'B', bidType: 'normal', tricks: 5 },
+        { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
         { playerId: 'C', bidType: 'dash', tricks: 0 },
-        { playerId: 'D', bidType: 'normal', tricks: 5 },
+        { playerId: 'D', bidType: 'normal', tricks: 5, trumpSuit: 'clubs' },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 4 },
