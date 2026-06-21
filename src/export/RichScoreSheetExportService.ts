@@ -71,7 +71,7 @@ export class RichScoreSheetExportService {
         this.formatBidSummary(roundInput.bids),
         this.formatActualSummary(roundInput.actualResults),
         playerOrder.map((playerId) => this.formatScoreForPlayer(playerScores, playerId)).join(' / '),
-        roundResult.scoreResult?.riskType ?? '-',
+        this.formatRiskSummary(playerScores),
         roundResult.scoreResult?.nextRoundMultiplier?.toString() ?? '-',
       ];
     });
@@ -182,6 +182,17 @@ export class RichScoreSheetExportService {
   private formatScoreForPlayer(playerScores: readonly { readonly playerId: string; readonly score: number }[], playerId: string): string {
     const playerScore = playerScores.find((score) => score.playerId === playerId);
     return playerScore === undefined ? `${playerId}: -` : `${playerId}: ${playerScore.score}`;
+  }
+
+  private formatRiskSummary(playerScores: readonly { readonly playerId: string; readonly riskType: string; readonly isRiskTaker: boolean; readonly riskModifier: number }[]): string {
+    const riskEntries = playerScores.filter((score) => score.riskType !== 'none' || score.isRiskTaker || score.riskModifier !== 0);
+    if (riskEntries.length === 0) {
+      return '-';
+    }
+
+    return riskEntries
+      .map((score) => `${score.playerId}: ${score.riskType}${score.riskModifier !== 0 ? ` (${score.riskModifier})` : ''}`)
+      .join(', ');
   }
 
   private renderMarkdownTable(headers: readonly string[], rows: readonly (readonly string[])[], title: string): string {
