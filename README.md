@@ -140,6 +140,7 @@ The shell supports:
 - Draft score-sheet creation through a `ScoreSheetRepository`.
 - Round preview through `EstimationMvpService` before saving.
 - Valid-round save flow with updated game result and leaderboard.
+- Round-history projection for score-sheet screens.
 - JSON backup export through `ScoreSheetBackupService`.
 
 ```ts
@@ -165,6 +166,10 @@ const created = ui.createScoreSheet({
 if (!created.valid) {
   console.error(created.errors);
 }
+
+const scoreSheetId = created.scoreSheet?.id ?? '';
+console.log(ui.getRoundHistory(scoreSheetId));
+console.log(ui.getLeaderboard(scoreSheetId));
 ```
 
 Concrete browser components should call this shell instead of importing scoring services directly. That keeps Egyptian Estimation scoring rules isolated from presentation and storage details.
