@@ -28,14 +28,15 @@
 | CI validation | Done | 100% |
 | Post-MVP roadmap | Done | 100% |
 | Browser/mobile UI planning | Done | 100% |
-| Local-storage adapter | Ready | 0% |
+| Local-storage adapter | Implemented | 85% |
+| Browser UI shell | Ready | 0% |
 | Persistent database adapter | Backlog | 0% |
 | Rich score-sheet export | Backlog | 0% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **10%**
+Post-MVP progress: **15%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -103,12 +104,23 @@ Status: **Done**
 - Document planning artifact in `UI_PLANNING.md`. **Done**
 
 ### US-213A — Local-Storage Score-Sheet Repository Adapter
+Status: **Implemented, pending validation**
+
+- Implement a browser local-storage adapter that satisfies `ScoreSheetRepository`. **Done**
+- Use one namespaced local-storage key. **Done**
+- Add tests using an injected storage-like object instead of browser globals. **Done**
+- Handle missing or corrupt stored data safely. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-213B — Browser UI Shell
 Status: **Ready**
 
-- Implement a browser local-storage adapter that satisfies `ScoreSheetRepository`.
-- Use one namespaced local-storage key.
-- Add tests using an injected storage-like object instead of browser globals.
-- Handle missing or corrupt stored data safely.
+- Choose a lightweight browser UI framework or vanilla TypeScript shell.
+- Create a four-player score-sheet setup flow.
+- Add one valid round-entry flow wired to `EstimationMvpService`.
+- Show validation messages before saving invalid rounds.
+- Show leaderboard and round history.
+- Export JSON backup through the existing backup service.
 
 ### US-214 — Persistent Database Adapter
 Status: **Backlog**
