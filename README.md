@@ -224,6 +224,7 @@ Use `PlayerAnalyticsService` for dashboard-ready player performance summaries. I
 ```ts
 import {
   EstimationMvpService,
+  PlayerAnalyticsCsvExportService,
   PlayerAnalyticsMarkdownExportService,
   PlayerAnalyticsService,
 } from './src/index.js';
@@ -238,11 +239,16 @@ const markdown = new PlayerAnalyticsMarkdownExportService().exportSummary(analyt
   generatedAt: new Date(),
 });
 
+const csv = new PlayerAnalyticsCsvExportService().exportSummary(analytics, {
+  includeSummaryRows: true,
+});
+
 console.log(analytics.players);
 console.log(markdown);
+console.log(csv);
 ```
 
-Player analytics include ranking, exact-bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, leader, and most-consistent player metadata. The Markdown formatter is a presentation adapter only.
+Player analytics include ranking, exact-bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, leader, and most-consistent player metadata. The Markdown and CSV formatters are presentation/export adapters only.
 
 ## Rich Markdown Score-Sheet Export
 
@@ -261,27 +267,4 @@ const markdown = new ScoreSheetMarkdownExportService().exportScoreSheet({
 console.log(markdown);
 ```
 
-The Markdown export includes final standings, per-round player bid/actual/delta/score rows, status/notes, next-round multiplier notes, and validation errors for invalid unscored rounds.
-
-## Import/export
-
-Use `ScoreSheetBackupService` to create or validate versioned JSON backup documents for persisted score sheets. The backup format is explicitly named for Egyptian Estimation score sheets and is not compatible with Planning Poker estimates.
-
-```ts
-import { ScoreSheetBackupService } from './src/index.js';
-
-const backupService = new ScoreSheetBackupService();
-
-const backup = backupService.exportScoreSheets({
-  scoreSheets: [saved],
-  source: 'web-ui',
-});
-
-const imported = backupService.importScoreSheets(backup);
-
-if (imported.valid) {
-  console.log(imported.document.scoreSheets);
-} else {
-  console.error(imported.errors);
-}
-```
+Markdown score-sheet exports include final standings, invalid-round notes, per-round deltas, and running scores. JSON backup remains the machine-readable import/export format.
