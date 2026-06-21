@@ -130,6 +130,45 @@ console.log(repository.getById(saved.id));
 
 The adapter uses one namespaced key: `egyptian-estimation:score-sheets:v1`. Missing or corrupt stored data is treated as an empty repository so the UI can recover safely.
 
+## Browser UI Shell
+
+`BrowserUiShellService` is a framework-neutral application shell for the first browser/mobile UI. It keeps screens and storage outside the scoring engine while giving React, Vue, Svelte, vanilla TypeScript, or mobile wrappers one stable service to call.
+
+The shell supports:
+
+- Four-player score-sheet setup validation.
+- Draft score-sheet creation through a `ScoreSheetRepository`.
+- Round preview through `EstimationMvpService` before saving.
+- Valid-round save flow with updated game result and leaderboard.
+- JSON backup export through `ScoreSheetBackupService`.
+
+```ts
+import {
+  BrowserUiShellService,
+  LocalStorageScoreSheetRepository,
+} from './src/index.js';
+
+const ui = new BrowserUiShellService(
+  new LocalStorageScoreSheetRepository(window.localStorage),
+);
+
+const created = ui.createScoreSheet({
+  name: 'Friday Game',
+  players: [
+    { id: 'A', name: 'Ahmed' },
+    { id: 'B', name: 'Bassem' },
+    { id: 'C', name: 'Cairo' },
+    { id: 'D', name: 'Dina' },
+  ],
+});
+
+if (!created.valid) {
+  console.error(created.errors);
+}
+```
+
+Concrete browser components should call this shell instead of importing scoring services directly. That keeps Egyptian Estimation scoring rules isolated from presentation and storage details.
+
 ## Statistics
 
 Use `StatisticsService` after calculating a game result. Statistics are derived from score results and do not introduce new Egyptian Estimation scoring rules, UI coupling, or database coupling.
