@@ -1,5 +1,29 @@
 # Project Log
 
+## 2026-06-22 - Run 39
+
+Completed:
+
+- Resumed from the next unblocked implementation-ready backlog item after US-218 cleanup.
+- Added `VALIDATION_CHECKLIST.md` to define the local `npm run ci` validation flow, boundary checks, pending post-MVP items to close after a green run, and evidence to record.
+- Updated `BACKLOG.md` with US-219 Post-MVP Validation Checklist and raised post-MVP progress to 64%.
+- Kept Egyptian Estimation scoring rules separate from validation/process documentation and introduced no Planning Poker concepts.
+- Made no scoring-engine or rule changes.
+
+Current item in progress:
+
+- Post-MVP validation cleanup remains focused on obtaining a green local `npm run ci` result and then closing pending implemented items.
+
+Blockers:
+
+- Local `git pull && npm install && npm run ci` is still needed to validate US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 64% complete.
+
 ## 2026-06-22 - Run 38
 
 Completed:
