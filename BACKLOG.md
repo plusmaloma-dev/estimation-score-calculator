@@ -35,11 +35,11 @@
 | Federation-rule review | In progress | 45% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
-| Score-sheet CSV export | Implemented | 85% |
+| Score-sheet CSV export | Implemented | 90% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **60%**
+Post-MVP progress: **63%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -215,4 +215,5 @@ Status: **Implemented, pending validation**
 - Add deterministic CSV tests. **Done**
 - Export the CSV score-sheet formatter from the public package index. **Done**
 - Document usage in README. **Done**
+- Repair bid-type and cumulative running-score export behavior after merge. **Done**
 - Confirm `npm run ci` local validation. **Pending**
