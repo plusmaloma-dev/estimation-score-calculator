@@ -78,7 +78,7 @@ export class ScoreSheetCsvExportService {
       roundNumber.toString(),
       roundType,
       playerScore.playerId,
-      playerScore.bidType,
+      '',
       playerScore.bidTricks.toString(),
       playerScore.actualTricks.toString(),
       playerScore.delta.toString(),
@@ -87,7 +87,7 @@ export class ScoreSheetCsvExportService {
       playerScore.role,
       playerScore.riskType,
       playerScore.riskModifier.toString(),
-      playerScore.runningScore.toString(),
+      playerScore.score.toString(),
       this.formatNotes(playerScore),
     ];
   }
