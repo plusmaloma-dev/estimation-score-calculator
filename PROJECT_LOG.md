@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-21 - Run 21
+
+Completed:
+
+- Continued from the completed MVP and moved into post-MVP backlog planning.
+- Added `POST_MVP_ROADMAP.md` to convert loose future candidates into implementation-ready post-MVP stories.
+- Structured the next post-MVP backlog sequence in `BACKLOG.md`:
+  - US-213 - Browser/Mobile UI Planning.
+  - US-214 - Persistent Database Adapter.
+  - US-215 - Rich Score-Sheet Export.
+  - US-216 - Federation-Rule Review.
+- Marked US-212 - Post-MVP Roadmap as Done.
+- Set Browser/Mobile UI Planning as the next Ready item.
+- Made no Egyptian Estimation scoring changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-213 - Browser/Mobile UI Planning is Ready and should start with a screen map and UI-to-engine DTO mapping.
+
+Blockers:
+
+- None for post-MVP planning.
+- Implementation of a real browser/mobile UI still needs a framework/storage direction before code should be added.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 5% complete.
+
 ## 2026-06-21 - Run 20
 
 Completed:
