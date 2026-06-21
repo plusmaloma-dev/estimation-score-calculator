@@ -79,7 +79,8 @@ test('exports persisted score sheets into a versioned Egyptian Estimation backup
   assert.equal(backup.metadata.source, 'unit-test');
   assert.equal(backup.scoreSheets.length, 1);
   assert.equal(backup.scoreSheets[0]?.id, 'sheet-1');
-  assert.equal(backup.scoreSheets[0]?.gameResult?.validRounds, 1);
+  assert.equal(backup.scoreSheets[0]?.gameResult?.rounds.length, 1);
+  assert.equal(backup.scoreSheets[0]?.gameResult?.valid, true);
 });
 
 test('imports a valid backup document and returns a defensive clone', () => {
