@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-22 - Run 38
+
+Completed:
+
+- Continued post-MVP validation cleanup from US-218 Score-Sheet CSV Export.
+- Fixed `ScoreSheetCsvExportService` so the `bidType` column is populated from the original round input instead of being left blank.
+- Fixed the `runningScore` column to accumulate each player's score across valid rounds instead of repeating the per-round score.
+- Added deterministic test coverage for cumulative CSV running scores across two rounds.
+- Updated README and BACKLOG to document cumulative score-sheet CSV running totals.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- Post-MVP validation cleanup for analytics/export items after US-218 merge.
+
+Blockers:
+
+- Local `git pull && npm test` or `npm run ci` is still needed to confirm the full suite after commits `be65cae`, `cb0280c`, `0589ff3`, and `25e6ea8`.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 63% complete.
+
 ## 2026-06-22 - Run 37
 
 Completed:
