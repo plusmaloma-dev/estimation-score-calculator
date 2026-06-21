@@ -60,7 +60,7 @@ export class ScoreSheetBackupService {
     return {
       valid: true,
       errors: [],
-      document: this.cloneBackupDocument(document as ScoreSheetBackupDocument),
+      document: this.cloneBackupDocument(document as unknown as ScoreSheetBackupDocument),
     };
   }
 
