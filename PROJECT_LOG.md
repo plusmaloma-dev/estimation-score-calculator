@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-06-21 - Run 17
+
+Completed:
+
+- Continued from US-209 Statistics and US-210 Import/export, where the only remaining acceptance step was validation confirmation.
+- Verified the previous latest commit had no associated GitHub Actions workflow runs exposed through the connector.
+- Confirmed `.github/workflows/ci.yml` already exists and validates pushes/PRs on Node.js 20.
+- Added a consolidated `npm run ci` script to `package.json` so local and CI validation use the same command:
+  - `npm run typecheck`
+  - `npm test`
+  - `npm run build`
+- Updated the GitHub Actions workflow to run `npm run ci` instead of duplicating package scripts in workflow YAML.
+- Updated `BACKLOG.md` with US-211 - CI Validation and raised Statistics/Import-export progress now that a single validation command exists.
+
+Current item in progress:
+
+- US-211 - Confirm the GitHub Actions workflow run appears and passes on the latest main commit, then mark Statistics and Import/export done if green.
+
+Blockers:
+
+- The connector still returned no workflow runs for the inspected latest CI-related commit immediately after pushing the workflow update.
+- Local `npm run ci` execution still needs confirmation outside the connector environment.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 16
 
 Completed:
