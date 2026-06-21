@@ -37,10 +37,10 @@ const gameInput: MvpGameInput = {
       roundNumber: 1,
       profile,
       bids: [
-        { playerId: 'A', bidType: 'normal', tricks: 4 },
-        { playerId: 'B', bidType: 'normal', tricks: 5 },
+        { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
         { playerId: 'C', bidType: 'dash', tricks: 0 },
-        { playerId: 'D', bidType: 'normal', tricks: 5 },
+        { playerId: 'D', bidType: 'normal', tricks: 5, trumpSuit: 'clubs' },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 4 },
@@ -53,10 +53,10 @@ const gameInput: MvpGameInput = {
       roundNumber: 2,
       profile,
       bids: [
-        { playerId: 'A', bidType: 'normal', tricks: 8 },
-        { playerId: 'B', bidType: 'normal', tricks: 4 },
+        { playerId: 'A', bidType: 'normal', tricks: 8, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
         { playerId: 'C', bidType: 'dash-call', tricks: 0 },
-        { playerId: 'D', bidType: 'with', tricks: 2 },
+        { playerId: 'D', bidType: 'with', tricks: 4, trumpSuit: 'spades', withTargetPlayerId: 'A' },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 8 },
@@ -106,10 +106,10 @@ test('statistics ignore invalid rounds but count them in summary metadata', () =
         roundNumber: 3,
         profile,
         bids: [
-          { playerId: 'A', bidType: 'normal', tricks: 4 },
-          { playerId: 'B', bidType: 'normal', tricks: 3 },
-          { playerId: 'C', bidType: 'normal', tricks: 3 },
-          { playerId: 'D', bidType: 'normal', tricks: 3 },
+          { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+          { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
+          { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
+          { playerId: 'D', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
         ],
         actualResults: [
           { playerId: 'A', actualTricks: 4 },
