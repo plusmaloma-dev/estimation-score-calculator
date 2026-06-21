@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-21 - Run 33
+
+Completed:
+
+- Continued from US-217B by adding a spreadsheet-friendly player analytics export adapter.
+- Added `PlayerAnalyticsCsvExportService` to format `PlayerAnalyticsSummary` as deterministic CSV rows.
+- Added optional summary metadata rows for total/valid/invalid rounds, leader, and most-consistent player.
+- Added CSV escaping for comma, quote, and newline cells so player IDs can be safely exported.
+- Added deterministic tests for player rows, precision formatting, escaped cells, and optional summary rows.
+- Exported the analytics CSV formatter from `src/index.ts`.
+- Updated README usage notes and `BACKLOG.md` with US-217B/US-217C status.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-217C - Player Analytics CSV Export is implemented and pending local `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` is needed before marking US-217A, US-217B, and US-217C fully Done.
+- Local `npm run ci` is also still needed before marking US-213A, US-213B, US-214, and US-215 fully Done.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 56% complete.
+
 ## 2026-06-21 - Run 32
 
 Completed:
