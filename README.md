@@ -144,6 +144,22 @@ if (imported.valid) {
 
 Future adapters can serialize the backup document to a file, browser download, cloud object, or API response without changing the scoring engine.
 
+## Validation
+
+Run the consolidated validation command before closing implementation slices or merging changes:
+
+```sh
+npm run ci
+```
+
+The command intentionally matches the GitHub Actions workflow and runs:
+
+1. `npm run typecheck`
+2. `npm test`
+3. `npm run build`
+
+If GitHub Actions is not visible for a commit, use a local `npm run ci` result as the acceptance evidence and record the result in `PROJECT_LOG.md` before marking backlog items complete.
+
 ## Project Rules
 
 This repository follows Egyptian Estimation rules only and intentionally does not implement Planning Poker concepts.
