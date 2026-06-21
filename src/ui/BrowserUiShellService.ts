@@ -58,6 +58,18 @@ export interface UiScoreSheetSummary {
   readonly updatedAtIso: string;
 }
 
+export interface UiRoundHistoryEntry {
+  readonly roundNumber: number;
+  readonly roundType?: 'over' | 'under';
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly bids: readonly EstimationBid[];
+  readonly actualResults: readonly PlayerRoundActualResult[];
+  readonly playerScores: readonly NonNullable<MvpRoundResult['scoreResult']>['playerScores'];
+  readonly riskType?: NonNullable<MvpRoundResult['scoreResult']>['riskType'];
+  readonly nextRoundMultiplier?: number;
+}
+
 export class BrowserUiShellService {
   constructor(
     private readonly repository: ScoreSheetRepository,
@@ -172,6 +184,28 @@ export class BrowserUiShellService {
     });
 
     return { valid: true, errors: [], scoreSheet: saved, gameResult };
+  }
+
+  getRoundHistory(scoreSheetId: string): readonly UiRoundHistoryEntry[] {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return [];
+    }
+
+    return scoreSheet.gameInput.rounds.map((roundInput, index) => {
+      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound(roundInput);
+      return {
+        roundNumber: roundInput.roundNumber,
+        roundType: roundResult.bidValidation.roundType,
+        valid: roundResult.valid,
+        errors: roundResult.errors,
+        bids: roundInput.bids,
+        actualResults: roundInput.actualResults,
+        playerScores: roundResult.scoreResult?.playerScores ?? [],
+        riskType: roundResult.scoreResult?.riskType,
+        nextRoundMultiplier: roundResult.scoreResult?.nextRoundMultiplier,
+      };
+    });
   }
 
   getLeaderboard(scoreSheetId: string): readonly LeaderboardEntry[] {
