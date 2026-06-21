@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-21 - Run 26
+
+Completed:
+
+- Continued from US-214 - Persistent Database Adapter.
+- Added `DocumentScoreSheetRepository` as a database-agnostic repository adapter around a small `ScoreSheetDocumentStore` boundary.
+- The adapter supports save, update, get, list, and delete while preserving the existing `ScoreSheetRepository` contract.
+- Added deterministic id allocation that chooses the first available `score-sheet-N` id when creating new score sheets.
+- Added tests covering save/retrieve, update metadata, sorted list metadata, delete behavior, id allocation around imported ids, and validation before store upsert.
+- Exported the document repository adapter from `src/index.ts`.
+- Updated README persistence documentation with the document-store adapter pattern.
+- Updated `BACKLOG.md` to mark US-214 as implemented pending validation and make US-215 - Rich Score-Sheet Export the next Ready item.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-214 - Persistent Database Adapter is implemented but pending `npm run ci` validation.
+- US-213A and US-213B are also still pending `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` needs to be run or confirmed before marking US-213A, US-213B, or US-214 fully Done.
+- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 32% complete.
+
 ## 2026-06-21 - Run 25
 
 Completed:
@@ -88,36 +117,3 @@ Blockers:
 
 - GitHub Actions status/workflow visibility is still unavailable through the connector for the latest inspected commit.
 - Local `npm run ci` still needs to be run or confirmed before marking US-213A fully Done.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 15% complete.
-
-## 2026-06-21 - Run 22
-
-Completed:
-
-- Continued post-MVP work from US-213 - Browser/Mobile UI Planning.
-- Added `UI_PLANNING.md` with:
-  - Browser/mobile screen map.
-  - Round-entry validation messages.
-  - UI-to-engine DTO mapping.
-  - Recommended first storage direction: browser local storage for the UI prototype.
-  - Implementation-ready follow-up slices US-213A and US-213B.
-- Updated `BACKLOG.md` to mark US-213 as Done and make US-213A - Local-Storage Score-Sheet Repository Adapter the next Ready item.
-- Made no Egyptian Estimation scoring changes and did not introduce any non-Egyptian Estimation estimation workflow.
-
-Current item in progress:
-
-- US-213A - Local-Storage Score-Sheet Repository Adapter.
-
-Blockers:
-
-- None for repository-adapter implementation.
-- A full UI implementation still needs final framework direction before UI code is added.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 10% complete.
