@@ -30,13 +30,13 @@
 | Browser/mobile UI planning | Done | 100% |
 | Local-storage adapter | Implemented | 85% |
 | Browser UI shell | Implemented | 85% |
-| Persistent database adapter | Backlog | 0% |
-| Rich score-sheet export | Backlog | 0% |
+| Persistent database adapter | Implemented | 85% |
+| Rich score-sheet export | Ready | 0% |
 | Federation-rule review | Backlog | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **24%**
+Post-MVP progress: **32%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -124,16 +124,18 @@ Status: **Implemented, pending validation**
 - Confirm `npm run ci` local validation. **Pending**
 
 ### US-214 — Persistent Database Adapter
-Status: **Backlog**
+Status: **Implemented, pending validation**
 
-- Choose storage target after UI/API direction is known.
-- Implement a repository adapter that satisfies `ScoreSheetRepository`.
-- Add tests proving save, update, list, get, and delete behavior matches the in-memory adapter contract.
+- Choose storage target after UI/API direction is known. **Done: document-store adapter boundary.**
+- Implement a repository adapter that satisfies `ScoreSheetRepository`. **Done**
+- Add tests proving save, update, list, get, and delete behavior matches the in-memory adapter contract. **Done**
+- Keep database libraries outside the scoring engine through `ScoreSheetDocumentStore`. **Done**
+- Confirm `npm run ci` local validation. **Pending**
 
 ### US-215 — Rich Score-Sheet Export
-Status: **Backlog**
+Status: **Ready**
 
-- Define table layout for rounds, player deltas, running balances, final standings, and statistics.
+- Define table layout for rounds, player deltas, running balances, final standings, and statistics. **Next**
 - Add a formatting service that consumes calculated game results without recalculating scores.
 - Add tests for deterministic table structure and ordering.
 
