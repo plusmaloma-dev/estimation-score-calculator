@@ -13,6 +13,7 @@ export * from './scoring/BalanceAccumulator.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
+export * from './persistence/DocumentScoreSheetRepository.js';
 export * from './statistics/types.js';
 export * from './statistics/StatisticsService.js';
 export * from './importExport/types.js';
