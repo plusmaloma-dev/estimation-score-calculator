@@ -32,11 +32,11 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 35% |
+| Federation-rule review | In progress | 45% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **44%**
+Post-MVP progress: **46%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -145,20 +145,20 @@ Status: **Implemented, pending validation**
 Status: **In progress**
 
 - Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references. **In progress**
-- Record source, decision, and impact for each confirmed rule. **Started in `FEDERATION_RULE_REVIEW.md`**
+- Record source, decision, and impact for each confirmed rule. **Expanded in `FEDERATION_RULE_REVIEW.md`**
 - Create follow-up implementation stories only for confirmed scoring changes. **Started: US-216A/US-216B/US-216C**
 - Confirm `npm run ci` local validation if code changes are introduced. **Not required yet: docs-only slice**
 
 ### US-216A — Federation Source Capture
-Status: **Ready**
+Status: **In progress**
 
-- Locate accessible official rules/regulations documents.
-- Record document title, URL or file name, publication/update date if available, and relevant sections.
-- Add citations or source notes for every reviewed scoring rule.
-- Do not change code.
+- Locate accessible official rules/regulations documents. **In progress: no detailed public scoring document captured yet.**
+- Record document title, URL or file name, publication/update date if available, and relevant sections. **Started**
+- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and negative search evidence.**
+- Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
-Status: **Backlog**
+Status: **Blocked until source capture improves**
 
 - Compare official rules against the local project baseline.
 - List exact differences and recommended project decision for each difference.
