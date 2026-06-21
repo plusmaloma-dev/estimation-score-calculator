@@ -22,8 +22,8 @@
 | UI/API integration | Done | 100% |
 | Acceptance dataset | Done | 100% |
 | Persistence | Done | 100% |
-| Statistics | In Progress | 80% |
-| Import/export | Backlog | 0% |
+| Statistics | In Progress | 90% |
+| Import/export | In Progress | 70% |
 
 Overall progress: **99%**
 
@@ -60,7 +60,12 @@ Status: **In Progress**
 - Remaining: confirm `npm test` / CI status before marking fully done.
 
 ### US-210 — Import/export
-Status: **Backlog**
+Status: **In Progress**
 
-- Define import/export formats after persistence DTOs stabilize. **Next**
-- Suggested first slice: JSON backup DTO with version metadata and validation path.
+- Define import/export formats after persistence DTOs stabilize. **Done**
+- Suggested first slice: JSON backup DTO with version metadata and validation path. **Done**
+- Add `ScoreSheetBackupDocument` DTO and backup constants. **Done**
+- Add `ScoreSheetBackupService` for exporting and validating backup documents. **Done**
+- Add executable tests for valid export/import and invalid backup rejection. **Done**
+- Add README usage notes. **Done**
+- Remaining: confirm `npm test` / CI status before marking fully done.
