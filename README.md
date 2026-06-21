@@ -217,6 +217,33 @@ console.log(statistics.highestScorePlayerId);
 
 The player statistics DTO includes totals, rounds played, exact-bid rate, average score, best/worst round, Dash/Dash Call counters, risk counters, WITH participation, and high-contract counts.
 
+## Player Analytics
+
+Use `PlayerAnalyticsService` for dashboard-ready player performance summaries. It consumes an already calculated game result and does not recalculate scores or change Egyptian Estimation rules.
+
+```ts
+import {
+  EstimationMvpService,
+  PlayerAnalyticsMarkdownExportService,
+  PlayerAnalyticsService,
+} from './src/index.js';
+
+const gameResult = new EstimationMvpService().calculateGame(gameInput);
+const analytics = new PlayerAnalyticsService().summarizeGame(gameResult, {
+  playerOrder: gameInput.playerOrder,
+});
+
+const markdown = new PlayerAnalyticsMarkdownExportService().exportSummary(analytics, {
+  title: 'Friday Game Analytics',
+  generatedAt: new Date(),
+});
+
+console.log(analytics.players);
+console.log(markdown);
+```
+
+Player analytics include ranking, exact-bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, leader, and most-consistent player metadata. The Markdown formatter is a presentation adapter only.
+
 ## Rich Markdown Score-Sheet Export
 
 Use `ScoreSheetMarkdownExportService` when a UI or API needs a human-readable score-sheet export. It consumes an already calculated `MvpGameResult`; it does not recalculate scores or introduce new Egyptian Estimation rules.
@@ -258,21 +285,3 @@ if (imported.valid) {
   console.error(imported.errors);
 }
 ```
-
-Future adapters can serialize the backup document to a file, browser download, cloud object, or API response without changing the scoring engine.
-
-## Validation
-
-Run the consolidated validation command before closing implementation slices or merging changes:
-
-```sh
-npm run ci
-```
-
-The command intentionally matches the GitHub Actions workflow and runs:
-
-1. `npm run typecheck`
-2. `npm test`
-3. `npm run build`
-
-If GitHub Actions is not visible for a commit, use a local `npm run ci` result as the acceptance evidence and record the result in `PROJECT_LOG.md` before marking backlog items complete.
