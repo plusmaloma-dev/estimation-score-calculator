@@ -1,5 +1,30 @@
 # Project Log
 
+## 2026-06-21 - Run 19
+
+Completed:
+
+- Continued from US-211 - CI Validation.
+- Rechecked latest known CI blocker commit `27bb10514d136989f175bf1dcc54512c22d85c92`; no GitHub Actions workflow runs were visible through the connector.
+- Rechecked combined commit status for `27bb10514d136989f175bf1dcc54512c22d85c92`; no statuses were returned.
+- Confirmed the project already has a consolidated `npm run ci` script and a GitHub Actions workflow aligned to that script.
+- Added a README Validation section documenting `npm run ci`, the exact validation sequence, and the rule to use local `npm run ci` evidence when workflow visibility is unavailable.
+- Made no Egyptian Estimation scoring changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-211 - CI Validation remains in progress until a visible GitHub Actions run or local `npm run ci` confirms the package is green.
+
+Blockers:
+
+- GitHub connector still exposes no workflow runs for the inspected latest CI blocker commit.
+- Combined commit status for the inspected commit is empty.
+- Local `npm run ci` execution still needs confirmation outside the connector environment.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 18
 
 Completed:
