@@ -23,5 +23,6 @@ export * from './statistics/PlayerAnalyticsCsvExportService.js';
 export * from './importExport/types.js';
 export * from './importExport/ScoreSheetBackupService.js';
 export * from './richExport/ScoreSheetMarkdownExportService.js';
+export * from './richExport/ScoreSheetCsvExportService.js';
 export * from './export/RichScoreSheetExportService.js';
 export * from './ui/BrowserUiShellService.js';
