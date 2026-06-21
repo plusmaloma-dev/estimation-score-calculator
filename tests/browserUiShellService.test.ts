@@ -157,7 +157,7 @@ test('browser UI shell exposes round history for score-sheet screens', () => {
     ['C', -1],
     ['D', -12],
   ]);
-  assert.deepEqual(history[0]?.riskTypes, ['dash']);
+  assert.deepEqual(history[0]?.riskTypes, ['round-risk']);
 });
 
 test('browser UI shell exports a JSON backup for the current score sheet', () => {
