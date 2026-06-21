@@ -69,7 +69,7 @@ test('exports final standings and per-player round scores as markdown tables', (
   assert.match(markdown, /## Round Scores/);
   assert.match(markdown, /\| 1 \| under \| A \| 4 \| 4 \| 0 \| 14 \| success \|/);
   assert.match(markdown, /\| 1 \| under \| D \| 0 \| 2 \| 2 \| -12 \| failed \|/);
-  assert.match(markdown, /dash/);
+  assert.match(markdown, /Dash Under/);
 });
 
 test('exports validation errors for invalid unscored rounds', () => {
