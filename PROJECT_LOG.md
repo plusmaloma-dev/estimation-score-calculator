@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-06-21 - Run 32
+
+Completed:
+
+- Continued from US-217A by adding a presentation adapter for player analytics.
+- Added `PlayerAnalyticsMarkdownExportService` to format `PlayerAnalyticsSummary` as a human-readable Markdown report.
+- Added deterministic tests for summary output, player rows, escaped table cells, generated timestamps, and empty analytics handling.
+- Exported the analytics Markdown formatter from `src/index.ts`.
+- Updated README usage notes for player analytics and analytics Markdown reporting.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-217B - Player Analytics Markdown Export is implemented and pending local `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` is needed before marking US-217A and US-217B fully Done.
+- Local `npm run ci` is also still needed before marking US-213A, US-213B, US-214, and US-215 fully Done.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+- BACKLOG.md update for US-217B was attempted but blocked by connector safety filtering, so backlog progress still needs a follow-up edit.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 52% complete.
+
 ## 2026-06-21 - Run 31
 
 Completed:
@@ -7,7 +34,7 @@ Completed:
 - Continued from the next unblocked post-MVP implementation item: US-217A - Player Performance Analytics.
 - Added dashboard-ready analytics DTOs in `src/statistics/playerAnalyticsTypes.ts`.
 - Added `PlayerAnalyticsService` to summarize calculated game results without recalculating scores.
-- Added analytics coverage for ranking, exact-bid rate, failure rate, Dash and Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, and all-loser round counts.
+- Added analytics coverage for ranking, exact-bid rate, failure rate, Dash and Dash Call success rates, bonus counters, WITH/high-contract counts, and all-loser round counts.
 - Added `tests/playerAnalyticsService.test.ts` covering dashboard-ready analytics and invalid-round metadata.
 - Exported player analytics APIs from `src/index.ts`.
 - Updated `BACKLOG.md` with US-217A implementation status and post-MVP progress.
