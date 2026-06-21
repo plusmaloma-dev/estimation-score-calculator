@@ -1,5 +1,38 @@
 # Project Log
 
+## 2026-06-21 - Run 16
+
+Completed:
+
+- Continued after US-209 Statistics implementation and moved to the next implementation-ready backlog item, US-210 - Import/export.
+- Added versioned Egyptian Estimation backup DTOs in `src/importExport/types.ts`:
+  - `ScoreSheetBackupDocument`
+  - `ScoreSheetBackupMetadata`
+  - `ExportScoreSheetsInput`
+  - `ImportScoreSheetsResult`
+  - backup format/version constants
+- Added `ScoreSheetBackupService` for:
+  - exporting persisted score sheets into a defensive-cloned backup document,
+  - validating backup format/version/metadata/score-sheet shape before import,
+  - rejecting unsupported shapes such as Planning Poker-style backup formats.
+- Exported import/export APIs from `src/index.ts`.
+- Added `tests/scoreSheetBackupService.test.ts` covering valid export, valid import defensive clone behavior, and invalid backup rejection.
+- Updated `README.md` with import/export usage notes.
+- Updated `BACKLOG.md` to show Import/export in progress at 70% and Statistics at 90% pending test confirmation.
+
+Current item in progress:
+
+- US-210 - Confirm `npm test` / CI status for import/export and statistics, then mark the slices done if green.
+
+Blockers:
+
+- CI/local `npm test` execution still needs confirmation after adding import/export tests.
+- No GitHub Actions status checks or workflow runs have been available in prior runs.
+
+Overall progress:
+
+- 99% complete.
+
 ## 2026-06-21 - Run 15
 
 Completed:
