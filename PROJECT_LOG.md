@@ -1,5 +1,34 @@
 # Project Log
 
+## 2026-06-21 - Run 27
+
+Completed:
+
+- Continued from US-215 - Rich Score-Sheet Export.
+- Added `ScoreSheetMarkdownExportService` for deterministic human-readable Markdown exports.
+- The service consumes existing `MvpGameInput` and `MvpGameResult` data without recalculating scores or changing Egyptian Estimation scoring rules.
+- Export output now includes final standings, per-round player bid/actual/delta/score rows, status/notes, next-round multiplier notes, and validation errors for invalid unscored rounds.
+- Added `tests/scoreSheetMarkdownExportService.test.ts` covering scored-round export and invalid-round validation sections.
+- Exported the Markdown export service from `src/index.ts`.
+- Updated README with Rich Markdown Score-Sheet Export usage notes.
+- Updated `BACKLOG.md` to mark US-215 as implemented pending validation and raise post-MVP progress to 40%.
+- Made no Egyptian Estimation scoring rule changes and did not introduce Planning Poker concepts.
+
+Current item in progress:
+
+- US-215 - Rich Score-Sheet Export is implemented but pending `npm run ci` validation.
+- US-213A, US-213B, and US-214 are also still pending `npm run ci` validation.
+
+Blockers:
+
+- Local `npm run ci` needs to be run or confirmed before marking US-213A, US-213B, US-214, or US-215 fully Done.
+- GitHub Actions/status visibility through the connector remains unavailable, so local validation evidence is still required.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 40% complete.
+
 ## 2026-06-21 - Run 26
 
 Completed:
