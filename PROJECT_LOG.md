@@ -1,5 +1,31 @@
 # Project Log
 
+## 2026-06-23 - Run 57
+
+Completed:
+
+- Reviewed PR #5 and confirmed it was open and mergeable before continuing.
+- Reviewed `BACKLOG.md`, `PROJECT_LOG.md`, `VALIDATION_HANDOFF.md`, `src/browser/gameSummary/GameSummaryViewService.ts`, and `src/services/EstimationMvpService.ts`.
+- Found a type-alignment issue: `GameSummaryViewService` uses `MvpRoundResult.roundNumber`, but `MvpRoundResult` did not expose the round number.
+- Updated `MvpRoundResult` to include `roundNumber` and returned it from both valid and invalid `calculateRound` paths.
+- Added `logs/2026-06-23-run-57.md` as a timestamped run record.
+- Kept Egyptian Estimation rules separate from Planning Poker and made no scoring-rule changes.
+
+Current item in progress:
+
+- Validate the `MvpRoundResult.roundNumber` compatibility fix and continue closing implemented post-MVP validation blockers.
+
+Blockers:
+
+- Local `git pull && node --version && npm --version && git rev-parse HEAD && npm install && npm run ci` is still needed to validate implemented post-MVP items and this type-alignment fix.
+- GitHub status checks/workflow visibility remains unavailable through the current connector path.
+- US-216B and US-216C remain blocked until an official or user-confirmed scoring source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 76% complete.
+
 ## 2026-06-22 - Run 55
 
 Completed:
