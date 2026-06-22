@@ -47,10 +47,11 @@
 | CI validation runbook | Done | 100% |
 | Validation troubleshooting guide | Done | 100% |
 | Validation closure plan | Done | 100% |
+| Game summary compatibility fix | Implemented, pending validation | 85% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **75%**
+Post-MVP progress: **76%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -172,7 +173,7 @@ Status: **In progress**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
 - Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`; merged through PR #3.**
 - Add Arabic source-request template and intake note for original-language evidence. **Done.**
-- Do not change code. **Done so far**
+- Do not change scoring code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
 Status: **Blocked until source capture improves**
@@ -217,4 +218,12 @@ Status: **Implemented, pending validation**
 - Add deterministic CSV tests. **Done**
 - Export the CSV analytics formatter from the public package index. **Done**
 - Document usage in README. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-219 — Game Summary Compatibility Fix
+Status: **Implemented, pending validation**
+
+- Expose `roundNumber` on `MvpRoundResult` so browser game-summary view models can read the round label without recalculating or inspecting raw input. **Done**
+- Return `roundNumber` from both valid and invalid `EstimationMvpService.calculateRound` paths. **Done**
+- Keep this as a DTO/view compatibility fix only, with no Egyptian Estimation scoring-rule changes. **Done**
 - Confirm `npm run ci` local validation. **Pending**
