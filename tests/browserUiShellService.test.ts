@@ -131,6 +131,44 @@ test('browser UI shell saves a valid round and exposes leaderboard output', () =
   assert.deepEqual(service.getLeaderboard(created.scoreSheet?.id ?? '').map((entry) => entry.playerId), ['A', 'B', 'C', 'D']);
 });
 
+test('browser UI shell exposes analytics dashboard for score-sheet screens', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+  const created = service.createScoreSheet({ name: 'Friday Game', players });
+  assert.equal(created.valid, true, created.errors.join('; '));
+
+  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
+  assert.equal(saved.valid, true, saved.errors.join('; '));
+
+  const dashboard = service.getAnalyticsDashboard(created.scoreSheet?.id ?? '', '2026-06-21T10:06:00.000Z');
+
+  assert.equal(dashboard.valid, true, dashboard.errors.join('; '));
+  assert.equal(dashboard.analytics?.title, 'Friday Game Analytics');
+  assert.equal(dashboard.analytics?.generatedAtIso, '2026-06-21T10:06:00.000Z');
+  assert.deepEqual(dashboard.analytics?.summaryMetrics.map((metric) => [metric.label, metric.value]), [
+    ['Total rounds', '1'],
+    ['Valid rounds', '1'],
+    ['Invalid rounds', '0'],
+    ['Leader', 'A'],
+    ['Most consistent', 'A'],
+  ]);
+  assert.deepEqual(dashboard.analytics?.rows.map((row) => [row.playerId, row.totalScore, row.exactBidRate]), [
+    ['A', '14', '100%'],
+    ['B', '14', '100%'],
+    ['C', '-1', '0%'],
+    ['D', '-12', '0%'],
+  ]);
+});
+
+test('browser UI shell returns validation error when analytics score sheet is missing', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+
+  const dashboard = service.getAnalyticsDashboard('missing-score-sheet');
+
+  assert.equal(dashboard.valid, false);
+  assert.deepEqual(dashboard.errors, ['Score sheet not found: missing-score-sheet.']);
+  assert.equal(dashboard.analytics, undefined);
+});
+
 test('browser UI shell exposes round history for score-sheet screens', () => {
   const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
   const created = service.createScoreSheet({ name: 'Friday Game', players });
