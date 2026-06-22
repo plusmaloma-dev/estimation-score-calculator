@@ -69,6 +69,56 @@ describe('EstimationMvpService', () => {
     );
   });
 
+  it('aggregates leaderboard from valid rounds even when an earlier round is invalid', () => {
+    const result = service.calculateGame({
+      playerOrder: ['player-a', 'player-b', 'player-c', 'player-d'],
+      rounds: [
+        {
+          roundNumber: 1,
+          bids: [
+            { playerId: 'player-a', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+            { playerId: 'player-b', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
+            { playerId: 'player-c', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
+            { playerId: 'player-d', bidType: 'dash', tricks: 1 },
+          ],
+          actualResults: [
+            { playerId: 'player-a', actualTricks: 5 },
+            { playerId: 'player-b', actualTricks: 4 },
+            { playerId: 'player-c', actualTricks: 3 },
+            { playerId: 'player-d', actualTricks: 1 },
+          ],
+          profile,
+        },
+        {
+          roundNumber: 2,
+          bidOwnerPlayerId: 'player-a',
+          bids,
+          actualResults: [
+            { playerId: 'player-a', actualTricks: 4 },
+            { playerId: 'player-b', actualTricks: 4 },
+            { playerId: 'player-c', actualTricks: 3 },
+            { playerId: 'player-d', actualTricks: 2 },
+          ],
+          profile,
+        },
+      ],
+    });
+
+    assert.equal(result.valid, false);
+    assert.equal(result.rounds[0]?.valid, false);
+    assert.equal(result.rounds[1]?.roundNumber, 2);
+    assert.equal(result.rounds[1]?.scoreResult?.roundNumber, 2);
+    assert.deepEqual(
+      result.leaderboard.map((entry) => ({ playerId: entry.playerId, totalScore: entry.totalScore, roundsPlayed: entry.roundsPlayed })),
+      [
+        { playerId: 'player-a', totalScore: 24, roundsPlayed: 1 },
+        { playerId: 'player-b', totalScore: 14, roundsPlayed: 1 },
+        { playerId: 'player-c', totalScore: -1, roundsPlayed: 1 },
+        { playerId: 'player-d', totalScore: -12, roundsPlayed: 1 },
+      ],
+    );
+  });
+
   it('returns validation errors without throwing for normal user-input mistakes', () => {
     const result = service.calculateRound({
       roundNumber: 1,
