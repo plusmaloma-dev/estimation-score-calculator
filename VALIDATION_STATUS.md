@@ -4,7 +4,7 @@ Last updated: 2026-06-22
 
 ## Purpose
 
-This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md`, `VALIDATION_EVIDENCE_TEMPLATE.md`, and `CI_VALIDATION_RUNBOOK.md`; it should not contain Egyptian Estimation scoring rules.
+This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md`, `VALIDATION_EVIDENCE_TEMPLATE.md`, `CI_VALIDATION_RUNBOOK.md`, and `VALIDATION_TROUBLESHOOTING.md`; it should not contain Egyptian Estimation scoring rules.
 
 ## Current status
 
@@ -14,13 +14,16 @@ Required command:
 
 ```bash
 git pull
+node --version
 npm install
 npm run ci
 ```
 
+Prefer Node.js 22 locally so the run matches `.github/workflows/ci.yml`.
+
 ## Evidence capture
 
-Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Use `CI_VALIDATION_RUNBOOK.md` for the repeatable validation and closure flow. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
+Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Use `CI_VALIDATION_RUNBOOK.md` for the repeatable validation and closure flow. Use `VALIDATION_TROUBLESHOOTING.md` if validation fails and a focused, safe triage path is needed. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
 
 ## Items waiting for validation
 
@@ -53,6 +56,7 @@ Only move an item from **Implemented, pending validation** to **Done** when the 
 Record the following after the command runs:
 
 - Command run.
+- Node.js version.
 - Pass/fail result.
 - Test count if available.
 - Any failing file or assertion if the run fails.
