@@ -1,6 +1,8 @@
 import type { EstimationBid } from '../domain/bid.js';
 import type { AnalyticsScreenModel } from '../browser/analytics/AnalyticsScreenModel.js';
 import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.js';
+import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryModel.js';
+import { GameSummaryViewService } from '../browser/gameSummary/GameSummaryViewService.js';
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
@@ -55,6 +57,10 @@ export interface UiAnalyticsDashboardResult extends UiValidationResult {
   readonly analytics?: AnalyticsScreenModel;
 }
 
+export interface UiGameSummaryResult extends UiValidationResult {
+  readonly summary?: GameSummaryModel;
+}
+
 export interface UiSessionHistoryItem {
   readonly id: string;
   readonly name: string;
@@ -103,6 +109,7 @@ export class BrowserUiShellService {
     private readonly mvpService = new EstimationMvpService(),
     private readonly backupService = new ScoreSheetBackupService(),
     private readonly analyticsViewService = new AnalyticsViewService(),
+    private readonly gameSummaryViewService = new GameSummaryViewService(),
   ) {}
 
   validatePlayerSetup(players: readonly UiPlayerSetupInput[]): UiValidationResult {
@@ -204,6 +211,19 @@ export class BrowserUiShellService {
       leaderboard: gameResult.leaderboard,
       analytics,
       roundHistory: this.buildRoundHistory(scoreSheet),
+    };
+  }
+
+  getGameSummary(scoreSheetId: string, generatedAt?: Date | string): UiGameSummaryResult {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
+    }
+
+    return {
+      valid: true,
+      errors: [],
+      summary: this.gameSummaryViewService.buildModel(scoreSheet, { generatedAt }),
     };
   }
 
