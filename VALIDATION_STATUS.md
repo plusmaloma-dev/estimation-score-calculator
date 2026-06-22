@@ -4,11 +4,11 @@ Last updated: 2026-06-22
 
 ## Purpose
 
-This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md` and should not contain Egyptian Estimation scoring rules.
+This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md`, `VALIDATION_EVIDENCE_TEMPLATE.md`, and `CI_VALIDATION_RUNBOOK.md`; it should not contain Egyptian Estimation scoring rules.
 
 ## Current status
 
-GitHub status checks and pull-request-triggered workflow runs are not visible for the inspected commits through the available connector. A local validation run is still required before moving implemented post-MVP backlog items from **Implemented, pending validation** to **Done**.
+GitHub status checks and pull-request-triggered workflow runs are not visible for the inspected commits through the available connector. The repository does have a GitHub Actions workflow at `.github/workflows/ci.yml` that runs `npm run ci` for pushes and pull requests targeting `main`, but local validation evidence is still required before moving implemented post-MVP backlog items from **Implemented, pending validation** to **Done**.
 
 Required command:
 
@@ -20,7 +20,7 @@ npm run ci
 
 ## Evidence capture
 
-Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
+Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Use `CI_VALIDATION_RUNBOOK.md` for the repeatable validation and closure flow. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
 
 ## Items waiting for validation
 
