@@ -4,7 +4,7 @@ import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
-import type { PersistedScoreSheet, ScoreSheetRepository } from '../persistence/types.js';
+import type { PersistedScoreSheet, PersistedScoreSheetMetadata, ScoreSheetRepository } from '../persistence/types.js';
 import { EstimationMvpService, type MvpGameResult, type MvpRoundInput, type MvpRoundResult } from '../services/EstimationMvpService.js';
 import type { LeaderboardEntry } from '../services/LeaderboardService.js';
 
@@ -53,6 +53,27 @@ export interface UiExportBackupResult extends UiValidationResult {
 
 export interface UiAnalyticsDashboardResult extends UiValidationResult {
   readonly analytics?: AnalyticsScreenModel;
+}
+
+export interface UiSessionHistoryItem {
+  readonly id: string;
+  readonly name: string;
+  readonly status: PersistedScoreSheet['status'];
+  readonly players: readonly string[];
+  readonly roundCount: number;
+  readonly updatedAtIso: string;
+  readonly updatedAtLabel: string;
+}
+
+export interface UiSessionHistoryResult {
+  readonly sessions: readonly UiSessionHistoryItem[];
+}
+
+export interface UiOpenSessionResult extends UiValidationResult {
+  readonly scoreSheet?: PersistedScoreSheet;
+  readonly leaderboard?: readonly LeaderboardEntry[];
+  readonly analytics?: AnalyticsScreenModel;
+  readonly roundHistory?: readonly UiRoundHistoryEntry[];
 }
 
 export interface UiScoreSheetSummary {
@@ -155,6 +176,37 @@ export class BrowserUiShellService {
     }));
   }
 
+  getSessionHistory(): UiSessionHistoryResult {
+    const sessions = [...this.repository.list()]
+      .sort((left, right) => right.updatedAtIso.localeCompare(left.updatedAtIso))
+      .map((metadata) => this.toSessionHistoryItem(metadata));
+
+    return { sessions };
+  }
+
+  openSession(scoreSheetId: string, generatedAt?: Date | string): UiOpenSessionResult {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
+    }
+
+    const gameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    const analytics = this.analyticsViewService.buildModel(gameResult, {
+      title: `${scoreSheet.name} Analytics`,
+      generatedAt,
+      playerOrder: scoreSheet.playerOrder,
+    });
+
+    return {
+      valid: true,
+      errors: [],
+      scoreSheet,
+      leaderboard: gameResult.leaderboard,
+      analytics,
+      roundHistory: this.buildRoundHistory(scoreSheet),
+    };
+  }
+
   previewRound(input: UiRoundEntryInput): UiRoundPreviewResult {
     const roundInput = this.toMvpRoundInput(input);
     const round = this.mvpService.calculateRound(roundInput);
@@ -199,21 +251,7 @@ export class BrowserUiShellService {
       return [];
     }
 
-    return scoreSheet.gameInput.rounds.map((roundInput, index) => {
-      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound(roundInput);
-      const playerScores = roundResult.scoreResult?.playerScores ?? [];
-      return {
-        roundNumber: roundInput.roundNumber,
-        roundType: roundResult.bidValidation.roundType,
-        valid: roundResult.valid,
-        errors: roundResult.errors,
-        bids: roundInput.bids,
-        actualResults: roundInput.actualResults,
-        playerScores,
-        riskTypes: this.resolveRiskTypes(playerScores),
-        nextRoundMultiplier: roundResult.scoreResult?.nextRoundMultiplier,
-      };
-    });
+    return this.buildRoundHistory(scoreSheet);
   }
 
   getLeaderboard(scoreSheetId: string): readonly LeaderboardEntry[] {
@@ -249,6 +287,40 @@ export class BrowserUiShellService {
     });
 
     return { valid: true, errors: [], document };
+  }
+
+  private toSessionHistoryItem(metadata: PersistedScoreSheetMetadata): UiSessionHistoryItem {
+    return {
+      id: metadata.id,
+      name: metadata.name,
+      status: metadata.status,
+      players: metadata.playerOrder,
+      roundCount: metadata.roundCount,
+      updatedAtIso: metadata.updatedAtIso,
+      updatedAtLabel: this.formatSessionDateLabel(metadata.updatedAtIso),
+    };
+  }
+
+  private formatSessionDateLabel(updatedAtIso: string): string {
+    return updatedAtIso.slice(0, 16).replace('T', ' ');
+  }
+
+  private buildRoundHistory(scoreSheet: PersistedScoreSheet): readonly UiRoundHistoryEntry[] {
+    return scoreSheet.gameInput.rounds.map((roundInput, index) => {
+      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound(roundInput);
+      const playerScores = roundResult.scoreResult?.playerScores ?? [];
+      return {
+        roundNumber: roundInput.roundNumber,
+        roundType: roundResult.bidValidation.roundType,
+        valid: roundResult.valid,
+        errors: roundResult.errors,
+        bids: roundInput.bids,
+        actualResults: roundInput.actualResults,
+        playerScores,
+        riskTypes: this.resolveRiskTypes(playerScores),
+        nextRoundMultiplier: roundResult.scoreResult?.nextRoundMultiplier,
+      };
+    });
   }
 
   private resolveRiskTypes(playerScores: NonNullable<MvpRoundResult['scoreResult']>['playerScores']): readonly RiskType[] {
