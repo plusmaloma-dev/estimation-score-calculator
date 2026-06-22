@@ -1,5 +1,29 @@
 # Project Log
 
+## 2026-06-22 - Run 41
+
+Completed:
+
+- Continued from the next unblocked implementation-ready item in post-MVP validation cleanup.
+- Expanded `VALIDATION_STATUS.md` with a closure matrix for US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- Documented item-specific checks needed before moving implemented post-MVP items from **Implemented, pending validation** to **Done** after a green local `npm run ci`.
+- Kept validation tracking separate from Egyptian Estimation scoring rules and avoided Planning Poker concepts.
+- Made no scoring-engine, federation-rule, analytics, export, UI, or persistence behavior changes.
+
+Current item in progress:
+
+- Post-MVP validation cleanup remains focused on obtaining a green local `git pull && npm install && npm run ci` result and then closing pending implemented items.
+
+Blockers:
+
+- Local `git pull && npm install && npm run ci` is still needed to validate US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 66% complete.
+
 ## 2026-06-22 - Run 40
 
 Completed:
