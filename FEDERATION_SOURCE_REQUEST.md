@@ -27,7 +27,7 @@ For each source received, capture:
 - Relevant section/page for each scoring rule.
 - Whether the rule is official tournament policy or a table/house rule.
 
-## Request message template
+## English request message template
 
 ```text
 Hello,
@@ -40,6 +40,24 @@ If there are multiple versions, please indicate the current approved version, pu
 
 Thank you.
 ```
+
+## Arabic request message template
+
+```text
+السلام عليكم،
+
+نحن نعمل على تطوير حاسبة نقاط للعبة الاستيميشن المصرية، ونرغب في التأكد من أن قواعد التسجيل المستخدمة في التطبيق متوافقة مع القواعد الرسمية للاستيميشن المصري، وليست مرتبطة بأي مفاهيم تخص Planning Poker أو ألعاب ورق أخرى.
+
+هل يمكن تزويدنا بآخر نسخة معتمدة من قواعد أو قوانين الاستيميشن، أو لوائح البطولات، أو جداول احتساب النقاط المستخدمة من الاتحاد/اللجنة؟ نحتاج بشكل خاص إلى مراجع واضحة لطريقة احتساب النقاط في الحالات التالية: العطاءات العادية، الداش، داش كول، الويذ، العقود العالية، الريسك، الدبل ريسك، مضاعفات خسارة جميع اللاعبين، وترتيب الألوان/الترامب بما في ذلك نو ترامب.
+
+في حال وجود أكثر من نسخة، نرجو توضيح النسخة المعتمدة حاليًا، وتاريخ إصدارها أو تحديثها، وما إذا كانت خاصة بالبطولات الرسمية أم باللعب الودي/قواعد الطاولة.
+
+شكرًا جزيلًا.
+```
+
+## Evidence intake notes
+
+When a source is received, keep the original language and add an English summary only as a helper note. Do not translate a rule into implementation behavior until the relevant section/page has been recorded and compared against `PROJECT_RULES.md`.
 
 ## Handling received evidence
 
