@@ -47,11 +47,11 @@
 | CI validation runbook | Done | 100% |
 | Validation troubleshooting guide | Done | 100% |
 | Validation closure plan | Done | 100% |
-| Game summary compatibility fix | Implemented, pending validation | 85% |
+| Game summary and leaderboard compatibility fixes | Implemented, pending validation | 90% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **76%**
+Post-MVP progress: **77%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -218,12 +218,24 @@ Status: **Implemented, pending validation**
 - Add deterministic CSV tests. **Done**
 - Export the CSV analytics formatter from the public package index. **Done**
 - Document usage in README. **Done**
-- Confirm `npm run ci` local validation. **Pending**
 
-### US-219 — Game Summary Compatibility Fix
+### US-218 — Score-Sheet CSV Export
 Status: **Implemented, pending validation**
 
-- Expose `roundNumber` on `MvpRoundResult` so browser game-summary view models can read the round label without recalculating or inspecting raw input. **Done**
-- Return `roundNumber` from both valid and invalid `EstimationMvpService.calculateRound` paths. **Done**
-- Keep this as a DTO/view compatibility fix only, with no Egyptian Estimation scoring-rule changes. **Done**
+- Add `ScoreSheetCsvExportService` for spreadsheet-friendly game score sheets. **Done**
+- Include one row per player per round plus final standing rows. **Done**
+- Preserve invalid-round validation notes without recalculating scores. **Done**
+- Escape quoted/comma/newline cells safely for CSV consumers. **Done**
+- Add deterministic CSV tests. **Done**
+- Export the score-sheet CSV formatter from the public package index. **Done**
+- Document usage in README. **Done**
+- Confirm `npm run ci` local validation. **Pending**
+
+### US-219 — Game Summary and Leaderboard Compatibility Fixes
+Status: **Implemented, pending validation**
+
+- Add `roundNumber` to `MvpRoundResult` so browser game summary DTO consumers can display round history without reaching back into input DTOs. **Done**
+- Return `roundNumber` from both valid and invalid `calculateRound` paths. **Done**
+- Preserve leaderboard aggregation round identity after invalid rounds are filtered out of score aggregation. **Done**
+- Add regression coverage for invalid-round/valid-round aggregation ordering. **Done**
 - Confirm `npm run ci` local validation. **Pending**
