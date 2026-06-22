@@ -15,7 +15,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | Source | Current evidence | Review status |
 | --- | --- | --- |
 | Egyptian Bridge Federation Estimation site | Public site confirms Estimation is a four-player 52-card game where players bid or estimate tricks and score by achieving the exact estimate. It also says the Estimation Committee is responsible for officially recognized laws/rules, arbitration, tournaments, licensing, ranking, and player classification. | Usable for broad scope confirmation. Detailed scoring rules still need direct rules/document access or user confirmation. |
-| Public web search for official rule documents | Searches for Egyptian Estimation Federation rules, regulations, PDF documents, and Estimation Committee terms did not expose a retrievable official scoring document during the review runs. Results were empty, academic false positives, or unrelated card-game pages such as Egyptian Ratscrew, Basra, or other games. | Negative evidence recorded. Do not infer scoring rules from unrelated search results. |
+| Public web search for official rule documents | Searches for Egyptian Estimation Federation rules, regulations, PDF documents, Estimation Committee terms, and Arabic equivalents did not expose a retrievable official scoring document during the review runs. Results were empty or unrelated card-game pages such as Egyptian Ratscrew, Basra, or other games. | Negative evidence recorded. Do not infer scoring rules from unrelated search results. |
 | `PROJECT_RULES.md` | Local project rule reference built from user-confirmed requirements during MVP development. | Active local baseline. |
 | User-confirmed table rules | User-confirmed rules from the project conversation, including total bids never equal 13, risk/double-risk values, Dash Call behavior, and WITH behavior. | Active local baseline until contradicted by confirmed federation rules. |
 
@@ -27,6 +27,17 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | 2026-06-21 | Searched for official rules, regulations, PDF documents, and Egyptian Estimation Federation scoring terms. | No directly usable official scoring document was found. | Keep source capture open. |
 | 2026-06-21 | Searched broader web terms for the federation site, Egyptian Estimation Federation, and Egyptian Estimation card-game rules. | Results were sparse or unrelated to the Egyptian Estimation trick-taking game. | Do not use unrelated card-game sources for scoring decisions. |
 | 2026-06-21 | Re-ran source capture using English and Arabic search terms for official rules, scoring, regulations, Estimation Committee, and federation PDFs. | No directly usable official scoring/rules PDF or page was captured. Results were empty or unrelated false positives, including academic papers and unrelated Egyptian card games. | Keep the local user-confirmed scoring baseline. Do not make rule/code changes from this search. |
+| 2026-06-22 | Re-ran source capture using targeted English and Arabic queries: `site:egyestimation.org Estimation Federation rules regulations scoring estimation`, `Egyptian Estimation Federation rules scoring`, `egyestimation.org rules estimation card game`, and `الاتحاد المصري للاستيميشن لوائح قوانين`. | No directly usable official detailed scoring rulebook, rules page, or downloadable regulation document was found through public search. | Continue US-216A as open. Keep US-216B/US-216C blocked and make no scoring-code changes from negative search evidence. |
+
+## Reviewed search terms
+
+Keep these terms documented so future reviews avoid repeating the same negative searches without new context:
+
+- `site:egyestimation.org Estimation Federation rules regulations scoring estimation`
+- `Egyptian Estimation Federation rules scoring`
+- `egyestimation.org rules estimation card game`
+- `الاتحاد المصري للاستيميشن لوائح قوانين`
+- Official rules, regulations, scoring table, Estimation Committee, federation PDF, and Arabic equivalents.
 
 ## Rule review tracker
 
@@ -56,7 +67,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 Status: **In progress**
 
 - Locate accessible official rules/regulations documents. **In progress: public search still has not found a retrievable detailed document.**
-- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in Source capture log.**
+- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in Source capture log and Reviewed search terms.**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
 - Do not change code. **Done so far.**
 
