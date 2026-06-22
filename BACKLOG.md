@@ -38,7 +38,7 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 60% |
+| Federation-rule review | In progress | 65% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
@@ -50,7 +50,7 @@
 
 MVP progress: **100%**
 
-Post-MVP progress: **74%**
+Post-MVP progress: **75%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -171,6 +171,7 @@ Status: **In progress**
 - Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
 - Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`; merged through PR #3.**
+- Add Arabic source-request template and intake note for original-language evidence. **Done.**
 - Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
@@ -217,52 +218,3 @@ Status: **Implemented, pending validation**
 - Export the CSV analytics formatter from the public package index. **Done**
 - Document usage in README. **Done**
 - Confirm `npm run ci` local validation. **Pending**
-
-### US-218 — Score-Sheet CSV Export
-Status: **Implemented, pending validation**
-
-- Add `ScoreSheetCsvExportService` for spreadsheet-friendly score-sheet round exports. **Done**
-- Include optional metadata rows for title, generated timestamp, round count, validity, and error count. **Done**
-- Include per-player round score rows with bid, actual, delta, score, status, role, risk, running score, and notes. **Done**
-- Include invalid-round rows with validation notes. **Done**
-- Add deterministic CSV tests. **Done**
-- Export the CSV score-sheet formatter from the public package index. **Done**
-- Document usage in README. **Done**
-- Repair bid-type and cumulative running-score export behavior after merge. **Done**
-- Confirm `npm run ci` local validation. **Pending**
-
-### US-219 — Post-MVP Validation Checklist
-Status: **Done**
-
-- Add `VALIDATION_CHECKLIST.md` with local validation commands, boundary checks, and evidence requirements. **Done**
-- List implemented post-MVP items that can move to Done after a green `npm run ci`. **Done**
-- Keep validation guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
-
-### US-220 — CI Validation Runbook
-Status: **Done**
-
-- Add `CI_VALIDATION_RUNBOOK.md` with the repeatable local validation, evidence, closure, and failure flow. **Done**
-- Reference the GitHub Actions workflow without depending on unavailable connector status checks. **Done**
-- Keep CI process guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
-
-### US-221 — Validation Troubleshooting Guide
-Status: **Done**
-
-- Add `VALIDATION_TROUBLESHOOTING.md` with common validation symptoms, likely causes, and safe actions. **Done**
-- Reference Node.js 22 alignment with the GitHub Actions workflow. **Done**
-- Keep validation troubleshooting separate from Egyptian Estimation scoring decisions and Planning Poker concepts. **Done**
-
-### US-222 — Validation Closure Plan
-Status: **Done**
-
-- Add `VALIDATION_CLOSURE_PLAN.md` with the final local CI evidence and backlog closure sequence. **Done**
-- List the pending implemented items that can close after a green run. **Done**
-- Keep closure planning separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
-
-### US-223 — Validation Quickstart
-Status: **Done**
-
-- Add `VALIDATION_QUICKSTART.md` with the short clean-checkout, environment-capture, local CI, and evidence-capture flow. **Done**
-- Include commit SHA and npm version capture so validation evidence is reproducible. **Done**
-- Reference the quickstart from `VALIDATION_STATUS.md` and project rules. **Done**
-- Keep quickstart guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
