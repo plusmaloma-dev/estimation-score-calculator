@@ -38,7 +38,7 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 58% |
+| Federation-rule review | In progress | 60% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
@@ -50,7 +50,7 @@
 
 MVP progress: **100%**
 
-Post-MVP progress: **73%**
+Post-MVP progress: **74%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -162,6 +162,7 @@ Status: **In progress**
 - Record source, decision, and impact for each confirmed rule. **Expanded in `FEDERATION_RULE_REVIEW.md`**
 - Create follow-up implementation stories only for confirmed scoring changes. **Started: US-216A/US-216B/US-216C**
 - Confirm `npm run ci` local validation if code changes are introduced. **Not required yet: docs-only slice**
+- Clean up duplicate federation source-request PRs so source-capture work has one merged baseline. **Done: PR #3 merged and PR #2 closed as superseded.**
 
 ### US-216A — Federation Source Capture
 Status: **In progress**
@@ -169,7 +170,7 @@ Status: **In progress**
 - Locate accessible official rules/regulations documents. **In progress: public searches still did not find a retrievable detailed official document.**
 - Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
-- Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`.**
+- Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`; merged through PR #3.**
 - Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
