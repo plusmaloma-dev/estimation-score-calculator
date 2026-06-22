@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-06-23 - Run 58
+
+Completed:
+
+- Reviewed PR #5 and confirmed it remains open but not mergeable against `main`.
+- Reviewed `BACKLOG.md`, `PROJECT_LOG.md`, `VALIDATION_HANDOFF.md`, `src/services/EstimationMvpService.ts`, and `tests/EstimationMvpService.test.ts`.
+- Confirmed the previous `MvpRoundResult.roundNumber` compatibility fix is present on `main`.
+- Found and fixed a follow-on aggregation issue in `EstimationMvpService.calculateGame`: valid scored rounds were filtered before leaderboard aggregation, but the aggregation input still used the filtered array index to recover the original round number.
+- Updated leaderboard aggregation to carry `round.roundNumber` from the `MvpRoundResult` itself, preserving the correct round identity after invalid rounds are skipped for scoring aggregation.
+- Added regression coverage proving a valid second round still contributes to the leaderboard correctly when the first round is invalid.
+- Kept Egyptian Estimation rules separate from Planning Poker and made no scoring-rule changes.
+
+Current item in progress:
+
+- Validate the game-summary/leaderboard compatibility fixes and continue closing implemented post-MVP validation blockers.
+
+Blockers:
+
+- Local `git pull && node --version && npm --version && git rev-parse HEAD && npm install && npm run ci` is still needed to validate implemented post-MVP items and the latest compatibility fixes.
+- PR #5 remains open and not mergeable; it should be reconciled or closed after confirming whether its run-log content is already superseded by newer `main` updates.
+- GitHub status checks/workflow visibility remains unavailable through the current connector path.
+- US-216B and US-216C remain blocked until an official or user-confirmed scoring source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 77% complete.
+
 ## 2026-06-23 - Run 57
 
 Completed:
