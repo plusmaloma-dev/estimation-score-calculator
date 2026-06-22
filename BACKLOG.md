@@ -12,6 +12,7 @@
 - Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
 - Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
 - Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
+- Use `FEDERATION_SOURCE_REQUEST.md` to collect the exact official/user-confirmed rule evidence needed before changing Egyptian Estimation scoring behavior.
 
 ## Progress Tracker
 
@@ -37,7 +38,7 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 55% |
+| Federation-rule review | In progress | 60% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
@@ -49,7 +50,7 @@
 
 MVP progress: **100%**
 
-Post-MVP progress: **72%**
+Post-MVP progress: **73%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -165,9 +166,9 @@ Status: **In progress**
 ### US-216A — Federation Source Capture
 Status: **In progress**
 
-- Locate accessible official rules/regulations documents. **In progress: 2026-06-22 file-focused English and Arabic searches still did not find a retrievable detailed official document.**
-- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
-- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
+- Locate accessible official rules/regulations documents. **In progress: 2026-06-22 English and Arabic searches still did not find a retrievable detailed official document.**
+- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log, reviewed search terms, and `FEDERATION_SOURCE_REQUEST.md`.**
+- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence, repeated negative search evidence, and source-request checklist.**
 - Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
@@ -262,4 +263,4 @@ Status: **Done**
 - Add `VALIDATION_QUICKSTART.md` with the short clean-checkout, environment-capture, local CI, and evidence-capture flow. **Done**
 - Include commit SHA and npm version capture so validation evidence is reproducible. **Done**
 - Reference the quickstart from `VALIDATION_STATUS.md` and project rules. **Done**
-- Keep quickstart guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+- Keep quickstart guidance separate from Egyptian Estimation scoring rules. **Done**
