@@ -1,5 +1,29 @@
 # Project Log
 
+## 2026-06-22 - Run 51
+
+Completed:
+
+- Continued from US-216A Federation Source Capture and the open source-request PR.
+- Rechecked PR #2 and confirmed it is open and currently mergeable.
+- Added `logs/2026-06-22-run-51.md` as a timestamped run record.
+- Kept Egyptian Estimation rules separate from Planning Poker and made no scoring-engine changes without official or user-confirmed evidence.
+
+Current item in progress:
+
+- US-216A — Federation Source Capture.
+
+Blockers:
+
+- PR #2 still needs review/merge into `main` before its source-request checklist is part of the main branch.
+- Local `git pull && node --version && npm --version && git rev-parse HEAD && npm install && npm run ci` is still needed to validate US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- US-216B and US-216C remain blocked until a detailed official federation rule source or explicit user-confirmed rule source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 73% complete.
+
 ## 2026-06-22 - Run 50
 
 Completed:
