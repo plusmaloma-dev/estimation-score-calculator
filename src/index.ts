@@ -22,6 +22,8 @@ export * from './statistics/PlayerAnalyticsMarkdownExportService.js';
 export * from './statistics/PlayerAnalyticsCsvExportService.js';
 export * from './browser/analytics/AnalyticsScreenModel.js';
 export * from './browser/analytics/AnalyticsViewService.js';
+export * from './browser/gameSummary/GameSummaryModel.js';
+export * from './browser/gameSummary/GameSummaryViewService.js';
 export * from './importExport/types.js';
 export * from './importExport/ScoreSheetBackupService.js';
 export * from './richExport/ScoreSheetMarkdownExportService.js';
