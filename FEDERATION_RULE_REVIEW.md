@@ -16,6 +16,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | --- | --- | --- |
 | Egyptian Bridge Federation Estimation site | Public site confirms Estimation is a four-player 52-card game where players bid or estimate tricks and score by achieving the exact estimate. It also says the Estimation Committee is responsible for officially recognized laws/rules, arbitration, tournaments, licensing, ranking, and player classification. | Usable for broad scope confirmation. Detailed scoring rules still need direct rules/document access or user confirmation. |
 | Public web search for official rule documents | Searches for Egyptian Estimation Federation rules, regulations, PDF documents, Estimation Committee terms, and Arabic equivalents did not expose a retrievable official scoring document during the review runs. Results were empty or unrelated card-game pages such as Egyptian Ratscrew, Basra, or other games. | Negative evidence recorded. Do not infer scoring rules from unrelated search results. |
+| `FEDERATION_SOURCE_REQUEST.md` | Defines the exact source package, metadata, rule-by-rule evidence checklist, and decision flow needed to unblock US-216B/US-216C. | Use as the evidence request checklist before changing scoring behavior. |
 | `PROJECT_RULES.md` | Local project rule reference built from user-confirmed requirements during MVP development. | Active local baseline. |
 | User-confirmed table rules | User-confirmed rules from the project conversation, including total bids never equal 13, risk/double-risk values, Dash Call behavior, and WITH behavior. | Active local baseline until contradicted by confirmed federation rules. |
 
@@ -30,6 +31,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | 2026-06-22 | Re-ran source capture using targeted English and Arabic queries: `site:egyestimation.org Estimation Federation rules regulations scoring estimation`, `Egyptian Estimation Federation rules scoring`, `egyestimation.org rules estimation card game`, and `الاتحاد المصري للاستيميشن لوائح قوانين`. | No directly usable official detailed scoring rulebook, rules page, or downloadable regulation document was found through public search. | Continue US-216A as open. Keep US-216B/US-216C blocked and make no scoring-code changes from negative search evidence. |
 | 2026-06-22 | Re-ran focused searches for Estimation Committee laws/rules using English and Arabic terms: `egyestimation.org Estimation Committee laws rules`, `egyestimation.org "Estimation" "Rules"`, `egyestimation.org "قوانين" "استيميشن"`, and `"Egyptian Bridge Federation" "Estimation Committee" rules`. | No retrievable official detailed scoring rulebook, rules page, or regulation document was returned. | Keep US-216A open. Keep local user-confirmed rules as the active baseline. Do not create US-216B differences or US-216C implementation changes from negative evidence. |
 | 2026-06-22 | Re-ran file-focused searches for official PDF/rule artifacts using: `site:egyestimation.org filetype:pdf estimation rules scoring`, `site:egyestimation.org استيميشن قوانين pdf`, `"Egyptian Bridge Federation" "Estimation" "قوانين"`, and `"Estimation Committee" "Egyptian Bridge Federation"`. | No public search results were returned for these queries, so no official detailed scoring PDF/page could be captured. | Record as additional negative evidence only. Keep US-216B/US-216C blocked; do not change scoring rules from absent evidence. |
+| 2026-06-22 | Re-ran another focused English/Arabic source-capture pass for Estimation Committee laws/rules, PDF scoring artifacts, and Arabic official-rule phrases. | Search returned no usable results for the queried official sources. | Added `FEDERATION_SOURCE_REQUEST.md` so the next source-capture step has a concrete evidence package request rather than repeating negative search terms. |
 
 ## Reviewed search terms
 
@@ -66,6 +68,8 @@ Keep these terms documented so future reviews avoid repeating the same negative 
 
 ## Pending evidence to collect
 
+Use `FEDERATION_SOURCE_REQUEST.md` as the collection checklist. At minimum, collect:
+
 - Direct official Rules page or downloadable document from the federation site.
 - Tournament regulation document, if separate from scoring rules.
 - Any official scoring table that covers Dash, Dash Call, WITH, risk, double risk, and multiplier treatment.
@@ -77,8 +81,8 @@ Keep these terms documented so future reviews avoid repeating the same negative 
 Status: **In progress**
 
 - Locate accessible official rules/regulations documents. **In progress: public search still has not found a retrievable detailed document.**
-- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in Source capture log and Reviewed search terms.**
-- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
+- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in Source capture log, Reviewed search terms, and `FEDERATION_SOURCE_REQUEST.md`.**
+- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence, repeated negative search evidence, and the source-request checklist.**
 - Do not change code. **Done so far.**
 
 ### US-216B — Confirm Rule Differences
