@@ -83,14 +83,15 @@ export class EstimationMvpService {
     const errors = rounds.flatMap((round, index) =>
       round.errors.map((error) => `Round ${input.rounds[index]?.roundNumber ?? index + 1}: ${error}`),
     );
-    const validScoredRounds = rounds
-      .map((round) => round.scoreResult)
-      .filter((round): round is RoundScoreResult => round !== undefined && round.valid);
+    const validScoredRounds = rounds.filter(
+      (round): round is MvpRoundResult & { readonly scoreResult: RoundScoreResult } =>
+        round.scoreResult !== undefined && round.scoreResult.valid,
+    );
 
     const leaderboard = this.leaderboardService.aggregate(
-      validScoredRounds.map((round, index) => ({
-        roundNumber: input.rounds[index]?.roundNumber,
-        playerScores: round.playerScores,
+      validScoredRounds.map((round) => ({
+        roundNumber: round.roundNumber,
+        playerScores: round.scoreResult.playerScores,
       })),
       { playerOrder: input.playerOrder },
     );
