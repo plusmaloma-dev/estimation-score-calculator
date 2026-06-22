@@ -12,7 +12,8 @@ export interface ScoreSheetCsvExportInput {
 export class ScoreSheetCsvExportService {
   exportScoreSheet(input: ScoreSheetCsvExportInput): string {
     const rows: string[][] = [];
-    const runningScores = new Map(input.gameInput.playerOrder.map((playerId) => [playerId, 0]));
+    const playerOrder = input.gameInput.playerOrder ?? this.inferPlayerOrder(input.gameInput);
+    const runningScores = new Map(playerOrder.map((playerId) => [playerId, 0]));
 
     if (input.includeMetadataRows === true) {
       rows.push(['metric', 'value']);
@@ -108,6 +109,22 @@ export class ScoreSheetCsvExportService {
       runningScore.toString(),
       this.formatNotes(playerScore),
     ];
+  }
+
+  private inferPlayerOrder(gameInput: MvpGameInput): string[] {
+    const playerOrder: string[] = [];
+    const seenPlayerIds = new Set<string>();
+
+    for (const round of gameInput.rounds) {
+      for (const bid of round.bids) {
+        if (!seenPlayerIds.has(bid.playerId)) {
+          seenPlayerIds.add(bid.playerId);
+          playerOrder.push(bid.playerId);
+        }
+      }
+    }
+
+    return playerOrder;
   }
 
   private formatNotes(playerScore: PlayerScoreResult): string {
