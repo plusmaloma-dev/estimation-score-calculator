@@ -1,4 +1,6 @@
 import type { EstimationBid } from '../domain/bid.js';
+import type { AnalyticsScreenModel } from '../browser/analytics/AnalyticsScreenModel.js';
+import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.js';
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
@@ -49,6 +51,10 @@ export interface UiExportBackupResult extends UiValidationResult {
   readonly document?: ScoreSheetBackupDocument;
 }
 
+export interface UiAnalyticsDashboardResult extends UiValidationResult {
+  readonly analytics?: AnalyticsScreenModel;
+}
+
 export interface UiScoreSheetSummary {
   readonly id: string;
   readonly name: string;
@@ -75,6 +81,7 @@ export class BrowserUiShellService {
     private readonly repository: ScoreSheetRepository,
     private readonly mvpService = new EstimationMvpService(),
     private readonly backupService = new ScoreSheetBackupService(),
+    private readonly analyticsViewService = new AnalyticsViewService(),
   ) {}
 
   validatePlayerSetup(players: readonly UiPlayerSetupInput[]): UiValidationResult {
@@ -211,6 +218,22 @@ export class BrowserUiShellService {
 
   getLeaderboard(scoreSheetId: string): readonly LeaderboardEntry[] {
     return this.repository.getById(scoreSheetId)?.gameResult?.leaderboard ?? [];
+  }
+
+  getAnalyticsDashboard(scoreSheetId: string, generatedAt?: Date | string): UiAnalyticsDashboardResult {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
+    }
+
+    const gameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    const analytics = this.analyticsViewService.buildModel(gameResult, {
+      title: `${scoreSheet.name} Analytics`,
+      generatedAt,
+      playerOrder: scoreSheet.playerOrder,
+    });
+
+    return { valid: true, errors: [], analytics };
   }
 
   exportScoreSheet(scoreSheetId: string, exportedAtIso?: string): UiExportBackupResult {
