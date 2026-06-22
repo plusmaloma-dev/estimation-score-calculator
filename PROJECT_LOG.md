@@ -1,5 +1,28 @@
 # Project Log
 
+## 2026-06-22 - Run 40
+
+Completed:
+
+- Continued from the next unblocked implementation-ready item in post-MVP validation cleanup.
+- Added `VALIDATION_EVIDENCE_TEMPLATE.md` so local `npm run ci` results can be captured consistently before moving implemented post-MVP items to Done.
+- Kept the validation evidence template separate from Egyptian Estimation scoring rules and avoided Planning Poker concepts.
+- Made no scoring-engine, federation-rule, analytics, export, UI, or persistence behavior changes.
+
+Current item in progress:
+
+- Post-MVP validation cleanup remains focused on obtaining a green local `git pull && npm install && npm run ci` result and then closing pending implemented items.
+
+Blockers:
+
+- Local `git pull && npm install && npm run ci` is still needed to validate US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 65% complete.
+
 ## 2026-06-22 - Run 39
 
 Completed:
