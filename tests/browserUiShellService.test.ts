@@ -148,6 +148,38 @@ test('browser UI shell returns validation error when opening missing session', (
   assert.equal(opened.scoreSheet, undefined);
 });
 
+test('browser UI shell exposes game summary for score-sheet screens', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+  const created = service.createScoreSheet({ name: 'Friday Game', players, nowIso: '2026-06-21T10:00:00.000Z' });
+  assert.equal(created.valid, true, created.errors.join('; '));
+
+  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
+  assert.equal(saved.valid, true, saved.errors.join('; '));
+
+  const summary = service.getGameSummary(created.scoreSheet?.id ?? '', '2026-06-21T10:06:00.000Z');
+
+  assert.equal(summary.valid, true, summary.errors.join('; '));
+  assert.equal(summary.summary?.name, 'Friday Game');
+  assert.deepEqual(summary.summary?.leaderboard.map((row) => [row.rank, row.playerId, row.totalScore]), [
+    [1, 'A', '14'],
+    [2, 'B', '14'],
+    [3, 'C', '-1'],
+    [4, 'D', '-12'],
+  ]);
+  assert.equal(summary.summary?.recentRounds.length, 1);
+  assert.equal(summary.summary?.analytics.generatedAtIso, '2026-06-21T10:06:00.000Z');
+});
+
+test('browser UI shell returns validation error when game summary score sheet is missing', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+
+  const summary = service.getGameSummary('missing-summary');
+
+  assert.equal(summary.valid, false);
+  assert.deepEqual(summary.errors, ['Score sheet not found: missing-summary.']);
+  assert.equal(summary.summary, undefined);
+});
+
 test('browser UI shell previews validation errors before saving invalid rounds', () => {
   const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
 
