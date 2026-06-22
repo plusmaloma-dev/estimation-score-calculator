@@ -8,6 +8,7 @@
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 - Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
+- Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
 
 ## Progress Tracker
 
@@ -38,10 +39,11 @@
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
 | Post-MVP validation checklist | Done | 100% |
+| CI validation runbook | Done | 100% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **64%**
+Post-MVP progress: **67%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -226,3 +228,10 @@ Status: **Done**
 - Add `VALIDATION_CHECKLIST.md` with local validation commands, boundary checks, and evidence requirements. **Done**
 - List implemented post-MVP items that can move to Done after a green `npm run ci`. **Done**
 - Keep validation guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+
+### US-220 — CI Validation Runbook
+Status: **Done**
+
+- Add `CI_VALIDATION_RUNBOOK.md` with the repeatable local validation, evidence, closure, and failure flow. **Done**
+- Reference the GitHub Actions workflow without depending on unavailable connector status checks. **Done**
+- Keep CI process guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
