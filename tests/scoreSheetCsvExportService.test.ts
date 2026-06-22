@@ -51,6 +51,17 @@ const gameInput: MvpGameInput = {
   ],
 };
 
+const twoRoundGameInput: MvpGameInput = {
+  ...gameInput,
+  rounds: [
+    gameInput.rounds[0],
+    {
+      ...gameInput.rounds[0],
+      roundNumber: 2,
+    },
+  ],
+};
+
 test('exports score-sheet round rows as deterministic CSV', () => {
   const gameResult = new EstimationMvpService().calculateGame(gameInput);
   const csv = new ScoreSheetCsvExportService().exportScoreSheet({ gameInput, gameResult });
@@ -58,6 +69,15 @@ test('exports score-sheet round rows as deterministic CSV', () => {
   assert.match(csv, /^roundNumber,roundType,playerId,bidType,bidTricks,actualTricks,delta,score,status,role,riskType,riskModifier,runningScore,notes/);
   assert.match(csv, /1,under,A,normal,4,4,0,14,success,bidder,none,1,14,matched bid/);
   assert.match(csv, /1,under,D,dash,0,2,2,-12,failed,dash,risk,2,-12,missed bid; risk taker; risk failure/);
+});
+
+test('exports cumulative running scores across rounds', () => {
+  const gameResult = new EstimationMvpService().calculateGame(twoRoundGameInput);
+  const csv = new ScoreSheetCsvExportService().exportScoreSheet({ gameInput: twoRoundGameInput, gameResult });
+
+  assert.match(csv, /1,under,A,normal,4,4,0,14,success,bidder,none,1,14,matched bid/);
+  assert.match(csv, /2,under,A,normal,4,4,0,14,success,bidder,none,1,28,matched bid/);
+  assert.match(csv, /2,under,D,dash,0,2,2,-12,failed,dash,risk,2,-24,missed bid; risk taker; risk failure/);
 });
 
 test('can include metadata rows before score-sheet CSV rows', () => {

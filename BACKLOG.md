@@ -7,6 +7,11 @@
 - Update `PROJECT_LOG.md` after each automation run.
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
+- Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
+- Use `VALIDATION_QUICKSTART.md` for the shortest copy/paste local validation and evidence-capture flow.
+- Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
+- Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
+- Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
 
 ## Progress Tracker
 
@@ -35,11 +40,16 @@
 | Federation-rule review | In progress | 45% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
-| Score-sheet CSV export | Implemented | 85% |
+| Score-sheet CSV export | Implemented | 90% |
+| Post-MVP validation checklist | Done | 100% |
+| Validation quickstart | Done | 100% |
+| CI validation runbook | Done | 100% |
+| Validation troubleshooting guide | Done | 100% |
+| Validation closure plan | Done | 100% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **60%**
+Post-MVP progress: **70%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -215,4 +225,41 @@ Status: **Implemented, pending validation**
 - Add deterministic CSV tests. **Done**
 - Export the CSV score-sheet formatter from the public package index. **Done**
 - Document usage in README. **Done**
+- Repair bid-type and cumulative running-score export behavior after merge. **Done**
 - Confirm `npm run ci` local validation. **Pending**
+
+### US-219 — Post-MVP Validation Checklist
+Status: **Done**
+
+- Add `VALIDATION_CHECKLIST.md` with local validation commands, boundary checks, and evidence requirements. **Done**
+- List implemented post-MVP items that can move to Done after a green `npm run ci`. **Done**
+- Keep validation guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+
+### US-220 — CI Validation Runbook
+Status: **Done**
+
+- Add `CI_VALIDATION_RUNBOOK.md` with the repeatable local validation, evidence, closure, and failure flow. **Done**
+- Reference the GitHub Actions workflow without depending on unavailable connector status checks. **Done**
+- Keep CI process guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+
+### US-221 — Validation Troubleshooting Guide
+Status: **Done**
+
+- Add `VALIDATION_TROUBLESHOOTING.md` with common validation symptoms, likely causes, and safe actions. **Done**
+- Reference Node.js 22 alignment with the GitHub Actions workflow. **Done**
+- Keep validation troubleshooting separate from Egyptian Estimation scoring decisions and Planning Poker concepts. **Done**
+
+### US-222 — Validation Closure Plan
+Status: **Done**
+
+- Add `VALIDATION_CLOSURE_PLAN.md` with the final local CI evidence and backlog closure sequence. **Done**
+- List the pending implemented items that can close after a green run. **Done**
+- Keep closure planning separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+
+### US-223 — Validation Quickstart
+Status: **Done**
+
+- Add `VALIDATION_QUICKSTART.md` with the short clean-checkout, environment-capture, local CI, and evidence-capture flow. **Done**
+- Include commit SHA and npm version capture so validation evidence is reproducible. **Done**
+- Reference the quickstart from `VALIDATION_STATUS.md` and project rules. **Done**
+- Keep quickstart guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
