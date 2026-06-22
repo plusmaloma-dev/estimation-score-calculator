@@ -33,6 +33,21 @@ Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result befo
 - US-217C - Player Analytics CSV Export
 - US-218 - Score-Sheet CSV Export
 
+## Closure matrix
+
+Only move an item from **Implemented, pending validation** to **Done** when the latest `main` branch passes `npm run ci` and the item-specific checks below are still true.
+
+| Backlog item | Closure checks after green CI |
+| --- | --- |
+| US-213A - Local-Storage Score-Sheet Repository Adapter | Local-storage adapter tests pass; corrupt or missing stored data remains safe; no browser-global dependency is required by tests. |
+| US-213B - Browser UI Shell | UI shell tests pass; invalid rounds show validation messages before save; JSON backup export stays wired through the backup service. |
+| US-214 - Persistent Database Adapter | Document-store adapter contract tests pass for save, update, list, get, and delete; database libraries remain behind repository/store boundaries. |
+| US-215 - Rich Score-Sheet Export | Markdown export tests pass; final standings and per-round tables remain deterministic; invalid-round validation sections are preserved. |
+| US-217A - Player Performance Analytics | Analytics service tests pass; dashboard DTOs consume calculated game results without recalculating scores. |
+| US-217B - Player Analytics Markdown Export | Markdown analytics export tests pass; ranking and percentage outputs remain deterministic. |
+| US-217C - Player Analytics CSV Export | CSV analytics export tests pass; metadata rows and quote/comma/newline escaping remain deterministic. |
+| US-218 - Score-Sheet CSV Export | Score-sheet CSV export tests pass; `bidType` is populated from original round input; `runningScore` remains cumulative across valid rounds; invalid-round rows preserve validation notes. |
+
 ## Evidence needed
 
 Record the following after the command runs:
