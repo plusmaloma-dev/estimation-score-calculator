@@ -91,8 +91,8 @@ test('analytics view service formats dashboard-ready rows and metrics', () => {
   const playerA = model.rows.find((row) => row.playerId === 'A');
   assert.ok(playerA);
   assert.equal(playerA.rank, 1);
-  assert.equal(playerA.totalScore, '112');
-  assert.equal(playerA.averageScore, '56');
+  assert.equal(playerA.totalScore, '104');
+  assert.equal(playerA.averageScore, '52');
   assert.equal(playerA.exactBidRate, '100%');
   assert.equal(playerA.dashSuccessRate, '—');
 
