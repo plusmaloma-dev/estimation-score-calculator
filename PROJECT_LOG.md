@@ -1,5 +1,31 @@
 # Project Log
 
+## 2026-06-22 - Run 42
+
+Completed:
+
+- Continued from the next unblocked implementation-ready item in post-MVP validation cleanup.
+- Added `CI_VALIDATION_RUNBOOK.md` with the repeatable local validation command, evidence capture, closure flow, and failure flow.
+- Updated `VALIDATION_STATUS.md` to reference the CI runbook and the existing `.github/workflows/ci.yml` workflow.
+- Updated `BACKLOG.md` with US-220 CI Validation Runbook and raised post-MVP progress to 67%.
+- Kept validation/process guidance separate from Egyptian Estimation scoring rules and avoided Planning Poker concepts.
+- Made no scoring-engine, federation-rule, analytics, export, UI, or persistence behavior changes.
+
+Current item in progress:
+
+- Post-MVP validation cleanup remains focused on obtaining a green local `git pull && npm install && npm run ci` result and then closing pending implemented items.
+
+Blockers:
+
+- Local `git pull && npm install && npm run ci` is still needed to validate US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218.
+- GitHub workflow/status visibility remains limited through the available connector, so local validation evidence is still required.
+- US-216B and US-216C remain blocked until an official document or user-confirmed source is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 67% complete.
+
 ## 2026-06-22 - Run 41
 
 Completed:
