@@ -10,6 +10,7 @@
 - Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
 - Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
 - Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
+- Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
 
 ## Progress Tracker
 
@@ -42,10 +43,11 @@
 | Post-MVP validation checklist | Done | 100% |
 | CI validation runbook | Done | 100% |
 | Validation troubleshooting guide | Done | 100% |
+| Validation closure plan | Done | 100% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **68%**
+Post-MVP progress: **69%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -244,3 +246,10 @@ Status: **Done**
 - Add `VALIDATION_TROUBLESHOOTING.md` with common validation symptoms, likely causes, and safe actions. **Done**
 - Reference Node.js 22 alignment with the GitHub Actions workflow. **Done**
 - Keep validation troubleshooting separate from Egyptian Estimation scoring decisions and Planning Poker concepts. **Done**
+
+### US-222 — Validation Closure Plan
+Status: **Done**
+
+- Add `VALIDATION_CLOSURE_PLAN.md` with the final local CI evidence and backlog closure sequence. **Done**
+- List the pending implemented items that can close after a green run. **Done**
+- Keep closure planning separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
