@@ -12,6 +12,7 @@
 - Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
 - Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
 - Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
+- Use `FEDERATION_SOURCE_REQUEST.md` when US-216A needs direct official/user-confirmed rule evidence before any scoring changes.
 
 ## Progress Tracker
 
@@ -37,7 +38,7 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 55% |
+| Federation-rule review | In progress | 58% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
@@ -49,7 +50,7 @@
 
 MVP progress: **100%**
 
-Post-MVP progress: **72%**
+Post-MVP progress: **73%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -165,9 +166,10 @@ Status: **In progress**
 ### US-216A — Federation Source Capture
 Status: **In progress**
 
-- Locate accessible official rules/regulations documents. **In progress: 2026-06-22 file-focused English and Arabic searches still did not find a retrievable detailed official document.**
+- Locate accessible official rules/regulations documents. **In progress: public searches still did not find a retrievable detailed official document.**
 - Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
+- Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`.**
 - Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
