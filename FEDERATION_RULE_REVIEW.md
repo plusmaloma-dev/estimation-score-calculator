@@ -17,7 +17,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | --- | --- | --- |
 | Egyptian Bridge Federation Estimation site | Public site confirms Estimation is a four-player 52-card game where players bid or estimate tricks and score by achieving the exact estimate. It also says the Estimation Committee is responsible for officially recognized laws/rules, arbitration, tournaments, licensing, ranking, and player classification. | Usable for broad scope confirmation. Detailed scoring rules still need direct rules/document access or user confirmation. |
 | Public web search for official rule documents | Searches for Egyptian Estimation Federation rules, regulations, PDF documents, Estimation Committee terms, and Arabic equivalents did not expose a retrievable official scoring document during the review runs. Results were empty or unrelated card-game pages such as Egyptian Ratscrew, Basra, or other games. | Negative evidence recorded. Do not infer scoring rules from unrelated search results. |
-| Direct source request | `FEDERATION_SOURCE_REQUEST.md` now defines the minimum evidence and request message needed to ask the federation/committee or user for official scoring material. | Use this path to unblock US-216B; do not change code until concrete evidence is received. |
+| Direct source request | `FEDERATION_SOURCE_REQUEST.md` now defines the minimum evidence plus English and Arabic request messages needed to ask the federation/committee or user for official scoring material. | Use this path to unblock US-216B; do not change code until concrete evidence is received. |
 | `PROJECT_RULES.md` | Local project rule reference built from user-confirmed requirements during MVP development. | Active local baseline. |
 | User-confirmed table rules | User-confirmed rules from the project conversation, including total bids never equal 13, risk/double-risk values, Dash Call behavior, and WITH behavior. | Active local baseline until contradicted by confirmed federation rules. |
 
@@ -33,6 +33,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | 2026-06-22 | Re-ran focused searches for Estimation Committee laws/rules using English and Arabic terms: `egyestimation.org Estimation Committee laws rules`, `egyestimation.org "Estimation" "Rules"`, `egyestimation.org "قوانين" "استيميشن"`, and `"Egyptian Bridge Federation" "Estimation Committee" rules`. | No retrievable official detailed scoring rulebook, rules page, or regulation document was returned. | Keep US-216A open. Keep local user-confirmed rules as the active baseline. Do not create US-216B differences or US-216C implementation changes from negative evidence. |
 | 2026-06-22 | Re-ran file-focused searches for official PDF/rule artifacts using: `site:egyestimation.org filetype:pdf estimation rules scoring`, `site:egyestimation.org استيميشن قوانين pdf`, `"Egyptian Bridge Federation" "Estimation" "قوانين"`, and `"Estimation Committee" "Egyptian Bridge Federation"`. | No public search results were returned for these queries, so no official detailed scoring PDF/page could be captured. | Record as additional negative evidence only. Keep US-216B/US-216C blocked; do not change scoring rules from absent evidence. |
 | 2026-06-22 | Added direct source-request checklist and message template. | Public search remained insufficient, so a structured request path was added to capture official/user-confirmed scoring documents with title, owner, date, section/page, and official-vs-house-rule classification. | Use received documents to populate this review before any US-216B comparison or US-216C implementation. |
+| 2026-06-22 | Added Arabic request template and evidence intake note to `FEDERATION_SOURCE_REQUEST.md`. | Source capture can now proceed in English or Arabic while preserving original-language evidence and avoiding unsupported scoring changes. | Keep US-216A open until a concrete source is received; keep US-216B/US-216C blocked. |
 
 ## Reviewed search terms
 
@@ -73,7 +74,7 @@ Keep these terms documented so future reviews avoid repeating the same negative 
 - Tournament regulation document, if separate from scoring rules.
 - Any official scoring table that covers Dash, Dash Call, WITH, risk, double risk, and multiplier treatment.
 - User confirmation for any house rule that differs from official tournament rules.
-- Evidence collected through `FEDERATION_SOURCE_REQUEST.md`, including document title, source owner, URL/file/sender, date, relevant section/page, and official-vs-house-rule classification.
+- Evidence collected through `FEDERATION_SOURCE_REQUEST.md`, including document title, source owner, URL/file/sender, date, relevant section/page, official-vs-house-rule classification, and original-language excerpt/location when available.
 
 ## Follow-up implementation stories
 
@@ -83,7 +84,7 @@ Status: **In progress**
 - Locate accessible official rules/regulations documents. **In progress: public search still has not found a retrievable detailed document.**
 - Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in Source capture log and Reviewed search terms.**
 - Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
-- Add direct source request path for official/user-confirmed evidence. **Done in `FEDERATION_SOURCE_REQUEST.md`.**
+- Add direct source request path for official/user-confirmed evidence. **Done in `FEDERATION_SOURCE_REQUEST.md`, now including English and Arabic request templates.**
 - Do not change code. **Done so far.**
 
 ### US-216B — Confirm Rule Differences
