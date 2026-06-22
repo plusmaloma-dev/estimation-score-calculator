@@ -29,6 +29,7 @@ This document tracks the post-MVP review of local Egyptian Estimation scoring as
 | 2026-06-21 | Re-ran source capture using English and Arabic search terms for official rules, scoring, regulations, Estimation Committee, and federation PDFs. | No directly usable official scoring/rules PDF or page was captured. Results were empty or unrelated false positives, including academic papers and unrelated Egyptian card games. | Keep the local user-confirmed scoring baseline. Do not make rule/code changes from this search. |
 | 2026-06-22 | Re-ran source capture using targeted English and Arabic queries: `site:egyestimation.org Estimation Federation rules regulations scoring estimation`, `Egyptian Estimation Federation rules scoring`, `egyestimation.org rules estimation card game`, and `الاتحاد المصري للاستيميشن لوائح قوانين`. | No directly usable official detailed scoring rulebook, rules page, or downloadable regulation document was found through public search. | Continue US-216A as open. Keep US-216B/US-216C blocked and make no scoring-code changes from negative search evidence. |
 | 2026-06-22 | Re-ran focused searches for Estimation Committee laws/rules using English and Arabic terms: `egyestimation.org Estimation Committee laws rules`, `egyestimation.org "Estimation" "Rules"`, `egyestimation.org "قوانين" "استيميشن"`, and `"Egyptian Bridge Federation" "Estimation Committee" rules`. | No retrievable official detailed scoring rulebook, rules page, or regulation document was returned. | Keep US-216A open. Keep local user-confirmed rules as the active baseline. Do not create US-216B differences or US-216C implementation changes from negative evidence. |
+| 2026-06-22 | Re-ran file-focused searches for official PDF/rule artifacts using: `site:egyestimation.org filetype:pdf estimation rules scoring`, `site:egyestimation.org استيميشن قوانين pdf`, `"Egyptian Bridge Federation" "Estimation" "قوانين"`, and `"Estimation Committee" "Egyptian Bridge Federation"`. | No public search results were returned for these queries, so no official detailed scoring PDF/page could be captured. | Record as additional negative evidence only. Keep US-216B/US-216C blocked; do not change scoring rules from absent evidence. |
 
 ## Reviewed search terms
 
@@ -42,6 +43,10 @@ Keep these terms documented so future reviews avoid repeating the same negative 
 - `egyestimation.org "Estimation" "Rules"`
 - `egyestimation.org "قوانين" "استيميشن"`
 - `"Egyptian Bridge Federation" "Estimation Committee" rules`
+- `site:egyestimation.org filetype:pdf estimation rules scoring`
+- `site:egyestimation.org استيميشن قوانين pdf`
+- `"Egyptian Bridge Federation" "Estimation" "قوانين"`
+- `"Estimation Committee" "Egyptian Bridge Federation"`
 - Official rules, regulations, scoring table, Estimation Committee, federation PDF, and Arabic equivalents.
 
 ## Rule review tracker
