@@ -37,7 +37,7 @@
 | Browser UI shell | Implemented | 85% |
 | Persistent database adapter | Implemented | 85% |
 | Rich score-sheet export | Implemented | 80% |
-| Federation-rule review | In progress | 45% |
+| Federation-rule review | In progress | 50% |
 | Player analytics dashboard service | Implemented | 85% |
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
@@ -49,7 +49,7 @@
 
 MVP progress: **100%**
 
-Post-MVP progress: **70%**
+Post-MVP progress: **71%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -165,9 +165,9 @@ Status: **In progress**
 ### US-216A — Federation Source Capture
 Status: **In progress**
 
-- Locate accessible official rules/regulations documents. **In progress: no detailed public scoring document captured yet.**
-- Record document title, URL or file name, publication/update date if available, and relevant sections. **Started**
-- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and negative search evidence.**
+- Locate accessible official rules/regulations documents. **In progress: 2026-06-22 targeted English and Arabic searches still did not find a retrievable detailed document.**
+- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
+- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
 - Do not change code. **Done so far**
 
 ### US-216B — Confirm Rule Differences
