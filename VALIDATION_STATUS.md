@@ -18,6 +18,10 @@ npm install
 npm run ci
 ```
 
+## Evidence capture
+
+Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
+
 ## Items waiting for validation
 
 - US-213A - Local-Storage Score-Sheet Repository Adapter
