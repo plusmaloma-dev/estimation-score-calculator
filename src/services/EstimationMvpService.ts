@@ -15,6 +15,7 @@ export interface MvpRoundInput {
 }
 
 export interface MvpRoundResult {
+  readonly roundNumber: number;
   readonly valid: boolean;
   readonly errors: readonly string[];
   readonly bidValidation: RoundBidValidationResult;
@@ -48,6 +49,7 @@ export class EstimationMvpService {
     const bidValidation = this.validateBids(input.bids);
     if (!bidValidation.valid || bidValidation.roundType === undefined) {
       return {
+        roundNumber: input.roundNumber,
         valid: false,
         errors: bidValidation.errors,
         bidValidation,
@@ -68,6 +70,7 @@ export class EstimationMvpService {
     });
 
     return {
+      roundNumber: input.roundNumber,
       valid: scoreResult.valid,
       errors: scoreResult.errors,
       bidValidation,
