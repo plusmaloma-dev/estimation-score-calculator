@@ -86,6 +86,68 @@ test('browser UI shell creates a draft score sheet and lists it for a browser vi
   ]);
 });
 
+test('browser UI shell returns empty session history safely', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+
+  assert.deepEqual(service.getSessionHistory(), { sessions: [] });
+});
+
+test('browser UI shell lists session history newest first with display metadata', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+
+  const friday = service.createScoreSheet({ name: 'Friday Game', players, nowIso: '2026-06-21T10:00:00.000Z' });
+  const sunday = service.createScoreSheet({ name: 'Sunday Game', players, nowIso: '2026-06-23T18:30:00.000Z' });
+  assert.equal(friday.valid, true, friday.errors.join('; '));
+  assert.equal(sunday.valid, true, sunday.errors.join('; '));
+
+  const savedFriday = service.saveRound(friday.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
+  assert.equal(savedFriday.valid, true, savedFriday.errors.join('; '));
+
+  assert.deepEqual(service.getSessionHistory().sessions.map((session) => [
+    session.name,
+    session.players.join(','),
+    session.roundCount,
+    session.updatedAtLabel,
+  ]), [
+    ['Sunday Game', 'A,B,C,D', 0, '2026-06-23 18:30'],
+    ['Friday Game', 'A,B,C,D', 1, '2026-06-21 10:05'],
+  ]);
+});
+
+test('browser UI shell opens an existing session with leaderboard, analytics, and history', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+  const created = service.createScoreSheet({ name: 'Friday Game', players, nowIso: '2026-06-21T10:00:00.000Z' });
+  assert.equal(created.valid, true, created.errors.join('; '));
+
+  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
+  assert.equal(saved.valid, true, saved.errors.join('; '));
+
+  const opened = service.openSession(created.scoreSheet?.id ?? '', '2026-06-21T10:06:00.000Z');
+
+  assert.equal(opened.valid, true, opened.errors.join('; '));
+  assert.equal(opened.scoreSheet?.name, 'Friday Game');
+  assert.deepEqual(opened.leaderboard?.map((entry) => [entry.playerId, entry.totalScore]), [
+    ['A', 14],
+    ['B', 14],
+    ['C', -1],
+    ['D', -12],
+  ]);
+  assert.equal(opened.analytics?.title, 'Friday Game Analytics');
+  assert.equal(opened.analytics?.generatedAtIso, '2026-06-21T10:06:00.000Z');
+  assert.equal(opened.roundHistory?.length, 1);
+  assert.equal(opened.roundHistory?.[0]?.roundNumber, 1);
+});
+
+test('browser UI shell returns validation error when opening missing session', () => {
+  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+
+  const opened = service.openSession('missing-session');
+
+  assert.equal(opened.valid, false);
+  assert.deepEqual(opened.errors, ['Score sheet not found: missing-session.']);
+  assert.equal(opened.scoreSheet, undefined);
+});
+
 test('browser UI shell previews validation errors before saving invalid rounds', () => {
   const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
 
