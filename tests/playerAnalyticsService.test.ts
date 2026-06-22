@@ -102,20 +102,13 @@ test('player analytics summarize dashboard-ready rates and rankings without reca
   assert.equal(playerA.failureRate, 0);
 
   const playerC = summary.players.find((entry) => entry.playerId === 'C');
-const playerC = summary.players.find((entry) => entry.playerId === 'C');
-assert.ok(playerC);
-assert.equal(playerC.dashAttempts, 1);
-assert.equal(playerC.dashSuccessRate, 1);
-assert.equal(playerC.dashCallAttempts, 0);
-assert.equal(playerC.dashCallSuccessRate, 0);
-assert.equal(playerC.riskAttempts, 1);
-assert.equal(playerC.riskSuccessRate, 0);
-
-const playerD = summary.players.find((entry) => entry.playerId === 'D');
-assert.ok(playerD);
-assert.equal(playerD.withRounds, 1);
-assert.equal(playerD.doubleRiskAttempts, 1);
-assert.equal(playerD.doubleRiskSuccessRate, 0);
+  assert.ok(playerC);
+  assert.equal(playerC.dashAttempts, 1);
+  assert.equal(playerC.dashSuccessRate, 1);
+  assert.equal(playerC.dashCallAttempts, 0);
+  assert.equal(playerC.dashCallSuccessRate, 0);
+  assert.equal(playerC.riskAttempts, 1);
+  assert.equal(playerC.riskSuccessRate, 0);
 
   const playerD = summary.players.find((entry) => entry.playerId === 'D');
   assert.ok(playerD);
