@@ -8,6 +8,7 @@
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 - Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
+- Use `VALIDATION_QUICKSTART.md` for the shortest copy/paste local validation and evidence-capture flow.
 - Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
 - Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
 - Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
@@ -41,13 +42,14 @@
 | Player analytics exports | Implemented | 85% |
 | Score-sheet CSV export | Implemented | 90% |
 | Post-MVP validation checklist | Done | 100% |
+| Validation quickstart | Done | 100% |
 | CI validation runbook | Done | 100% |
 | Validation troubleshooting guide | Done | 100% |
 | Validation closure plan | Done | 100% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **69%**
+Post-MVP progress: **70%**
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
@@ -253,3 +255,11 @@ Status: **Done**
 - Add `VALIDATION_CLOSURE_PLAN.md` with the final local CI evidence and backlog closure sequence. **Done**
 - List the pending implemented items that can close after a green run. **Done**
 - Keep closure planning separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
+
+### US-223 — Validation Quickstart
+Status: **Done**
+
+- Add `VALIDATION_QUICKSTART.md` with the short clean-checkout, environment-capture, local CI, and evidence-capture flow. **Done**
+- Include commit SHA and npm version capture so validation evidence is reproducible. **Done**
+- Reference the quickstart from `VALIDATION_STATUS.md` and project rules. **Done**
+- Keep quickstart guidance separate from Egyptian Estimation scoring rules and Planning Poker concepts. **Done**
