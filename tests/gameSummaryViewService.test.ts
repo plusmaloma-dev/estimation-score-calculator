@@ -126,7 +126,7 @@ test('game summary view service exposes recent rounds with winners and risk meta
       roundType: 'under',
       valid: true,
       winnerPlayerIds: ['A', 'B'],
-      riskTypes: ['dash', 'round-risk'],
+      riskTypes: ['round-risk'],
       nextRoundMultiplier: '—',
     },
   ]);
