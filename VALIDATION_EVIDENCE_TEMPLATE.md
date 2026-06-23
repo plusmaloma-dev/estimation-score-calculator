@@ -52,6 +52,7 @@ Items currently waiting for that evidence:
 - US-217B - Player Analytics Markdown Export
 - US-217C - Player Analytics CSV Export
 - US-218 - Score-Sheet CSV Export
+- US-219 - Game Summary and Leaderboard Compatibility Fixes
 
 ## Boundary confirmation
 
@@ -59,6 +60,7 @@ Before closing the validation run, confirm:
 
 - No Planning Poker terminology or behavior was introduced.
 - No Egyptian Estimation scoring rule changed without official source evidence or explicit user confirmation.
-- Analytics and export services consume calculated score results instead of recalculating scores.
+- Analytics, export, and game-summary services consume calculated score results instead of recalculating scores.
 - Persistence remains behind repository/store boundaries.
 - CSV and Markdown outputs remain deterministic for tests.
+- US-219 compatibility fixes preserve round identity for valid and invalid rounds without changing scoring formulas, bid validation, Dash, Dash Call, WITH, risk, all-loser, or suit/trump behavior.
