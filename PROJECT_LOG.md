@@ -1,5 +1,31 @@
 # Project Log
 
+## 2026-06-23 - Run 66
+
+Completed:
+
+- Reviewed `BACKLOG.md`, `PROJECT_LOG.md`, `VALIDATION_HANDOFF.md`, `VALIDATION_STATUS.md`, and `VALIDATION_EVIDENCE_TEMPLATE.md`.
+- Confirmed US-219 remains implemented but pending local CI validation.
+- Found and fixed a validation-evidence alignment gap: `VALIDATION_EVIDENCE_TEMPLATE.md` listed implemented post-MVP items waiting for local CI but omitted US-219.
+- Added US-219 to the validation evidence backlog-closure list and added a US-219 boundary confirmation to prevent compatibility validation from becoming a scoring-rule change.
+- Added `logs/2026-06-23-run-66.md` as a timestamped run record.
+- Kept Egyptian Estimation rules separate from Planning Poker and made no scoring-engine changes.
+
+Current item in progress:
+
+- US-219 validation / local CI closure.
+
+Blockers:
+
+- Local `git pull && node --version && npm --version && git rev-parse HEAD && npm install && npm run ci` is still needed before moving US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, US-218, or US-219 to **Done**.
+- GitHub status checks/workflow visibility remains unavailable through the current connector path.
+- US-216B and US-216C remain blocked until official or user-confirmed Egyptian Estimation rule evidence is available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 77% complete.
+
 ## 2026-06-23 - Run 62
 
 Completed:
