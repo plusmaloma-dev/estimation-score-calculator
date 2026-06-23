@@ -1,10 +1,10 @@
 # Validation Status
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Purpose
 
-This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md`, `VALIDATION_QUICKSTART.md`, `VALIDATION_EVIDENCE_TEMPLATE.md`, `CI_VALIDATION_RUNBOOK.md`, `VALIDATION_TROUBLESHOOTING.md`, and `VALIDATION_CLOSURE_PLAN.md`; it should not contain Egyptian Estimation scoring rules.
+This file tracks validation evidence for implemented post-MVP items that are waiting for a green local CI run. It complements `VALIDATION_CHECKLIST.md`, `VALIDATION_QUICKSTART.md`, `VALIDATION_EVIDENCE_TEMPLATE.md`, `CI_VALIDATION_RUNBOOK.md`, `VALIDATION_TROUBLESHOOTING.md`, `VALIDATION_CLOSURE_PLAN.md`, and `VALIDATION_US219_ADDENDUM.md`; it should not contain Egyptian Estimation scoring rules.
 
 ## Current status
 
@@ -25,7 +25,7 @@ Prefer Node.js 22 locally so the run matches `.github/workflows/ci.yml`.
 
 ## Evidence capture
 
-Use `VALIDATION_QUICKSTART.md` for the short copy/paste local validation flow. Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Use `CI_VALIDATION_RUNBOOK.md` for the repeatable validation and closure flow. Use `VALIDATION_TROUBLESHOOTING.md` if validation fails and a focused, safe triage path is needed. Use `VALIDATION_CLOSURE_PLAN.md` for the final pending-item closure sequence after a green run. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
+Use `VALIDATION_QUICKSTART.md` for the short copy/paste local validation flow. Use `VALIDATION_EVIDENCE_TEMPLATE.md` to record the local validation result before closing pending implemented items. Use `CI_VALIDATION_RUNBOOK.md` for the repeatable validation and closure flow. Use `VALIDATION_TROUBLESHOOTING.md` if validation fails and a focused, safe triage path is needed. Use `VALIDATION_CLOSURE_PLAN.md` for the final pending-item closure sequence after a green run. Use `VALIDATION_US219_ADDENDUM.md` for the US-219 compatibility-specific checks. Keep the captured evidence focused on commands, pass/fail status, test count, failures, and backlog closure notes.
 
 ## Items waiting for validation
 
@@ -37,6 +37,7 @@ Use `VALIDATION_QUICKSTART.md` for the short copy/paste local validation flow. U
 - US-217B - Player Analytics Markdown Export
 - US-217C - Player Analytics CSV Export
 - US-218 - Score-Sheet CSV Export
+- US-219 - Game Summary and Leaderboard Compatibility Fixes
 
 ## Closure matrix
 
@@ -52,6 +53,7 @@ Only move an item from **Implemented, pending validation** to **Done** when the 
 | US-217B - Player Analytics Markdown Export | Markdown analytics export tests pass; ranking and percentage outputs remain deterministic. |
 | US-217C - Player Analytics CSV Export | CSV analytics export tests pass; metadata rows and quote/comma/newline escaping remain deterministic. |
 | US-218 - Score-Sheet CSV Export | Score-sheet CSV export tests pass; `bidType` is populated from original round input; `runningScore` remains cumulative across valid rounds; invalid-round rows preserve validation notes. |
+| US-219 - Game Summary and Leaderboard Compatibility Fixes | Compatibility regression tests pass; `MvpRoundResult.roundNumber` is present for valid and invalid rounds; leaderboard aggregation keeps original round identity after invalid rounds are filtered out; no Egyptian Estimation scoring behavior changes. |
 
 ## Evidence needed
 
@@ -70,5 +72,5 @@ Record the following after the command runs:
 
 - Do not add Planning Poker terminology or behavior.
 - Do not change Egyptian Estimation scoring rules without official source evidence or explicit user confirmation.
-- Export and analytics services must consume calculated score results instead of recalculating scores independently.
+- Export, analytics, summary, and compatibility services must consume or present calculated score results instead of recalculating scores independently.
 - Persistence adapters must stay behind repository/store boundaries.
