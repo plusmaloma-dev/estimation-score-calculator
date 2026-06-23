@@ -16,6 +16,7 @@ The following items are implemented but remain open until the latest `main` bran
 - US-217B - Player Analytics Markdown Export
 - US-217C - Player Analytics CSV Export
 - US-218 - Score-Sheet CSV Export
+- US-219 - Game Summary and Leaderboard Compatibility Fixes
 
 ## Required command sequence
 
@@ -24,6 +25,8 @@ Run from a clean checkout of `main`:
 ```bash
 git pull
 node --version
+npm --version
+git rev-parse HEAD
 npm install
 npm run ci
 ```
@@ -33,10 +36,10 @@ Prefer Node.js 22 so local validation matches the GitHub Actions workflow.
 ## Closure sequence after a passing run
 
 1. Copy the command output summary into `VALIDATION_STATUS.md` using `VALIDATION_EVIDENCE_TEMPLATE.md`.
-2. Confirm the closure matrix in `VALIDATION_STATUS.md` still passes for every pending item.
-3. Move US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, and US-218 from **Implemented, pending validation** to **Done** in `BACKLOG.md`.
+2. Confirm the closure matrix in `VALIDATION_STATUS.md` still passes for every pending item, including the US-219 checks in `VALIDATION_US219_ADDENDUM.md`.
+3. Move US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, US-218, and US-219 from **Implemented, pending validation** to **Done** in `BACKLOG.md`.
 4. Update post-MVP progress after the items close.
-5. Add a timestamped entry to `PROJECT_LOG.md` with the commit under test, Node.js version, command, result, and closed items.
+5. Add a timestamped entry to `PROJECT_LOG.md` with the commit under test, Node.js version, npm version, command, result, and closed items.
 
 ## If the run fails
 
@@ -48,5 +51,5 @@ Prefer Node.js 22 so local validation matches the GitHub Actions workflow.
 
 ## Rule boundary
 
-- This plan does not change scoring, bidding validation, export, analytics, UI, or persistence behavior.
+- This plan does not change scoring, bidding validation, export, analytics, UI, persistence, summary, or leaderboard behavior.
 - Federation-rule implementation work remains blocked until source capture produces actionable evidence or the user confirms a rule decision.
