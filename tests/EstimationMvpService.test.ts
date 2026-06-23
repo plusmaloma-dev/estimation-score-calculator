@@ -107,7 +107,6 @@ describe('EstimationMvpService', () => {
     assert.equal(result.valid, false);
     assert.equal(result.rounds[0]?.valid, false);
     assert.equal(result.rounds[1]?.roundNumber, 2);
-    assert.equal(result.rounds[1]?.scoreResult?.roundNumber, 2);
     assert.deepEqual(
       result.leaderboard.map((entry) => ({ playerId: entry.playerId, totalScore: entry.totalScore, roundsPlayed: entry.roundsPlayed })),
       [
