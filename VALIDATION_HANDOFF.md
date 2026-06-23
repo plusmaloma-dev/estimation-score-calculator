@@ -1,6 +1,6 @@
 # Validation Handoff
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Purpose
 
@@ -33,6 +33,7 @@ Move these from **Implemented, pending validation** to **Done** only if the late
 - US-217B — Player Analytics Markdown Export
 - US-217C — Player Analytics CSV Export
 - US-218 — Score-Sheet CSV Export
+- US-219 — Game Summary and Leaderboard Compatibility Fixes
 
 ## US-218 alignment note
 
@@ -43,11 +44,20 @@ Move these from **Implemented, pending validation** to **Done** only if the late
 - Invalid-round rows preserve validation notes.
 - The exporter consumes existing score-sheet input/result DTOs and does not recalculate scores.
 
+## US-219 alignment note
+
+`VALIDATION_US219_ADDENDUM.md` captures the detailed US-219 checks. Before closing US-219, verify the compatibility regression tests pass and confirm:
+
+- `MvpRoundResult.roundNumber` is present for both valid and invalid round results.
+- Browser game-summary consumers can display round history without reaching back into input DTOs.
+- Leaderboard aggregation preserves original round identity after invalid rounds are filtered out.
+- No scoring formula, bid validation, Dash, Dash Call, WITH, risk, all-loser, or suit/trump behavior changed.
+
 ## Rule boundaries
 
 - Do not mix Planning Poker terminology or behavior into this project.
 - Do not change Egyptian Estimation scoring rules without official source evidence or explicit user confirmation.
-- Export and analytics services must present calculated results; they must not become alternate scoring engines.
+- Export, analytics, and summary services must present calculated results; they must not become alternate scoring engines.
 - Persistence adapters must stay behind repository/store boundaries.
 
 ## Evidence to record
