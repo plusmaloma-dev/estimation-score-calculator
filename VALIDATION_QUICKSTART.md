@@ -56,7 +56,7 @@ After the run finishes, capture:
 - Build result.
 - First failing command/file/assertion, if the run fails.
 
-Use `VALIDATION_EVIDENCE_TEMPLATE.md` for the detailed evidence format and `VALIDATION_CLOSURE_PLAN.md` for the closure sequence.
+Use `VALIDATION_EVIDENCE_TEMPLATE.md` for the detailed evidence format, `VALIDATION_CLOSURE_PLAN.md` for the closure sequence, and `VALIDATION_US219_ADDENDUM.md` for the US-219 compatibility-specific checks.
 
 ## Closure reminder
 
@@ -70,6 +70,7 @@ Only after a green `npm run ci` on the latest `main`, move these items from **Im
 - US-217B - Player Analytics Markdown Export
 - US-217C - Player Analytics CSV Export
 - US-218 - Score-Sheet CSV Export
+- US-219 - Game Summary and Leaderboard Compatibility Fixes
 
 ## Boundary reminders
 
