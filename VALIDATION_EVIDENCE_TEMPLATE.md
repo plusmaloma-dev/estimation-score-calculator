@@ -2,12 +2,13 @@
 
 Use this template when recording a local validation run for implemented post-MVP items.
 
-This file complements `VALIDATION_CHECKLIST.md` and `VALIDATION_STATUS.md`. It is process documentation only and must not define or change Egyptian Estimation scoring rules.
+This file complements `VALIDATION_CHECKLIST.md`, `VALIDATION_STATUS.md`, `VALIDATION_QUICKSTART.md`, `CI_VALIDATION_RUNBOOK.md`, and `VALIDATION_CLOSURE_PLAN.md`. It is process documentation only and must not define or change Egyptian Estimation scoring rules.
 
 ## Run metadata
 
 - Date/time:
 - Branch:
+- Working tree before run: clean / not clean
 - Commit SHA:
 - Environment:
   - Node.js version:
@@ -17,7 +18,12 @@ This file complements `VALIDATION_CHECKLIST.md` and `VALIDATION_STATUS.md`. It i
 ## Commands
 
 ```bash
+git status --short
+git branch --show-current
 git pull
+node --version
+npm --version
+git rev-parse HEAD
 npm install
 npm run ci
 ```
