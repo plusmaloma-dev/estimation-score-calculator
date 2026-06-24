@@ -1,5 +1,6 @@
 import type { ContractSuit } from '../domain/card.js';
 import type { EstimationBid } from '../domain/bid.js';
+import type { ScoringRuleSetId } from './ruleSets.js';
 
 export type RoundType = 'over' | 'under';
 export type ScoringProfileType = 'standard' | 'custom';
@@ -13,6 +14,7 @@ export interface ScoringProfile {
   readonly id: string;
   readonly name: string;
   readonly type: ScoringProfileType;
+  readonly ruleSet?: ScoringRuleSetId;
   readonly scope?: ScoringScope;
   readonly winnerBaseBonus?: 10 | 13;
   readonly bidOwnerWinBonus?: number;
