@@ -7,11 +7,7 @@
 - Update `PROJECT_LOG.md` after each automation run.
 - Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
-- Use `VALIDATION_CHECKLIST.md` before moving implemented post-MVP items from pending validation to Done.
-- Use `VALIDATION_QUICKSTART.md` for the shortest copy/paste local validation and evidence-capture flow.
-- Use `CI_VALIDATION_RUNBOOK.md` for the repeatable local CI evidence and closure flow.
-- Use `VALIDATION_TROUBLESHOOTING.md` for safe validation-failure triage without changing scoring rules.
-- Use `VALIDATION_CLOSURE_PLAN.md` as the final sequence for closing pending implemented post-MVP items after a green local CI run.
+- Use validation docs before moving implemented post-MVP items from pending validation to Done.
 - Use `FEDERATION_SOURCE_REQUEST.md` when US-216A needs direct official/user-confirmed rule evidence before any scoring changes.
 
 ## Progress Tracker
@@ -34,127 +30,119 @@
 | CI validation | Done | 100% |
 | Post-MVP roadmap | Done | 100% |
 | Browser/mobile UI planning | Done | 100% |
-| Local-storage adapter | Implemented | 85% |
-| Browser UI shell | Implemented | 85% |
-| Persistent database adapter | Implemented | 85% |
-| Rich score-sheet export | Implemented | 80% |
+| Local-storage adapter | Done | 100% |
+| Browser UI shell | Done | 100% |
+| Persistent database adapter | Done | 100% |
+| Rich score-sheet export | Done | 100% |
+| Player analytics dashboard service | Done | 100% |
+| Player analytics exports | Done | 100% |
+| Score-sheet CSV export | Done | 100% |
+| Game summary and leaderboard compatibility fixes | Done | 100% |
 | Federation-rule review | In progress | 65% |
-| Player analytics dashboard service | Implemented | 85% |
-| Player analytics exports | Implemented | 85% |
-| Score-sheet CSV export | Implemented | 90% |
-| Post-MVP validation checklist | Done | 100% |
-| Validation quickstart | Done | 100% |
-| CI validation runbook | Done | 100% |
-| Validation troubleshooting guide | Done | 100% |
-| Validation closure plan | Done | 100% |
-| Game summary and leaderboard compatibility fixes | Implemented, pending validation | 90% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **77%**
+Post-MVP progress: **85%**
+
+## Completed MVP Items
 
 ### US-206 — UI/API Integration Shell
 Status: **Done**
 
-- Add a thin README usage example for future UI/API callers. **Done**
-
 ### US-207 — Acceptance Dataset
 Status: **Done**
-
-- Under and Over scoring scenarios. **Done**
-- Mixed scenarios covering bonus and risk combinations. **Done**
-- Human-readable dataset documented in `ACCEPTANCE_DATASET.md`. **Done**
-- Executable acceptance tests added in `tests/acceptanceDataset.test.ts`. **Done**
 
 ### US-208 — Persistence
 Status: **Done**
 
-- Define storage boundary for future saved games and score sheets. **Done**
-- Keep persistence optional for MVP engine usage. **Done**
-- Add `ScoreSheetRepository` interface and persisted score-sheet DTOs. **Done**
-- Add in-memory repository adapter for MVP/testing without introducing database coupling. **Done**
-- Add persistence boundary usage notes to README or dedicated docs. **Done**
-
 ### US-209 — Statistics
 Status: **Done**
-
-- Define statistics outputs after score-sheet persistence stabilizes. **Done**
-- Suggested first slice: calculate per-player summary stats from persisted or calculated game results without introducing UI/database coupling. **Done**
-- Add `StatisticsService` and statistics DTOs. **Done**
-- Add executable tests for statistics summaries. **Done**
-- Add README usage notes. **Done**
-- Confirm `npm run ci` local validation. **Done**
 
 ### US-210 — Import/export
 Status: **Done**
 
-- Define import/export formats after persistence DTOs stabilize. **Done**
-- Suggested first slice: JSON backup DTO with version metadata and validation path. **Done**
-- Add `ScoreSheetBackupDocument` DTO and backup constants. **Done**
-- Add `ScoreSheetBackupService` for exporting and validating backup documents. **Done**
-- Add executable tests for valid export/import and invalid backup rejection. **Done**
-- Add README usage notes. **Done**
-- Confirm `npm run ci` local validation. **Done**
-
 ### US-211 — CI Validation
 Status: **Done**
 
-- Keep one local validation command that future contributors and CI can run. **Done**
-- Keep GitHub Actions validation aligned to the package script. **Done**
-- Confirm local `npm run ci`: typecheck passed, tests passed 57/57, build passed. **Done**
+- Local `npm run ci` confirmed: typecheck passed, tests passed, build passed.
+
+## Completed Post-MVP Items
 
 ### US-212 — Post-MVP Roadmap
 Status: **Done**
 
-- Convert loose post-MVP candidates into implementation-ready backlog items. **Done**
-- Document post-MVP sequencing and acceptance notes in `POST_MVP_ROADMAP.md`. **Done**
+- Documented post-MVP sequencing and acceptance notes in `POST_MVP_ROADMAP.md`.
 
 ### US-213 — Browser/Mobile UI Planning
 Status: **Done**
 
-- Draft screen map for player setup, round entry, scoring result, leaderboard, statistics, and import/export. **Done**
-- Define UI input DTO mapping to the existing engine DTOs. **Done**
-- List validation messages that should be shown before score calculation. **Done**
-- Recommend first storage direction for UI prototype. **Done**
-- Document planning artifact in `UI_PLANNING.md`. **Done**
+- Documented screen map, validation messages, and UI-to-engine DTO mapping in `UI_PLANNING.md`.
 
 ### US-213A — Local-Storage Score-Sheet Repository Adapter
-Status: **Implemented, pending validation**
+Status: **Done**
 
-- Implement a browser local-storage adapter that satisfies `ScoreSheetRepository`. **Done**
-- Use one namespaced local-storage key. **Done**
-- Add tests using an injected storage-like object instead of browser globals. **Done**
-- Handle missing or corrupt stored data safely. **Done**
-- Confirm `npm run ci` local validation. **Pending**
+- Implemented browser local-storage adapter satisfying `ScoreSheetRepository`.
+- Used one namespaced local-storage key.
+- Added tests using an injected storage-like object instead of browser globals.
+- Handles missing or corrupt stored data safely.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-213B — Browser UI Shell
-Status: **Implemented, pending validation**
+Status: **Done**
 
-- Choose a lightweight browser UI framework or vanilla TypeScript shell. **Done: framework-neutral TypeScript shell first.**
-- Create a four-player score-sheet setup flow. **Done**
-- Add one valid round-entry flow wired to `EstimationMvpService`. **Done**
-- Show validation messages before saving invalid rounds. **Done**
-- Show leaderboard and round history boundary. **Done**
-- Export JSON backup through the existing backup service. **Done**
-- Confirm `npm run ci` local validation. **Pending**
+- Implemented framework-neutral TypeScript browser UI shell service.
+- Supports four-player score-sheet setup, validation preview, valid round save, leaderboard/history boundaries, analytics views, and JSON backup export.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-214 — Persistent Database Adapter
-Status: **Implemented, pending validation**
+Status: **Done**
 
-- Choose storage target after UI/API direction is known. **Done: document-store adapter boundary.**
-- Implement a repository adapter that satisfies `ScoreSheetRepository`. **Done**
-- Add tests proving save, update, list, get, and delete behavior matches the in-memory adapter contract. **Done**
-- Keep database libraries outside the scoring engine through `ScoreSheetDocumentStore`. **Done**
-- Confirm `npm run ci` local validation. **Pending**
+- Implemented document-store adapter boundary without coupling scoring services to database libraries.
+- Added tests for save, update, list, get, delete, id allocation, and stored shape validation.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-215 — Rich Score-Sheet Export
-Status: **Implemented, pending validation**
+Status: **Done**
 
-- Define Markdown table layout for final standings and per-round player deltas/scores. **Done**
-- Add a formatting service that consumes calculated game results without recalculating scores. **Done**
-- Add tests for deterministic table structure and invalid-round validation sections. **Done**
-- Export `ScoreSheetMarkdownExportService` from the public package index. **Done**
-- Confirm `npm run ci` local validation. **Pending**
+- Added deterministic Markdown score-sheet export and CSV score-sheet export coverage.
+- Preserves invalid-round validation notes without recalculating scores.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-217A — Player Performance Analytics
+Status: **Done**
+
+- Added dashboard-ready analytics DTOs and `PlayerAnalyticsService`.
+- Includes exact bid rate, failure rate, Dash/Dash Call success rates, risk metrics, WITH/high-contract counts, all-loser counts, rankings, and consistency metadata.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-217B — Player Analytics Markdown Export
+Status: **Done**
+
+- Added deterministic Markdown analytics formatter and README usage notes.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-217C — Player Analytics CSV Export
+Status: **Done**
+
+- Added spreadsheet-friendly CSV analytics export with optional summary rows and safe CSV escaping.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-218 — Score-Sheet CSV Export
+Status: **Done**
+
+- Added spreadsheet-friendly game score-sheet CSV export.
+- Includes player/round rows, cumulative scores, final standings, metadata rows, and invalid-round notes.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-219 — Game Summary and Leaderboard Compatibility Fixes
+Status: **Done**
+
+- Added `roundNumber` to `MvpRoundResult` for browser game summary consumers.
+- Preserved leaderboard aggregation round identity after invalid rounds are filtered out.
+- Added regression coverage.
+- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+## In Progress / Blocked
 
 ### US-216 — Federation-Rule Review
 Status: **In progress**
@@ -162,18 +150,15 @@ Status: **In progress**
 - Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references. **In progress**
 - Record source, decision, and impact for each confirmed rule. **Expanded in `FEDERATION_RULE_REVIEW.md`**
 - Create follow-up implementation stories only for confirmed scoring changes. **Started: US-216A/US-216B/US-216C**
-- Confirm `npm run ci` local validation if code changes are introduced. **Not required yet: docs-only slice**
-- Clean up duplicate federation source-request PRs so source-capture work has one merged baseline. **Done: PR #3 merged and PR #2 closed as superseded.**
+- No scoring code changes should be made from unclear or mixed sources.
 
 ### US-216A — Federation Source Capture
 Status: **In progress**
 
-- Locate accessible official rules/regulations documents. **In progress: public searches still did not find a retrievable detailed official document.**
-- Record document title, URL or file name, publication/update date if available, and relevant sections. **Expanded in source capture log and reviewed search terms.**
-- Add citations or source notes for every reviewed scoring rule. **Started for broad-scope evidence and repeated negative search evidence.**
-- Add a structured request checklist/message for collecting official or user-confirmed sources. **Done in `FEDERATION_SOURCE_REQUEST.md`; merged through PR #3.**
-- Add Arabic source-request template and intake note for original-language evidence. **Done.**
-- Do not change scoring code. **Done so far**
+- Locate accessible official rules/regulations documents. **In progress**
+- Record document title, URL or file name, publication/update date if available, and relevant sections.
+- Add citations or source notes for every reviewed scoring rule.
+- Do not change scoring code.
 
 ### US-216B — Confirm Rule Differences
 Status: **Blocked until source capture improves**
@@ -181,7 +166,6 @@ Status: **Blocked until source capture improves**
 - Compare official rules against the local project baseline.
 - List exact differences and recommended project decision for each difference.
 - Separate official tournament rules from user-preferred house rules.
-- Create scoring implementation stories only for accepted differences.
 
 ### US-216C — Rule Change Implementation
 Status: **Blocked until differences are confirmed**
@@ -189,53 +173,3 @@ Status: **Blocked until differences are confirmed**
 - Implement only confirmed scoring changes.
 - Add acceptance dataset rows for every changed rule.
 - Update `PROJECT_RULES.md`, tests, README, and backlog with final decisions.
-
-### US-217A — Player Performance Analytics
-Status: **Implemented, pending validation**
-
-- Add dashboard-ready analytics DTOs. **Done**
-- Add `PlayerAnalyticsService`. **Done**
-- Include exact bid rate, failure rate, Dash/Dash Call success rates, risk and double-risk success rates, WITH/high-contract counts, all-loser counts, ranking, and consistency metadata. **Done**
-- Add tests using calculated game results without recalculating scores. **Done**
-- Export analytics APIs from the public package index. **Done**
-- Confirm `npm run ci` local validation. **Pending**
-
-### US-217B — Player Analytics Markdown Export
-Status: **Implemented, pending validation**
-
-- Add `PlayerAnalyticsMarkdownExportService` for dashboard/report presentation. **Done**
-- Add deterministic Markdown table tests. **Done**
-- Export the Markdown analytics formatter from the public package index. **Done**
-- Document usage in README. **Done**
-- Confirm `npm run ci` local validation. **Pending**
-
-### US-217C — Player Analytics CSV Export
-Status: **Implemented, pending validation**
-
-- Add `PlayerAnalyticsCsvExportService` for spreadsheet-friendly analytics export. **Done**
-- Include optional summary metadata rows. **Done**
-- Escape quoted/comma/newline cells safely for CSV consumers. **Done**
-- Add deterministic CSV tests. **Done**
-- Export the CSV analytics formatter from the public package index. **Done**
-- Document usage in README. **Done**
-
-### US-218 — Score-Sheet CSV Export
-Status: **Implemented, pending validation**
-
-- Add `ScoreSheetCsvExportService` for spreadsheet-friendly game score sheets. **Done**
-- Include one row per player per round plus final standing rows. **Done**
-- Preserve invalid-round validation notes without recalculating scores. **Done**
-- Escape quoted/comma/newline cells safely for CSV consumers. **Done**
-- Add deterministic CSV tests. **Done**
-- Export the score-sheet CSV formatter from the public package index. **Done**
-- Document usage in README. **Done**
-- Confirm `npm run ci` local validation. **Pending**
-
-### US-219 — Game Summary and Leaderboard Compatibility Fixes
-Status: **Implemented, pending validation**
-
-- Add `roundNumber` to `MvpRoundResult` so browser game summary DTO consumers can display round history without reaching back into input DTOs. **Done**
-- Return `roundNumber` from both valid and invalid `calculateRound` paths. **Done**
-- Preserve leaderboard aggregation round identity after invalid rounds are filtered out of score aggregation. **Done**
-- Add regression coverage for invalid-round/valid-round aggregation ordering. **Done**
-- Confirm `npm run ci` local validation. **Pending**
