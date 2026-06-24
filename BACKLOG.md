@@ -6,9 +6,9 @@
 - Prefer implementation-ready slices with tests.
 - Update `PROJECT_LOG.md` after each automation run.
 - Use `PROJECT_RULES.md` and `RULE_BASELINE_V1.md` as the accepted user-confirmed house-rule baseline.
+- Use uploaded EgyEstimation federation rule PDFs as the source for Federation 2026 mode.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 - Use validation docs before moving implemented post-MVP items from pending validation to Done.
-- Treat future federation comparison as optional unless official or user-provided evidence becomes available.
 
 ## Progress Tracker
 
@@ -39,12 +39,12 @@
 | Score-sheet CSV export | Done | 100% |
 | Game summary and leaderboard compatibility fixes | Done | 100% |
 | Rule baseline formalization | Done | 100% |
-| Optional federation comparison | Backlog | 0% |
+| Federation rule-set support | In progress | 35% |
 | React/Vite frontend prototype | Ready | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **90%**
+Post-MVP progress: **91%**
 
 ## Completed MVP Items
 
@@ -73,80 +73,80 @@ Status: **Done**
 ### US-212 — Post-MVP Roadmap
 Status: **Done**
 
-- Documented post-MVP sequencing and acceptance notes in `POST_MVP_ROADMAP.md`.
-
 ### US-213 — Browser/Mobile UI Planning
 Status: **Done**
-
-- Documented screen map, validation messages, and UI-to-engine DTO mapping in `UI_PLANNING.md`.
 
 ### US-213A — Local-Storage Score-Sheet Repository Adapter
 Status: **Done**
 
-- Implemented browser local-storage adapter satisfying `ScoreSheetRepository`.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
-
 ### US-213B — Browser UI Shell
 Status: **Done**
-
-- Implemented framework-neutral TypeScript browser UI shell service.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-214 — Persistent Database Adapter
 Status: **Done**
 
-- Implemented document-store adapter boundary without coupling scoring services to database libraries.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
-
 ### US-215 — Rich Score-Sheet Export
 Status: **Done**
-
-- Added deterministic Markdown score-sheet export and CSV score-sheet export coverage.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-216A — Rule Baseline Formalization
 Status: **Done**
 
-- User confirmed no official federation file is currently available.
-- Accepted the current user-confirmed rules as the v1 house-rule baseline.
 - Added `RULE_BASELINE_V1.md`.
-- No scoring logic changed.
+- Preserved current behavior as House Rules v1.
 
 ### US-217A — Player Performance Analytics
 Status: **Done**
 
-- Added dashboard-ready analytics DTOs and `PlayerAnalyticsService`.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
-
 ### US-217B — Player Analytics Markdown Export
 Status: **Done**
-
-- Added deterministic Markdown analytics formatter and README usage notes.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-217C — Player Analytics CSV Export
 Status: **Done**
 
-- Added spreadsheet-friendly CSV analytics export with optional summary rows and safe CSV escaping.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
-
 ### US-218 — Score-Sheet CSV Export
 Status: **Done**
-
-- Added spreadsheet-friendly game score-sheet CSV export.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-219 — Game Summary and Leaderboard Compatibility Fixes
 Status: **Done**
 
-- Added `roundNumber` to `MvpRoundResult` for browser game summary consumers.
-- Added regression coverage.
-- Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+## In Progress
+
+### US-216B — Federation Comparison
+Status: **Done**
+
+- Compared uploaded federation rules against House Rules v1.
+- Confirmed matching areas: suit hierarchy, total estimates cannot equal 13, WITH structure, Risk concept.
+- Identified differences: Dash scoring, Super 8/9/10, all-pass behavior, all-loser handling, and exact federation scoring tables.
+
+### US-216C — Rule Engine Abstraction / Dual Rule Sets
+Status: **In progress**
+
+- Preserve House Rules v1 as default behavior. **Done**
+- Add explicit scoring rule-set ids: `HOUSE_RULES_V1` and `FEDERATION_2026`. **Done**
+- Add `ScoringProfile.ruleSet` for future game configuration. **Done**
+- Add Federation 2026 scoring table constants. **Done**
+- Add Federation 2026 scoring strategy scaffold. **Done**
+- Add strategy factory for rule-set resolution. **Done**
+- Add focused scaffold tests. **Done**
+- Next: wire factory into round/game services without breaking existing profiles.
+- Next: add end-to-end Federation 2026 score examples from uploaded tables.
+
+### US-216D — Federation Super Bid Support
+Status: **Ready after US-216C wiring**
+
+- Implement Super 8 / Super 9 / Super 10 behavior in validated game flow.
+- Add acceptance dataset rows for success and failure.
+
+### US-216E — Federation All-Pass Round
+Status: **Ready after US-216C wiring**
+
+- Model all-pass federation behavior separately from house all-loser multiplier.
+- Ensure no risk/bid bonus is applied in all-pass reshaped round.
 
 ## Ready
 
 ### US-220 — React/Vite Frontend Prototype
-Status: **Ready**
+Status: **Ready after federation scoring slice or can proceed in parallel**
 
 - Create a browser app shell using the existing framework-neutral Browser UI Shell services.
 - Allow four-player score-sheet creation.
@@ -154,19 +154,3 @@ Status: **Ready**
 - Show round results, running balances, leaderboard, analytics, and export actions.
 - Use local storage for the first browser prototype.
 - Keep scoring engine untouched and framework-agnostic.
-
-## Optional / Blocked Until Evidence Exists
-
-### US-216B — Future Federation Comparison
-Status: **Optional backlog**
-
-- Compare official rules against `RULE_BASELINE_V1.md` only if official or user-provided rule evidence becomes available.
-- List exact differences and recommended project decision for each difference.
-- Separate official tournament rules from user-preferred house rules.
-
-### US-216C — Rule Change Implementation
-Status: **Blocked until differences are confirmed**
-
-- Implement only confirmed scoring changes.
-- Add acceptance dataset rows for every changed rule.
-- Update `PROJECT_RULES.md`, `RULE_BASELINE_V1.md`, tests, README, and backlog with final decisions.
