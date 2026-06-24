@@ -1,5 +1,39 @@
 # Project Log
 
+## 2026-06-24 - Run 81
+
+Completed:
+
+- Started US-216C - Rule Engine Abstraction / Dual Rule Sets after user approved dual mode support.
+- Added explicit rule-set ids and configuration scaffolding:
+  - `HOUSE_RULES_V1`.
+  - `FEDERATION_2026`.
+  - `GameRuleConfiguration`.
+  - `ScoringProfile.ruleSet`.
+- Added `federation2026ScoringTable` constants from uploaded EgyEstimation scoring tables.
+- Added `Federation2026ScoringStrategy` scaffold while preserving House Rules v1 as the default behavior.
+- Added `ScoringStrategyFactory` to resolve House vs Federation scoring strategies.
+- Exported rule-set APIs from the public package index.
+- Added focused tests for rule-set ids, table constants, and strategy factory behavior.
+- Updated `BACKLOG.md` with US-216B/US-216C/US-216D/US-216E sequencing.
+- Kept Egyptian Estimation scoring separate from Planning Poker.
+
+Current item in progress:
+
+- US-216C - wire strategy factory into round/game services without breaking existing profiles.
+
+Blockers:
+
+- Local `npm run ci` is needed for the new scaffolding commits.
+- End-to-end Federation 2026 score examples still need to be added from the uploaded tables.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 91% complete.
+- Federation rule support: 35% complete.
+- Overall project: 96% complete.
+
 ## 2026-06-24 - Run 80
 
 Completed:
@@ -31,40 +65,3 @@ Overall progress:
 - MVP: 100% complete.
 - Post-MVP: 90% complete.
 - Overall project: 95% complete.
-
-## 2026-06-24 - Run 79
-
-Completed:
-
-- Received and reviewed user-provided local Windows validation output for the latest post-MVP implementation set.
-- Confirmed `npm run ci` completed successfully:
-  - `npm run typecheck` passed.
-  - `npm test` passed with 101 tests, 101 passing, 0 failing.
-  - `npm run build` passed.
-- Closed validation for implemented post-MVP items in `BACKLOG.md`:
-  - US-213A - Local-Storage Score-Sheet Repository Adapter.
-  - US-213B - Browser UI Shell.
-  - US-214 - Persistent Database Adapter.
-  - US-215 - Rich Score-Sheet Export.
-  - US-217A - Player Performance Analytics.
-  - US-217B - Player Analytics Markdown Export.
-  - US-217C - Player Analytics CSV Export.
-  - US-218 - Score-Sheet CSV Export.
-  - US-219 - Game Summary and Leaderboard Compatibility Fixes.
-- Kept Egyptian Estimation scoring/rules separate from Planning Poker and made no scoring-rule changes.
-- Noted that the later command-prompt errors were caused by pasting CI output back into Command Prompt as commands; they do not invalidate the earlier successful `npm run ci` run.
-
-Current item in progress:
-
-- US-216A - Federation Source Capture.
-
-Blockers:
-
-- US-216B and US-216C remain blocked until official or user-confirmed Egyptian Estimation rule evidence is available.
-- GitHub workflow/status evidence remains unavailable through the connector, but local green `npm run ci` evidence is accepted for implementation closure.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 85% complete.
-- Overall project: 93% complete.
