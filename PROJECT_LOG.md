@@ -1,5 +1,37 @@
 # Project Log
 
+## 2026-06-24 - Run 80
+
+Completed:
+
+- Replaced the federation-rule blocker with an accepted user-confirmed house-rule baseline path after the user confirmed no official federation file is available.
+- Added `RULE_BASELINE_V1.md` to formalize the current scoring baseline and authority order:
+  - User-confirmed rule decisions.
+  - `PROJECT_RULES.md`.
+  - Acceptance/regression tests.
+  - README and implementation docs.
+- Updated `BACKLOG.md`:
+  - Marked US-216A - Rule Baseline Formalization as Done.
+  - Moved future federation comparison to optional backlog.
+  - Set US-220 - React/Vite Frontend Prototype as the next Ready item.
+- Kept Egyptian Estimation scoring/rules separate from Planning Poker.
+- Made no scoring logic changes.
+
+Current item in progress:
+
+- US-220 - React/Vite Frontend Prototype.
+
+Blockers:
+
+- None for starting the frontend prototype.
+- Future federation comparison remains optional and blocked unless official/user-provided rule evidence becomes available.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 90% complete.
+- Overall project: 95% complete.
+
 ## 2026-06-24 - Run 79
 
 Completed:
@@ -36,32 +68,3 @@ Overall progress:
 - MVP: 100% complete.
 - Post-MVP: 85% complete.
 - Overall project: 93% complete.
-
-## 2026-06-24 - Run 78
-
-Completed:
-
-- Reviewed `BACKLOG.md`, `PROJECT_LOG.md`, and `VALIDATION_STATUS.md` to resume from the next unfinished implementation-ready item.
-- Confirmed the remaining implementation-ready work is still validation closure for implemented post-MVP items: US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, US-218, and US-219.
-- Rechecked GitHub evidence for latest known commit `69c95220dc721b04a90d3fb6d3cb0f30f1ff89b7`; the connector returned no combined statuses and no workflow runs, so GitHub-hosted validation evidence is still unavailable.
-- Re-attempted the available local clone/CI path for `git clone`, commit capture, Node/npm capture, dependency install, and `npm run ci`; the runtime returned an authorization error before clone/CI could run, so no local CI evidence was captured.
-- Refreshed `VALIDATION_STATUS.md` with the latest inspected commit and added `logs/2026-06-24-run-78.md` as a timestamped run record.
-- Kept Egyptian Estimation scoring/rules separate from Planning Poker and made no scoring-rule changes.
-- Avoided moving any implemented post-MVP item to **Done** because green local CI evidence was still missing at that time.
-
-Current item in progress:
-
-- US-219 validation / local CI closure and evidence consolidation.
-
-Blockers:
-
-- Local `git pull && node --version && npm --version && git rev-parse HEAD && npm install && npm run ci` was still required before closing US-213A, US-213B, US-214, US-215, US-217A, US-217B, US-217C, US-218, or US-219.
-- The available runtime still could not execute the local repository clone/CI validation path because clone/CI returned an authorization error.
-- GitHub status checks/workflow evidence was still not available through the connector path.
-- US-216B and US-216C remained blocked until official or user-confirmed Egyptian Estimation rule evidence was available.
-
-Overall progress:
-
-- MVP: 100% complete.
-- Post-MVP: 77% complete.
-- Overall project: 88% complete.
