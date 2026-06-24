@@ -8,7 +8,7 @@ This file tracks validation evidence for implemented post-MVP items that are wai
 
 ## Current status
 
-GitHub status checks and pull-request-triggered workflow runs are not visible for the inspected commits through the available connector. The latest inspected commit for this status refresh is `05054b0679973fd52a01250352d4d5fc9301952e`; the connector returned no workflow runs for it. The repository does have a GitHub Actions workflow at `.github/workflows/ci.yml` that runs `npm run ci` for pushes and pull requests targeting `main`, but local validation evidence is still required before moving implemented post-MVP backlog items from **Implemented, pending validation** to **Done**.
+GitHub status checks and pull-request-triggered workflow runs are not visible for the inspected commits through the available connector. The latest inspected commit for this status refresh is `69c95220dc721b04a90d3fb6d3cb0f30f1ff89b7`; the connector returned no combined statuses and no workflow runs for it. The repository does have a GitHub Actions workflow at `.github/workflows/ci.yml` that runs `npm run ci` for pushes and pull requests targeting `main`, but local validation evidence is still required before moving implemented post-MVP backlog items from **Implemented, pending validation** to **Done**.
 
 Required command:
 
