@@ -5,10 +5,10 @@
 - Keep Egyptian Estimation scoring/rules separate from Planning Poker estimation.
 - Prefer implementation-ready slices with tests.
 - Update `PROJECT_LOG.md` after each automation run.
-- Use `PROJECT_RULES.md` as the working rule reference for finalized local Egyptian Estimation rules.
+- Use `PROJECT_RULES.md` and `RULE_BASELINE_V1.md` as the accepted user-confirmed house-rule baseline.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 - Use validation docs before moving implemented post-MVP items from pending validation to Done.
-- Use `FEDERATION_SOURCE_REQUEST.md` when US-216A needs direct official/user-confirmed rule evidence before any scoring changes.
+- Treat future federation comparison as optional unless official or user-provided evidence becomes available.
 
 ## Progress Tracker
 
@@ -38,11 +38,13 @@
 | Player analytics exports | Done | 100% |
 | Score-sheet CSV export | Done | 100% |
 | Game summary and leaderboard compatibility fixes | Done | 100% |
-| Federation-rule review | In progress | 65% |
+| Rule baseline formalization | Done | 100% |
+| Optional federation comparison | Backlog | 0% |
+| React/Vite frontend prototype | Ready | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **85%**
+Post-MVP progress: **90%**
 
 ## Completed MVP Items
 
@@ -82,37 +84,38 @@ Status: **Done**
 Status: **Done**
 
 - Implemented browser local-storage adapter satisfying `ScoreSheetRepository`.
-- Used one namespaced local-storage key.
-- Added tests using an injected storage-like object instead of browser globals.
-- Handles missing or corrupt stored data safely.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-213B — Browser UI Shell
 Status: **Done**
 
 - Implemented framework-neutral TypeScript browser UI shell service.
-- Supports four-player score-sheet setup, validation preview, valid round save, leaderboard/history boundaries, analytics views, and JSON backup export.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-214 — Persistent Database Adapter
 Status: **Done**
 
 - Implemented document-store adapter boundary without coupling scoring services to database libraries.
-- Added tests for save, update, list, get, delete, id allocation, and stored shape validation.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-215 — Rich Score-Sheet Export
 Status: **Done**
 
 - Added deterministic Markdown score-sheet export and CSV score-sheet export coverage.
-- Preserves invalid-round validation notes without recalculating scores.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
+
+### US-216A — Rule Baseline Formalization
+Status: **Done**
+
+- User confirmed no official federation file is currently available.
+- Accepted the current user-confirmed rules as the v1 house-rule baseline.
+- Added `RULE_BASELINE_V1.md`.
+- No scoring logic changed.
 
 ### US-217A — Player Performance Analytics
 Status: **Done**
 
 - Added dashboard-ready analytics DTOs and `PlayerAnalyticsService`.
-- Includes exact bid rate, failure rate, Dash/Dash Call success rates, risk metrics, WITH/high-contract counts, all-loser counts, rankings, and consistency metadata.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-217B — Player Analytics Markdown Export
@@ -131,39 +134,33 @@ Status: **Done**
 Status: **Done**
 
 - Added spreadsheet-friendly game score-sheet CSV export.
-- Includes player/round rows, cumulative scores, final standings, metadata rows, and invalid-round notes.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
 ### US-219 — Game Summary and Leaderboard Compatibility Fixes
 Status: **Done**
 
 - Added `roundNumber` to `MvpRoundResult` for browser game summary consumers.
-- Preserved leaderboard aggregation round identity after invalid rounds are filtered out.
 - Added regression coverage.
 - Confirmed by local `npm run ci`: 101 tests passed, 0 failed.
 
-## In Progress / Blocked
+## Ready
 
-### US-216 — Federation-Rule Review
-Status: **In progress**
+### US-220 — React/Vite Frontend Prototype
+Status: **Ready**
 
-- Review each local rule in `PROJECT_RULES.md` against official or user-confirmed Egyptian Estimation references. **In progress**
-- Record source, decision, and impact for each confirmed rule. **Expanded in `FEDERATION_RULE_REVIEW.md`**
-- Create follow-up implementation stories only for confirmed scoring changes. **Started: US-216A/US-216B/US-216C**
-- No scoring code changes should be made from unclear or mixed sources.
+- Create a browser app shell using the existing framework-neutral Browser UI Shell services.
+- Allow four-player score-sheet creation.
+- Allow round entry and validation preview.
+- Show round results, running balances, leaderboard, analytics, and export actions.
+- Use local storage for the first browser prototype.
+- Keep scoring engine untouched and framework-agnostic.
 
-### US-216A — Federation Source Capture
-Status: **In progress**
+## Optional / Blocked Until Evidence Exists
 
-- Locate accessible official rules/regulations documents. **In progress**
-- Record document title, URL or file name, publication/update date if available, and relevant sections.
-- Add citations or source notes for every reviewed scoring rule.
-- Do not change scoring code.
+### US-216B — Future Federation Comparison
+Status: **Optional backlog**
 
-### US-216B — Confirm Rule Differences
-Status: **Blocked until source capture improves**
-
-- Compare official rules against the local project baseline.
+- Compare official rules against `RULE_BASELINE_V1.md` only if official or user-provided rule evidence becomes available.
 - List exact differences and recommended project decision for each difference.
 - Separate official tournament rules from user-preferred house rules.
 
@@ -172,4 +169,4 @@ Status: **Blocked until differences are confirmed**
 
 - Implement only confirmed scoring changes.
 - Add acceptance dataset rows for every changed rule.
-- Update `PROJECT_RULES.md`, tests, README, and backlog with final decisions.
+- Update `PROJECT_RULES.md`, `RULE_BASELINE_V1.md`, tests, README, and backlog with final decisions.
