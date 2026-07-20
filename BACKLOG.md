@@ -5,8 +5,9 @@
 - Keep Egyptian Estimation scoring/rules separate from Planning Poker estimation.
 - Prefer implementation-ready slices with tests.
 - Update `PROJECT_LOG.md` after each automation run.
-- Use `PROJECT_RULES.md` and `RULE_BASELINE_V1.md` as the accepted user-confirmed house-rule baseline.
+- Use `PROJECT_RULES.md` and `RULE_BASELINE_V1.md` as the accepted user-confirmed House Rules V1 baseline.
 - Use uploaded EgyEstimation federation rule PDFs as the source for Federation 2026 mode.
+- Keep House Rules V1 and Federation 2026 scoring isolated and selectable before a game/round begins.
 - Use `POST_MVP_ROADMAP.md` for post-MVP sequencing and acceptance notes.
 - Use validation docs before moving implemented post-MVP items from pending validation to Done.
 
@@ -39,12 +40,13 @@
 | Score-sheet CSV export | Done | 100% |
 | Game summary and leaderboard compatibility fixes | Done | 100% |
 | Rule baseline formalization | Done | 100% |
+| House Rules V1 high-call update | Done | 100% |
 | Federation rule-set support | In progress | 35% |
 | React/Vite frontend prototype | Ready | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **91%**
+Post-MVP progress: **92%**
 
 ## Completed MVP Items
 
@@ -92,7 +94,18 @@ Status: **Done**
 Status: **Done**
 
 - Added `RULE_BASELINE_V1.md`.
-- Preserved current behavior as House Rules v1.
+- Preserved House Rules V1 as an independent selectable baseline.
+
+### US-216C1 — House Rules V1 High-Call Formula
+Status: **Done**
+
+- Successful calls of 8 or higher now score `call × call`.
+- Failed calls now score `-delta - (30 + ((call - 8) × 10))`.
+- WITH uses the same formula independently.
+- Risk/Double Risk and Only Winner/Only Loser remain additive modifiers.
+- The x2/x4 all-loser multiplier remains excluded from high-contract scores.
+- Federation 2026 Super 8/9/10 scoring remains unchanged.
+- GitHub Actions CI run 374 passed.
 
 ### US-217A — Player Performance Analytics
 Status: **Done**
@@ -114,21 +127,24 @@ Status: **Done**
 ### US-216B — Federation Comparison
 Status: **Done**
 
-- Compared uploaded federation rules against House Rules v1.
+- Compared uploaded federation rules against House Rules V1.
 - Confirmed matching areas: suit hierarchy, total estimates cannot equal 13, WITH structure, Risk concept.
 - Identified differences: Dash scoring, Super 8/9/10, all-pass behavior, all-loser handling, and exact federation scoring tables.
 
 ### US-216C — Rule Engine Abstraction / Dual Rule Sets
 Status: **In progress**
 
-- Preserve House Rules v1 as default behavior. **Done**
+- Preserve House Rules V1 as default behavior. **Done**
 - Add explicit scoring rule-set ids: `HOUSE_RULES_V1` and `FEDERATION_2026`. **Done**
 - Add `ScoringProfile.ruleSet` for future game configuration. **Done**
 - Add Federation 2026 scoring table constants. **Done**
 - Add Federation 2026 scoring strategy scaffold. **Done**
 - Add strategy factory for rule-set resolution. **Done**
 - Add focused scaffold tests. **Done**
+- Add configurable House Rules V1 call-squared/high-call failure formulas. **Done**
+- Add regression coverage proving Federation 2026 is unchanged. **Done**
 - Next: wire factory into round/game services without breaking existing profiles.
+- Next: persist the selected rule set with the score sheet/game configuration.
 - Next: add end-to-end Federation 2026 score examples from uploaded tables.
 
 ### US-216D — Federation Super Bid Support
@@ -150,6 +166,7 @@ Status: **Ready after federation scoring slice or can proceed in parallel**
 
 - Create a browser app shell using the existing framework-neutral Browser UI Shell services.
 - Allow four-player score-sheet creation.
+- Allow rule-set selection before starting the game/round.
 - Allow round entry and validation preview.
 - Show round results, running balances, leaderboard, analytics, and export actions.
 - Use local storage for the first browser prototype.
