@@ -9,6 +9,7 @@ export type PlayerRoundRole = 'bid-owner' | 'with-player' | 'other-player' | 'ri
 export type OwnerRoundOutcome = 'owner-won' | 'owner-lost';
 export type ScoringScope = 'all-players' | 'winner-only' | 'loser-only';
 export type RiskType = 'none' | 'dash' | 'dash-call' | 'with' | 'high-contract' | 'round-risk' | 'custom';
+export type HighContractSuccessFormula = 'linear' | 'square';
 
 export interface ScoringProfile {
   readonly id: string;
@@ -38,6 +39,9 @@ export interface ScoringProfile {
   readonly underDashFailurePenalty?: number;
   readonly highContractThreshold?: number;
   readonly highContractMultiplier?: number;
+  readonly highContractSuccessFormula?: HighContractSuccessFormula;
+  readonly highContractFailurePenaltyBase?: number;
+  readonly highContractFailurePenaltyStep?: number;
   readonly highContractWinBase?: number;
   readonly highContractWinStep?: number;
   readonly highContractLossBasePenalty?: number;
