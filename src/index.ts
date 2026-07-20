@@ -8,6 +8,7 @@ export * from './services/LeaderboardService.js';
 export * from './services/EstimationMvpService.js';
 export * from './scoring/types.js';
 export * from './scoring/ruleSets.js';
+export * from './scoring/houseRulesV1Profile.js';
 export * from './scoring/ConfigurableScoringStrategy.js';
 export * from './scoring/Federation2026ScoringStrategy.js';
 export * from './scoring/ScoringStrategyFactory.js';
