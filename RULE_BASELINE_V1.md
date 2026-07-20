@@ -11,6 +11,10 @@ This project uses the rules in `PROJECT_RULES.md` as the authoritative House Rul
 3. Executable acceptance and regression tests.
 4. README usage examples and implementation docs.
 
+## Canonical Selection Profile
+
+Use the exported `houseRulesV1ScoringProfile` when the user selects `HOUSE_RULES_V1` before starting a game or round. This profile carries the confirmed House Rules V1 scoring configuration, including the call-squared high-contract formula and escalating failure penalty.
+
 ## Baseline Rule Set
 
 ### Round validation
@@ -114,6 +118,6 @@ Reference values:
 
 Latest branch validation for this rule update:
 
-- GitHub Actions CI run 374 passed.
+- GitHub Actions CI run 381 passed.
 - Typecheck, tests, and build completed successfully through `npm run ci`.
-- Regression coverage includes calls 8/9/10, failed calls, WITH, modifiers, multiplier exclusion, and Federation 2026 isolation.
+- Regression coverage includes the canonical selector profile, calls 8/9/10, failed calls, WITH, modifiers, multiplier exclusion, and Federation 2026 isolation.
