@@ -2,30 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   Federation2026ScoringStrategy,
+  HOUSE_RULES_V1,
   ScoreCalculationService,
+  houseRulesV1ScoringProfile,
   type RoundScoreInput,
   type ScoringProfile,
 } from '../src/index.js';
-
-const houseProfile: ScoringProfile = {
-  id: 'house-rules-v1',
-  name: 'House Rules V1',
-  type: 'standard',
-  winnerBaseBonus: 10,
-  bidOwnerWinBonus: 10,
-  bidOwnerLossPenalty: 10,
-  normalBidFailurePenaltyPerTrickDifference: 1,
-  onlyWinnerBonus: 10,
-  onlyLoserPenalty: 10,
-  highContractThreshold: 8,
-  highContractSuccessFormula: 'square',
-  highContractFailurePenaltyBase: 30,
-  highContractFailurePenaltyStep: 10,
-  highContractWinBase: 80,
-  highContractWinStep: 10,
-  highContractLossBasePenalty: -80,
-  highContractLossStepPenalty: -10,
-};
 
 const federationProfile: ScoringProfile = {
   id: 'federation-2026',
@@ -65,9 +47,17 @@ function successRound(call: 8 | 9 | 10): RoundScoreInput {
       { playerId: 'C', actualTricks: 1 },
       { playerId: 'D', actualTricks: lastActual },
     ],
-    profile: houseProfile,
+    profile: houseRulesV1ScoringProfile,
   };
 }
+
+test('canonical House Rules V1 profile carries the selector and high-call configuration', () => {
+  assert.equal(houseRulesV1ScoringProfile.ruleSet, HOUSE_RULES_V1);
+  assert.equal(houseRulesV1ScoringProfile.highContractThreshold, 8);
+  assert.equal(houseRulesV1ScoringProfile.highContractSuccessFormula, 'square');
+  assert.equal(houseRulesV1ScoringProfile.highContractFailurePenaltyBase, 30);
+  assert.equal(houseRulesV1ScoringProfile.highContractFailurePenaltyStep, 10);
+});
 
 test('House Rules V1 successful calls 8, 9, and 10 score the square of the call', () => {
   assert.equal(scoreFor(successRound(8), 'A'), 64);
@@ -100,7 +90,7 @@ test('House Rules V1 failed high calls use delta plus an escalating base penalty
           { playerId: 'C', actualTricks: 1 },
           { playerId: 'D', actualTricks: 10 - scenario.actual },
         ],
-        profile: houseProfile,
+        profile: houseRulesV1ScoringProfile,
       },
       'A',
     );
@@ -126,7 +116,7 @@ test('House Rules V1 WITH uses the same high-call formula independently', () => 
       { playerId: 'C', actualTricks: 1 },
       { playerId: 'D', actualTricks: 1 },
     ],
-    profile: houseProfile,
+    profile: houseRulesV1ScoringProfile,
   };
 
   assert.equal(scoreFor(input, 'A'), 81);
@@ -153,7 +143,7 @@ test('House Rules V1 modifiers stack after the high-call result and multiplier s
         { playerId: 'C', actualTricks: 1 },
         { playerId: 'D', actualTricks: 1 },
       ],
-      profile: houseProfile,
+      profile: houseRulesV1ScoringProfile,
     },
     'A',
   );
@@ -175,7 +165,7 @@ test('House Rules V1 modifiers stack after the high-call result and multiplier s
         { playerId: 'C', actualTricks: 1 },
         { playerId: 'D', actualTricks: 3 },
       ],
-      profile: houseProfile,
+      profile: houseRulesV1ScoringProfile,
     },
     'A',
   );
@@ -197,7 +187,7 @@ test('House Rules V1 modifiers stack after the high-call result and multiplier s
         { playerId: 'C', actualTricks: 2 },
         { playerId: 'D', actualTricks: 2 },
       ],
-      profile: houseProfile,
+      profile: houseRulesV1ScoringProfile,
     },
     'A',
   );
