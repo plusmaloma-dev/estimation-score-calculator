@@ -2,7 +2,7 @@
 
 Status: accepted user-confirmed house-rule baseline.
 
-This project uses the rules in `PROJECT_RULES.md` as the authoritative scoring baseline until official federation material is supplied later. The project remains focused on the Egyptian trick-taking game Estimation and must not mix in Planning Poker terminology or workflows.
+This project uses the rules in `PROJECT_RULES.md` as the authoritative House Rules V1 scoring baseline. Federation 2026 is a separate selectable rule set and must not silently override House Rules V1 behavior.
 
 ## Authority Order
 
@@ -10,8 +10,6 @@ This project uses the rules in `PROJECT_RULES.md` as the authoritative scoring b
 2. `PROJECT_RULES.md`.
 3. Executable acceptance and regression tests.
 4. README usage examples and implementation docs.
-
-Official federation comparison is now optional future work. No scoring change should be made from unclear, incomplete, or unrelated internet sources.
 
 ## Baseline Rule Set
 
@@ -45,10 +43,45 @@ Default hierarchy:
 - Failure: delta * -1 -25.
 - Other granted bonuses and risks still apply.
 
+### Calls 8 and above
+
+A call of 8 tricks or more uses the House Rules V1 high-contract formula.
+
+Successful call:
+
+```text
+score = call × call
+```
+
+Failed call:
+
+```text
+base penalty = 30 + ((call - 8) × 10)
+score = -delta - base penalty
+```
+
+Reference values:
+
+| Call | Success | Failure base penalty |
+| ---: | ---: | ---: |
+| 8 | 64 | 30 |
+| 9 | 81 | 40 |
+| 10 | 100 | 50 |
+| 11 | 121 | 60 |
+| 12 | 144 | 70 |
+| 13 | 169 | 80 |
+
 ### WITH
 
-- WITH follows the same rule for high contracts as normal contracts.
+- WITH follows the same scoring formula as the contract owner.
+- For calls of 8 or higher, owner and WITH use the high-contract formula independently based on each player's actual tricks.
 - No separate high-contract exception is applied.
+
+### High-contract modifiers
+
+- Risk and Double Risk continue to apply after the base high-contract result.
+- Only Winner and Only Loser continue to apply after the base high-contract result.
+- The consecutive all-loser x2/x4 multiplier does not apply to high-contract scores.
 
 ### Risk taker
 
@@ -69,17 +102,18 @@ Default hierarchy:
 - If the next round is also lost, the following round becomes x4.
 - The multiplier continues compounding unless a later accepted rule caps it.
 - A successful or winning result resets the multiplier.
+- High contracts are excluded from multiplier application.
+
+## Rule-Set Isolation
+
+- House Rules V1 uses the call-squared and escalating-failure formulas above.
+- Federation 2026 keeps its own Super 8/9/10 scoring table and federation failure formula.
+- A scoring change in one rule set must be covered by a regression test proving the other rule set is unchanged.
 
 ## Validation Evidence
 
-The current implementation is validated locally using `npm run ci`.
+Latest branch validation for this rule update:
 
-Latest accepted local evidence:
-
-- Typecheck passed.
-- Tests passed: 101 total, 101 passing, 0 failing.
-- Build passed.
-
-## Future Federation Review
-
-Federation comparison is kept as optional future work. If official or user-provided evidence becomes available later, create a new review entry and compare it against this baseline before making any scoring changes.
+- GitHub Actions CI run 374 passed.
+- Typecheck, tests, and build completed successfully through `npm run ci`.
+- Regression coverage includes calls 8/9/10, failed calls, WITH, modifiers, multiplier exclusion, and Federation 2026 isolation.
