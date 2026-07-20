@@ -105,7 +105,8 @@ Status: **Done**
 - Risk/Double Risk and Only Winner/Only Loser remain additive modifiers.
 - The x2/x4 all-loser multiplier remains excluded from high-contract scores.
 - Federation 2026 Super 8/9/10 scoring remains unchanged.
-- GitHub Actions CI run 374 passed.
+- Added exported `houseRulesV1ScoringProfile` for the pre-round `HOUSE_RULES_V1` selector.
+- GitHub Actions CI run 381 passed.
 
 ### US-217A — Player Performance Analytics
 Status: **Done**
@@ -142,6 +143,7 @@ Status: **In progress**
 - Add strategy factory for rule-set resolution. **Done**
 - Add focused scaffold tests. **Done**
 - Add configurable House Rules V1 call-squared/high-call failure formulas. **Done**
+- Add canonical exported House Rules V1 selection profile. **Done**
 - Add regression coverage proving Federation 2026 is unchanged. **Done**
 - Next: wire factory into round/game services without breaking existing profiles.
 - Next: persist the selected rule set with the score sheet/game configuration.
@@ -167,6 +169,7 @@ Status: **Ready after federation scoring slice or can proceed in parallel**
 - Create a browser app shell using the existing framework-neutral Browser UI Shell services.
 - Allow four-player score-sheet creation.
 - Allow rule-set selection before starting the game/round.
+- Use `houseRulesV1ScoringProfile` when the user selects House Rules V1.
 - Allow round entry and validation preview.
 - Show round results, running balances, leaderboard, analytics, and export actions.
 - Use local storage for the first browser prototype.
