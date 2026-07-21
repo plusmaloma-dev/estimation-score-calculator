@@ -1,5 +1,51 @@
 # Project Log
 
+## 2026-07-21 - Run 88
+
+Completed:
+
+- Started and completed US-216E - Federation All-Pass Round on `feature/federation-all-pass`.
+- Confirmed the user-defined all-pass behavior:
+  - Four passes cancel the current deal.
+  - Cards are reshuffled and dealt again.
+  - The same dealer deals again.
+  - The same round number is retained.
+  - No scoring or history entry is created.
+- Added approved design and implementation-plan documents under `docs/superpowers/`.
+- Added `FederationAuctionService` and public auction contracts.
+- Added auction validation for round number, four unique players, dealer membership, action ownership, duplicate actions, and action count.
+- Added `redeal-required` and `continue-auction` outcomes.
+- Added `BrowserUiShellService.resolveFederationAuction` for Federation score sheets.
+- Kept the operation read-only:
+  - No scoring-service call.
+  - No repository save.
+  - No round-history, balance, leaderboard, or timestamp mutation.
+- Rejected Federation auction resolution for House Rules V1 score sheets.
+- Added service and browser-shell tests for all-pass, partial pass, bid continuation, invalid input, missing score sheets, House isolation, and persistence immutability.
+- TDD evidence:
+  - CI run 412 failed before the auction service and exports existed.
+  - CI run 415 passed after the core auction service implementation.
+  - CI run 416 failed before browser-shell integration existed.
+  - CI run 417 passed after the read-only browser-shell implementation.
+- Updated `README.md` and `BACKLOG.md`.
+- Pull request #10 remains open pending final verification and merge.
+
+Current item in progress:
+
+- US-220 - React/Vite Frontend Prototype.
+
+Blockers:
+
+- None for Federation backend rule support.
+- Frontend implementation has not started.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 98% complete.
+- Federation backend rule support: 100% complete.
+- Overall project: 99% complete.
+
 ## 2026-07-21 - Run 87
 
 Completed:
