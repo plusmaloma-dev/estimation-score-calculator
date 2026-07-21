@@ -1,5 +1,33 @@
 # Project Log
 
+## 2026-07-21 - Run 85
+
+Completed:
+
+- Finalized pull request #8 for game-level rule-set selection and persistence.
+- Verified GitHub Actions CI run 398 completed successfully:
+  - Typecheck passed.
+  - Test suite passed.
+  - Build passed.
+- Merged pull request #8 into `main` using squash merge commit `5c23007a043e25fcdac9b18ccc19b297e57c12e3`.
+- US-216C is now integrated into the main branch.
+
+Current item in progress:
+
+- US-216D - Federation 2026 end-to-end acceptance coverage for normal/owner/WITH/Risk/Dash/Super calls and Federation all-loser behavior.
+
+Blockers:
+
+- None for the merged game-level rule-set feature.
+- Federation All-Pass implementation remains sequenced after acceptance coverage.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 94% complete.
+- Federation rule support: 55% complete.
+- Overall project: 97% complete.
+
 ## 2026-07-21 - Run 84
 
 Completed:
