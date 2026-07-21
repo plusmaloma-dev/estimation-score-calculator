@@ -324,3 +324,27 @@ console.log(csv);
 ```
 
 Score-sheet CSV exports include round number, Over/Under type, player bid type, bid/actual/delta/score, status, role, risk metadata, cumulative running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format and preserves the game rule-set selection.
+
+## Federation All-Pass Auction Flow
+
+Federation auction resolution happens before trick entry and scoring. Four unique passes cancel the current deal and return a redeal instruction with the same dealer and the same round number.
+
+```ts
+const playerIds = ['A', 'B', 'C', 'D'];
+const auction = ui.resolveFederationAuction(scoreSheetId, {
+  roundNumber: 5,
+  dealerPlayerId: 'A',
+  actions: playerIds.map((playerId) => ({
+    playerId,
+    actionType: 'pass' as const,
+  })),
+});
+
+if (auction.status === 'redeal-required') {
+  console.log(auction.roundNumber); // 5
+  console.log(auction.nextDealerPlayerId); // A
+  // Shuffle and deal again, then begin a fresh auction.
+}
+```
+
+The cancelled deal is not written to the score sheet. Round history, balances, leaderboard, timestamps, Risk, bonuses, penalties, and multipliers remain unchanged. The method is available only for score sheets locked to `FEDERATION_2026`.
