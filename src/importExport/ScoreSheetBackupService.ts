@@ -1,4 +1,5 @@
 import type { PersistedScoreSheet } from '../persistence/types.js';
+import { isScoringRuleSetId, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
 import {
   SCORE_SHEET_BACKUP_FORMAT,
   SCORE_SHEET_BACKUP_VERSION,
@@ -60,7 +61,7 @@ export class ScoreSheetBackupService {
     return {
       valid: true,
       errors: [],
-      document: this.cloneBackupDocument(document as unknown as ScoreSheetBackupDocument),
+      document: this.normalizeBackupDocument(document as unknown as ScoreSheetBackupDocument),
     };
   }
 
@@ -87,6 +88,16 @@ export class ScoreSheetBackupService {
 
     if (!this.isRecord(scoreSheet.gameInput)) {
       errors.push(`${prefix}.gameInput is required.`);
+    } else if (scoreSheet.gameInput.ruleSet !== undefined && !isScoringRuleSetId(scoreSheet.gameInput.ruleSet)) {
+      errors.push(`${prefix}.gameInput.ruleSet is unsupported: ${String(scoreSheet.gameInput.ruleSet)}.`);
+    }
+
+    if (scoreSheet.gameResult !== undefined) {
+      if (!this.isRecord(scoreSheet.gameResult)) {
+        errors.push(`${prefix}.gameResult must be an object when provided.`);
+      } else if (scoreSheet.gameResult.ruleSet !== undefined && !isScoringRuleSetId(scoreSheet.gameResult.ruleSet)) {
+        errors.push(`${prefix}.gameResult.ruleSet is unsupported: ${String(scoreSheet.gameResult.ruleSet)}.`);
+      }
     }
   }
 
@@ -96,8 +107,30 @@ export class ScoreSheetBackupService {
     }
   }
 
-  private cloneBackupDocument(document: ScoreSheetBackupDocument): ScoreSheetBackupDocument {
-    return JSON.parse(JSON.stringify(document)) as ScoreSheetBackupDocument;
+  private normalizeBackupDocument(document: ScoreSheetBackupDocument): ScoreSheetBackupDocument {
+    const clone = JSON.parse(JSON.stringify(document)) as ScoreSheetBackupDocument;
+
+    return {
+      ...clone,
+      scoreSheets: clone.scoreSheets.map((scoreSheet) => {
+        const ruleSet = resolveScoringRuleSetId(scoreSheet.gameInput.ruleSet);
+        return {
+          ...scoreSheet,
+          gameInput: {
+            ...scoreSheet.gameInput,
+            ruleSet,
+          },
+          ...(scoreSheet.gameResult === undefined
+            ? {}
+            : {
+                gameResult: {
+                  ...scoreSheet.gameResult,
+                  ruleSet,
+                },
+              }),
+        };
+      }),
+    };
   }
 
   private cloneScoreSheet(scoreSheet: PersistedScoreSheet): PersistedScoreSheet {
