@@ -44,12 +44,13 @@
 | House Rules V1 high-call update | Done | 100% |
 | Game-level rule-set selection and persistence | Done | 100% |
 | Federation 2026 acceptance coverage | Done | 100% |
-| Federation rule-set support | In progress | 80% |
+| Federation All-Pass Round | Done | 100% |
+| Federation backend rule-set support | Done | 100% |
 | React/Vite frontend prototype | Ready | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **96%**
+Post-MVP progress: **98%**
 
 ## Completed MVP Items
 
@@ -150,6 +151,18 @@ Status: **Done**
 - Repaired five previously dormant rule-selection fixtures to use valid Estimation bids.
 - GitHub Actions CI run 406 passed with all 128 tests executing.
 
+### US-216E — Federation All-Pass Round
+Status: **Done**
+
+- Added a dedicated Federation auction-resolution service before trick scoring.
+- Four unique pass actions cancel the current deal and return `redeal-required`.
+- The same dealer deals the replacement hand.
+- The same round number is reused.
+- No tricks, scores, bonuses, penalties, Risk, Double Risk, or multipliers are created.
+- No completed round or score-sheet persistence mutation is created.
+- Auctions with fewer than four passes or any bid return `continue-auction`.
+- House Rules V1 score sheets reject the Federation-only auction flow.
+
 ### US-217A — Player Performance Analytics
 Status: **Done**
 
@@ -167,20 +180,14 @@ Status: **Done**
 
 ## Ready
 
-### US-216E — Federation All-Pass Round
-Status: **Ready**
-
-- Model the official all-pass behavior separately from the House all-loser multiplier.
-- Resolve the round to No Trump and start calls with the dealer.
-- Ensure no auction, Risk, or other extra bonus is applied.
-
 ### US-220 — React/Vite Frontend Prototype
-Status: **Ready after Federation All-Pass or can proceed in parallel**
+Status: **Ready**
 
 - Create a browser app shell using the existing framework-neutral Browser UI Shell services.
 - Allow four-player score-sheet creation.
 - Allow game-level rule-set selection before starting.
 - Show the selected rule set on game summaries and reopened sessions.
+- Add Federation auction pass/bid entry and redeal guidance.
 - Allow round entry and validation preview.
 - Show round results, running balances, leaderboard, analytics, and export actions.
 - Use local storage for the first browser prototype.
