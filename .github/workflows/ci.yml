@@ -27,4 +27,13 @@ jobs:
         run: npm install
 
       - name: Validate package
-        run: npm run ci
+        run: |
+          set -o pipefail
+          npm run ci 2>&1 | tee ci-output.log
+
+      - name: Upload validation output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-output
+          path: ci-output.log
