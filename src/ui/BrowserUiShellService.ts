@@ -1,11 +1,13 @@
 import type { EstimationBid } from '../domain/bid.js';
+import { FederationAuctionService } from '../auction/FederationAuctionService.js';
+import type { FederationAuctionAction, FederationAuctionResolution } from '../auction/types.js';
 import type { AnalyticsScreenModel } from '../browser/analytics/AnalyticsScreenModel.js';
 import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.js';
 import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryModel.js';
 import { GameSummaryViewService } from '../browser/gameSummary/GameSummaryViewService.js';
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
-import { isScoringRuleSetId, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
+import { FEDERATION_2026, isScoringRuleSetId, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
 import type { PersistedScoreSheet, PersistedScoreSheetMetadata, ScoreSheetRepository } from '../persistence/types.js';
@@ -38,6 +40,12 @@ export interface UiRoundEntryInput {
   readonly roundMultiplier?: number;
   readonly riskPlayerId?: string;
   readonly bidOwnerPlayerId?: string;
+}
+
+export interface UiFederationAuctionInput {
+  readonly roundNumber: number;
+  readonly dealerPlayerId: string;
+  readonly actions: readonly FederationAuctionAction[];
 }
 
 export interface UiValidationResult {
@@ -119,6 +127,7 @@ export class BrowserUiShellService {
     private readonly backupService = new ScoreSheetBackupService(),
     private readonly analyticsViewService = new AnalyticsViewService(),
     private readonly gameSummaryViewService = new GameSummaryViewService(),
+    private readonly federationAuctionService = new FederationAuctionService(),
   ) {}
 
   validatePlayerSetup(players: readonly UiPlayerSetupInput[]): UiValidationResult {
@@ -242,6 +251,35 @@ export class BrowserUiShellService {
       errors: [],
       summary: this.gameSummaryViewService.buildModel(scoreSheet, { generatedAt }),
     };
+  }
+
+  resolveFederationAuction(
+    scoreSheetId: string,
+    input: UiFederationAuctionInput,
+  ): FederationAuctionResolution {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return {
+        valid: false,
+        errors: [`Score sheet not found: ${scoreSheetId}.`],
+        status: 'invalid',
+      };
+    }
+
+    if (resolveScoringRuleSetId(scoreSheet.gameInput.ruleSet) !== FEDERATION_2026) {
+      return {
+        valid: false,
+        errors: ['Federation auction resolution is only available for FEDERATION_2026 score sheets.'],
+        status: 'invalid',
+      };
+    }
+
+    return this.federationAuctionService.resolve({
+      roundNumber: input.roundNumber,
+      dealerPlayerId: input.dealerPlayerId,
+      playerIds: scoreSheet.playerOrder,
+      actions: input.actions,
+    });
   }
 
   previewRound(input: UiRoundEntryInput): UiRoundPreviewResult {
