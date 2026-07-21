@@ -28,7 +28,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       return this.calculateDashCallScore(context);
     }
 
-    if (evaluation.isHighContract && evaluation.riskType === 'high-contract') {
+    if (evaluation.isHighContract) {
       const highContractScore = this.calculateHighContractScore(context);
       if (highContractScore !== undefined) {
         return highContractScore;
@@ -78,25 +78,44 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     const notes: string[] = [];
 
     if (evaluation.didMatchBid) {
-      if (profile.highContractWinBase === undefined || profile.highContractWinStep === undefined) {
-        return undefined;
+      let score: number;
+
+      if (profile.highContractSuccessFormula === 'square') {
+        score = playerBid.tricks * playerBid.tricks;
+        notes.push('High contract successful: call-squared House Rules formula applied.');
+      } else {
+        if (profile.highContractWinBase === undefined || profile.highContractWinStep === undefined) {
+          return undefined;
+        }
+
+        score = profile.highContractWinBase + (playerBid.tricks - highContractThreshold) * profile.highContractWinStep;
+        notes.push('High contract successful: configured linear high-contract formula applied.');
       }
 
-      let score = profile.highContractWinBase + (playerBid.tricks - highContractThreshold) * profile.highContractWinStep;
-      notes.push('High contract successful: fixed high-contract winner formula applied.');
       score = this.applyRisk(score, context, notes);
       score = this.applyOnlyWinnerLoser(score, context, notes);
       // x2 deliberately not applied to high contracts.
       return this.result(context, score, 'success', notes);
     }
 
-    if (profile.highContractLossBasePenalty === undefined || profile.highContractLossStepPenalty === undefined) {
-      return undefined;
+    let score: number;
+
+    if (profile.highContractFailurePenaltyBase !== undefined && profile.highContractFailurePenaltyStep !== undefined) {
+      const penalty =
+        profile.highContractFailurePenaltyBase +
+        (playerBid.tricks - highContractThreshold) * profile.highContractFailurePenaltyStep;
+      score = -evaluation.delta - penalty;
+      notes.push(`High contract failed: escalating House Rules base penalty applied: ${penalty}.`);
+    } else {
+      if (profile.highContractLossBasePenalty === undefined || profile.highContractLossStepPenalty === undefined) {
+        return undefined;
+      }
+
+      const basePenalty = profile.highContractLossBasePenalty + (playerBid.tricks - highContractThreshold) * profile.highContractLossStepPenalty;
+      score = -evaluation.delta + basePenalty;
+      notes.push('High contract failed: configured linear high-contract base penalty applied.');
     }
 
-    const basePenalty = profile.highContractLossBasePenalty + (playerBid.tricks - highContractThreshold) * profile.highContractLossStepPenalty;
-    let score = -evaluation.delta + basePenalty;
-    notes.push('High contract failed: high-contract base penalty plus delta applied.');
     notes.push(`Difference from bid: ${evaluation.delta}.`);
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
