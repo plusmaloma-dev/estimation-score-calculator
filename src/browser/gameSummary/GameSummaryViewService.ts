@@ -26,6 +26,7 @@ export class GameSummaryViewService {
       id: scoreSheet.id,
       name: scoreSheet.name,
       status: scoreSheet.status,
+      ruleSet: gameResult.ruleSet,
       players: scoreSheet.playerOrder,
       roundCount: scoreSheet.roundCount,
       createdAtIso: scoreSheet.createdAtIso,
