@@ -27,8 +27,10 @@ Completed:
   - CI run 415 passed after the core auction service implementation.
   - CI run 416 failed before browser-shell integration existed.
   - CI run 417 passed after the read-only browser-shell implementation.
+- Final GitHub Actions CI run 420 passed with typecheck, the complete test suite, and build.
 - Updated `README.md` and `BACKLOG.md`.
-- Pull request #10 remains open pending final verification and merge.
+- Merged pull request #10 into `main` using squash merge commit `5c85aa4fa1705f7379fd4db216a7f85d464197d2`.
+- US-216E and the currently defined Federation backend rule set are now integrated into `main`.
 
 Current item in progress:
 
