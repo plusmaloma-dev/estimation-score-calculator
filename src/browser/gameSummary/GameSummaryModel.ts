@@ -1,5 +1,6 @@
 import type { AnalyticsScreenMetric, AnalyticsScreenModel } from '../analytics/AnalyticsScreenModel.js';
 import type { PersistedScoreSheetStatus } from '../../persistence/types.js';
+import type { ScoringRuleSetId } from '../../scoring/ruleSets.js';
 
 export interface GameSummaryLeaderboardRow {
   readonly rank: number;
@@ -26,6 +27,7 @@ export interface GameSummaryModel {
   readonly id: string;
   readonly name: string;
   readonly status: PersistedScoreSheetStatus;
+  readonly ruleSet: ScoringRuleSetId;
   readonly players: readonly string[];
   readonly roundCount: number;
   readonly createdAtIso: string;

@@ -46,3 +46,7 @@ export const federation2026ScoringTable: FederationScoringTable = {
 export function isScoringRuleSetId(value: unknown): value is ScoringRuleSetId {
   return value === HOUSE_RULES_V1 || value === FEDERATION_2026;
 }
+
+export function resolveScoringRuleSetId(value: unknown): ScoringRuleSetId {
+  return isScoringRuleSetId(value) ? value : HOUSE_RULES_V1;
+}

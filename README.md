@@ -15,6 +15,36 @@ Score calculation engine for the Egyptian Estimation card game (إستيميشن
 - Optional score-sheet persistence boundary
 - Game/player statistics summaries
 - Versioned JSON backup import/export boundary
+- Game-level selection between House Rules V1 and Federation 2026
+
+## Rule-Set Selection
+
+Select one scoring rule set when creating a game. The selection is stored on `MvpGameInput`, used for every round, and preserved by score-sheet repositories and JSON backups.
+
+```ts
+import {
+  EstimationMvpService,
+  FEDERATION_2026,
+  HOUSE_RULES_V1,
+} from './src/index.js';
+
+const houseGame = new EstimationMvpService().calculateGame({
+  ruleSet: HOUSE_RULES_V1,
+  playerOrder: ['A', 'B', 'C', 'D'],
+  rounds: [],
+});
+
+const federationGame = new EstimationMvpService().calculateGame({
+  ruleSet: FEDERATION_2026,
+  playerOrder: ['A', 'B', 'C', 'D'],
+  rounds: [],
+});
+
+console.log(houseGame.ruleSet);
+console.log(federationGame.ruleSet);
+```
+
+Games and imported backups without a stored selection resolve to `HOUSE_RULES_V1`. Browser-created score sheets always store the resolved selection, and later round saves keep it locked for the game.
 
 ## Usage Example
 
@@ -62,6 +92,7 @@ Use the `ScoreSheetRepository` interface when a UI/API needs to save and restore
 ```ts
 import {
   EstimationMvpService,
+  HOUSE_RULES_V1,
   InMemoryScoreSheetRepository,
 } from './src/index.js';
 
@@ -69,6 +100,7 @@ const service = new EstimationMvpService();
 const repository = new InMemoryScoreSheetRepository();
 
 const gameInput = {
+  ruleSet: HOUSE_RULES_V1,
   playerOrder: ['A', 'B', 'C', 'D'],
   rounds: [
     {
@@ -159,6 +191,7 @@ The document-store adapter intentionally does not import database libraries. A s
 The shell supports:
 
 - Four-player score-sheet setup validation.
+- Game-level scoring rule-set selection.
 - Draft score-sheet creation through a `ScoreSheetRepository`.
 - Round preview through `EstimationMvpService` before saving.
 - Valid-round save flow with updated game result and leaderboard.
@@ -168,6 +201,7 @@ The shell supports:
 ```ts
 import {
   BrowserUiShellService,
+  FEDERATION_2026,
   LocalStorageScoreSheetRepository,
 } from './src/index.js';
 
@@ -177,6 +211,7 @@ const ui = new BrowserUiShellService(
 
 const created = ui.createScoreSheet({
   name: 'Friday Game',
+  ruleSet: FEDERATION_2026,
   players: [
     { id: 'A', name: 'Ahmed' },
     { id: 'B', name: 'Bassem' },
@@ -190,6 +225,7 @@ if (!created.valid) {
 }
 
 const scoreSheetId = created.scoreSheet?.id ?? '';
+console.log(created.scoreSheet?.gameInput.ruleSet);
 console.log(ui.getRoundHistory(scoreSheetId));
 console.log(ui.getLeaderboard(scoreSheetId));
 ```
@@ -267,7 +303,7 @@ const markdown = new ScoreSheetMarkdownExportService().exportScoreSheet({
 console.log(markdown);
 ```
 
-Markdown score-sheet exports include final standings, invalid-round notes, per-round deltas, and running scores. JSON backup remains the machine-readable import/export format.
+Markdown score-sheet exports include final standings, invalid-round notes, per-round deltas, and running scores. JSON backup remains the machine-readable import/export format and preserves the game rule-set selection.
 
 ## Score-Sheet CSV Export
 
@@ -287,4 +323,4 @@ const csv = new ScoreSheetCsvExportService().exportScoreSheet({
 console.log(csv);
 ```
 
-Score-sheet CSV exports include round number, Over/Under type, player bid type, bid/actual/delta/score, status, role, risk metadata, cumulative running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format.
+Score-sheet CSV exports include round number, Over/Under type, player bid type, bid/actual/delta/score, status, role, risk metadata, cumulative running score, notes, and invalid-round validation notes. JSON backup remains the machine-readable import/export format and preserves the game rule-set selection.
