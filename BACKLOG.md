@@ -43,12 +43,13 @@
 | Rule baseline formalization | Done | 100% |
 | House Rules V1 high-call update | Done | 100% |
 | Game-level rule-set selection and persistence | Done | 100% |
-| Federation rule-set support | In progress | 55% |
+| Federation 2026 acceptance coverage | Done | 100% |
+| Federation rule-set support | In progress | 80% |
 | React/Vite frontend prototype | Ready | 0% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **94%**
+Post-MVP progress: **96%**
 
 ## Completed MVP Items
 
@@ -70,7 +71,7 @@ Status: **Done**
 ### US-211 — CI Validation
 Status: **Done**
 
-- Local `npm run ci` confirmed: typecheck passed, tests passed, build passed.
+- `npm run ci` validates typecheck, all top-level compiled tests, and build.
 
 ## Completed Post-MVP Items
 
@@ -132,7 +133,22 @@ Status: **Done**
 - Normalized legacy backups without a selection to `HOUSE_RULES_V1`.
 - Rejected unsupported backup rule-set values.
 - Added regression tests for House/Federation strategy selection, browser persistence, backup compatibility, and summary projection.
-- GitHub Actions CI run 392 passed before final documentation commits.
+
+### US-216D — Federation 2026 Acceptance Coverage
+Status: **Done**
+
+- Added end-to-end game-level examples for normal players, auction owners, WITH, Risk, and Double Risk.
+- Added Federation Dash Under/Over success and failure examples.
+- Added Super 8 / Super 9 / Super 10 success and failure examples.
+- Confirmed Only Winner and Only Loser modifiers.
+- Separated Federation all-loser behavior from House Rules V1:
+  - Federation players retain their calculated negative scores.
+  - Federation does not create a next-round x2/x4 multiplier.
+  - House Rules V1 keeps zero scores and its next-round multiplier.
+- Prevented the Federation Dash Under table score from receiving a second automatic Risk adjustment.
+- Corrected the test command so all top-level compiled tests execute.
+- Repaired five previously dormant rule-selection fixtures to use valid Estimation bids.
+- GitHub Actions CI run 406 passed with all 128 tests executing.
 
 ### US-217A — Player Performance Analytics
 Status: **Done**
@@ -149,28 +165,17 @@ Status: **Done**
 ### US-219 — Game Summary and Leaderboard Compatibility Fixes
 Status: **Done**
 
-## In Progress
-
-### US-216D — Federation 2026 Acceptance Coverage
-Status: **In progress**
-
-- Add end-to-end game-level examples for normal players, auction owners, WITH, Risk, and Double Risk.
-- Add Federation Dash Under/Over success and failure examples.
-- Add Super 8 / Super 9 / Super 10 success and failure examples.
-- Confirm Only Winner and Only Loser modifiers.
-- Confirm Federation all-loser behavior separately from House Rules V1.
-
 ## Ready
 
 ### US-216E — Federation All-Pass Round
-Status: **Ready after US-216D**
+Status: **Ready**
 
 - Model the official all-pass behavior separately from the House all-loser multiplier.
 - Resolve the round to No Trump and start calls with the dealer.
 - Ensure no auction, Risk, or other extra bonus is applied.
 
 ### US-220 — React/Vite Frontend Prototype
-Status: **Ready after the Federation acceptance slice or can proceed in parallel**
+Status: **Ready after Federation All-Pass or can proceed in parallel**
 
 - Create a browser app shell using the existing framework-neutral Browser UI Shell services.
 - Allow four-player score-sheet creation.
