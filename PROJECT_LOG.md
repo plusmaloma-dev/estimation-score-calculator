@@ -1,5 +1,64 @@
 # Project Log
 
+## 2026-07-21 - Run 84
+
+Completed:
+
+- Merged pull request #7 into `main` with merge commit `7b0550ccfb067caec6ee6fb70a6fb308c89f4415`.
+- Started and completed US-216C - Game-Level Rule-Set Selection and Persistence on `feature/game-rule-set-selection`.
+- Added `MvpGameInput.ruleSet` and resolved `MvpGameResult.ruleSet`.
+- Added `resolveScoringRuleSetId` so legacy games and backups default to `HOUSE_RULES_V1`.
+- Wired `EstimationMvpService` to select scoring behavior automatically through `ScoringStrategyFactory`:
+  - `HOUSE_RULES_V1` uses the canonical `houseRulesV1ScoringProfile`.
+  - `FEDERATION_2026` uses `Federation2026ScoringStrategy`.
+- Locked one selected scoring rule set across all rounds in a game.
+- Preserved backward compatibility for existing direct round calculations and older configurable profiles.
+- Updated `BrowserUiShellService`:
+  - Score-sheet creation accepts a rule-set selection.
+  - Missing selection defaults to House Rules V1.
+  - Saved rounds preserve and use the score sheet's locked rule set.
+  - Recalculated round history uses the stored rule set.
+  - Unsupported runtime rule-set values are rejected.
+- Persisted the selection through existing in-memory, local-storage, and document-store boundaries via `gameInput`.
+- Updated backup behavior:
+  - Export preserves the selected rule set.
+  - Import preserves valid House/Federation selections.
+  - Legacy backups are normalized to House Rules V1.
+  - Unsupported rule-set values are rejected.
+  - Legacy game results are normalized to the game input's authoritative rule set.
+- Added the selected rule set to the game-summary model.
+- Added regression tests for:
+  - Legacy House defaulting.
+  - Automatic Federation strategy selection.
+  - Canonical House profile selection.
+  - One rule set across multiple game rounds.
+  - Browser score-sheet creation and round-save locking.
+  - Backup round-trip, legacy normalization, and invalid values.
+  - Game-summary rule-set projection.
+- Added approved design and implementation-plan documents under `docs/superpowers/`.
+- Updated `README.md` and `BACKLOG.md`.
+- TDD evidence:
+  - CI run 386 failed before game-level interfaces existed.
+  - CI run 389 failed before browser selection persistence existed.
+  - CI run 393 failed before game summaries exposed the rule set.
+  - CI run 392 passed after the core service, browser, and backup implementation.
+
+Current item in progress:
+
+- US-216D - Federation 2026 end-to-end acceptance coverage for normal/owner/WITH/Risk/Dash/Super calls and all-loser behavior.
+
+Blockers:
+
+- None for game-level rule-set selection and persistence.
+- Federation All-Pass implementation follows completion of the acceptance coverage slice.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 94% complete.
+- Federation rule support: 55% complete.
+- Overall project: 97% complete.
+
 ## 2026-07-20 - Run 83
 
 Completed:
@@ -62,7 +121,7 @@ Completed:
   - High-contract multiplier exclusion.
   - Federation 2026 Super 8 isolation.
 - Added design and implementation-plan documents under `docs/superpowers/`.
-- GitHub Actions CI run 378 completed successfully after the documentation/log commits.
+- GitHub Actions CI run 378 completed successfully after the implementation commit.
 - Updated `PROJECT_RULES.md`, `RULE_BASELINE_V1.md`, and `BACKLOG.md`.
 
 Current item in progress:
