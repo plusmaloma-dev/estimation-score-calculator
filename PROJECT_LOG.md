@@ -1,5 +1,51 @@
 # Project Log
 
+## 2026-07-21 - Run 86
+
+Completed:
+
+- Started and completed US-216D - Federation 2026 Acceptance Coverage on `feature/federation-2026-acceptance`.
+- Added approved design and implementation-plan documents under `docs/superpowers/`.
+- Added game-level Federation acceptance coverage for:
+  - Normal player success and failure.
+  - Auction owner success and failure.
+  - WITH success and failure.
+  - Risk and Double Risk for a non-owner risk taker.
+  - Dash Under and Dash Over success and failure.
+  - Super 8, Super 9, and Super 10 success and failure.
+  - Only Winner and Only Loser modifiers.
+  - Federation and House all-loser isolation.
+- Repaired Federation-specific orchestration:
+  - Federation all-loser rounds retain each player's calculated negative score.
+  - Federation all-loser rounds do not create the House x2/x4 next-round multiplier.
+  - Federation Dash Under uses its table score without a second automatic Risk adjustment.
+  - House Rules V1 all-loser behavior remains unchanged.
+- Discovered that the previous test command did not execute top-level compiled test files.
+- Updated the test command from `dist/tests/**/*.test.js` to `dist/tests/*.test.js` so the complete current test suite runs.
+- CI run 402 provided the required red evidence after the full test suite was activated.
+- The activated suite exposed five previously dormant rule-selection tests with invalid zero-trick `normal` bids and missing trump suits.
+- Repaired those test fixtures to use valid normal and Dash bids without changing production behavior.
+- CI run 406 passed with all 128 tests executing.
+- Removed the temporary CI diagnostic artifact step after resolving the failures.
+- Updated `BACKLOG.md` and set Federation All-Pass as the next item.
+- Pull request #9 remains open pending final verification and merge.
+
+Current item in progress:
+
+- US-216E - Federation All-Pass Round.
+
+Blockers:
+
+- None for Federation 2026 acceptance coverage.
+- All-Pass requires its own bidding-flow model and remains isolated from House all-loser handling.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 96% complete.
+- Federation rule support: 80% complete.
+- Overall project: 98% complete.
+
 ## 2026-07-21 - Run 85
 
 Completed:
