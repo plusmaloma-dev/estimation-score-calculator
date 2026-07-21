@@ -1,5 +1,32 @@
 # Project Log
 
+## 2026-07-21 - Run 87
+
+Completed:
+
+- Finalized pull request #9 for Federation 2026 acceptance coverage.
+- Verified final GitHub Actions CI run 409 completed successfully with the normal workflow restored.
+- Merged pull request #9 into `main` using squash merge commit `6a3a91864e0bb5ee21f3a6f5e8af8142aeee6169`.
+- US-216D is now integrated into the main branch.
+- The active test command now executes all top-level compiled test files.
+- Federation all-loser and Dash Under behavior remain isolated from House Rules V1.
+
+Current item in progress:
+
+- US-216E - Federation All-Pass Round.
+
+Blockers:
+
+- None for the merged Federation acceptance slice.
+- Federation All-Pass requires a dedicated bidding-flow state and must not reuse House all-loser behavior.
+
+Overall progress:
+
+- MVP: 100% complete.
+- Post-MVP: 96% complete.
+- Federation rule support: 80% complete.
+- Overall project: 98% complete.
+
 ## 2026-07-21 - Run 86
 
 Completed:
