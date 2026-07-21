@@ -8,6 +8,7 @@ import type {
 } from './types.js';
 import type { EstimationBid } from '../domain/bid.js';
 import { ConfigurableScoringStrategy } from './ConfigurableScoringStrategy.js';
+import { FEDERATION_2026 } from './ruleSets.js';
 
 export class ScoreCalculationService {
   constructor(private readonly strategy: ScoringStrategy = new ConfigurableScoringStrategy()) {}
@@ -79,8 +80,9 @@ export class ScoreCalculationService {
     }
 
     const ownerOutcome = this.resolveOwnerOutcome(input.bidOwnerPlayerId, evaluationsByPlayer);
+    const usesHouseAllLoserHandling = input.profile.ruleSet !== FEDERATION_2026;
 
-    if (errors.length === 0 && allPlayersLost) {
+    if (errors.length === 0 && allPlayersLost && usesHouseAllLoserHandling) {
       const nextRoundMultiplier = this.resolveNextAllLoserMultiplier(input.roundMultiplier);
 
       return {
@@ -162,7 +164,11 @@ export class ScoreCalculationService {
     const didMatchBid = delta === 0;
     const highContractThreshold = input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY;
     const isHighContract = bid.tricks >= highContractThreshold;
-    const isDashUnderRisk = input.roundType === 'under' && bid.bidType === 'dash' && roundRiskLevel > 0;
+    const isDashUnderRisk =
+      input.profile.ruleSet !== FEDERATION_2026 &&
+      input.roundType === 'under' &&
+      bid.bidType === 'dash' &&
+      roundRiskLevel > 0;
     const isSequenceRiskTaker = input.riskPlayerId === bid.playerId && roundRiskLevel > 0;
     const isRiskTaker = isDashUnderRisk || isSequenceRiskTaker;
 
