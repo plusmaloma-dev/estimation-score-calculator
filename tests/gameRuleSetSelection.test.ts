@@ -9,21 +9,23 @@ import {
 } from '../src/index.js';
 
 function highCallRound(roundNumber: number, call: 8 | 9 | 10): MvpRoundInput {
+  const supportingCall = call === 9 ? 5 : 4;
+
   return {
     roundNumber,
     bidOwnerPlayerId: 'A',
     profile: houseRulesV1ScoringProfile,
     bids: [
-      { playerId: 'A', bidType: 'normal', tricks: call },
-      { playerId: 'B', bidType: 'normal', tricks: 2 },
-      { playerId: 'C', bidType: 'normal', tricks: 2 },
-      { playerId: 'D', bidType: 'normal', tricks: 2 },
+      { playerId: 'A', bidType: 'normal', tricks: call, trumpSuit: 'spades' },
+      { playerId: 'B', bidType: 'normal', tricks: supportingCall, trumpSuit: 'hearts' },
+      { playerId: 'C', bidType: 'dash', tricks: 0 },
+      { playerId: 'D', bidType: 'dash', tricks: 0 },
     ],
     actualResults: [
       { playerId: 'A', actualTricks: call },
-      { playerId: 'B', actualTricks: 2 },
-      { playerId: 'C', actualTricks: 1 },
-      { playerId: 'D', actualTricks: 10 - call },
+      { playerId: 'B', actualTricks: 12 - call },
+      { playerId: 'C', actualTricks: 0 },
+      { playerId: 'D', actualTricks: 1 },
     ],
   };
 }
