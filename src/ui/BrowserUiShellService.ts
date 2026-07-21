@@ -4,10 +4,18 @@ import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.
 import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryModel.js';
 import { GameSummaryViewService } from '../browser/gameSummary/GameSummaryViewService.js';
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
+import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
+import { isScoringRuleSetId, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
 import type { ScoreSheetBackupDocument } from '../importExport/types.js';
 import type { PersistedScoreSheet, PersistedScoreSheetMetadata, ScoreSheetRepository } from '../persistence/types.js';
-import { EstimationMvpService, type MvpGameResult, type MvpRoundInput, type MvpRoundResult } from '../services/EstimationMvpService.js';
+import {
+  EstimationMvpService,
+  type MvpGameInput,
+  type MvpGameResult,
+  type MvpRoundInput,
+  type MvpRoundResult,
+} from '../services/EstimationMvpService.js';
 import type { LeaderboardEntry } from '../services/LeaderboardService.js';
 
 export interface UiPlayerSetupInput {
@@ -18,6 +26,7 @@ export interface UiPlayerSetupInput {
 export interface UiCreateScoreSheetInput {
   readonly name: string;
   readonly players: readonly UiPlayerSetupInput[];
+  readonly ruleSet?: ScoringRuleSetId;
   readonly nowIso?: string;
 }
 
@@ -151,6 +160,10 @@ export class BrowserUiShellService {
       errors.push('Score-sheet name is required.');
     }
 
+    if (input.ruleSet !== undefined && !isScoringRuleSetId(input.ruleSet)) {
+      errors.push(`Unsupported scoring rule set: ${String(input.ruleSet)}.`);
+    }
+
     const playerSetup = this.validatePlayerSetup(input.players);
     errors.push(...playerSetup.errors);
 
@@ -159,7 +172,11 @@ export class BrowserUiShellService {
     }
 
     const playerOrder = input.players.map((player) => player.id.trim());
-    const gameInput = { rounds: [], playerOrder };
+    const gameInput: MvpGameInput = {
+      rounds: [],
+      playerOrder,
+      ruleSet: resolveScoringRuleSetId(input.ruleSet),
+    };
     const gameResult = this.mvpService.calculateGame(gameInput);
     const scoreSheet = this.repository.save({
       name: input.name,
@@ -239,14 +256,19 @@ export class BrowserUiShellService {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
 
-    const preview = this.previewRound(input);
-    if (!preview.valid) {
-      return { valid: false, errors: preview.errors };
+    const roundInput = this.toMvpRoundInput(input);
+    const previewRound = this.mvpService.calculateRound({
+      ...roundInput,
+      ruleSet: scoreSheet.gameInput.ruleSet,
+    });
+    if (!previewRound.valid) {
+      return { valid: false, errors: previewRound.errors };
     }
 
-    const gameInput = {
+    const gameInput: MvpGameInput = {
       ...scoreSheet.gameInput,
-      rounds: [...scoreSheet.gameInput.rounds, this.toMvpRoundInput(input)],
+      ruleSet: resolveScoringRuleSetId(scoreSheet.gameInput.ruleSet),
+      rounds: [...scoreSheet.gameInput.rounds, roundInput],
     };
     const gameResult = this.mvpService.calculateGame(gameInput);
     if (!gameResult.valid) {
@@ -327,7 +349,10 @@ export class BrowserUiShellService {
 
   private buildRoundHistory(scoreSheet: PersistedScoreSheet): readonly UiRoundHistoryEntry[] {
     return scoreSheet.gameInput.rounds.map((roundInput, index) => {
-      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound(roundInput);
+      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound({
+        ...roundInput,
+        ruleSet: scoreSheet.gameInput.ruleSet,
+      });
       const playerScores = roundResult.scoreResult?.playerScores ?? [];
       return {
         roundNumber: roundInput.roundNumber,
