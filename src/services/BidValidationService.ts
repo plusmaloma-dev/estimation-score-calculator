@@ -29,8 +29,12 @@ export class BidValidationService {
       errors.push('Player count and cards per player cannot exceed the 52-card deck size.');
     }
 
-    if (!['normal', 'dash', 'dash-call', 'with'].includes(bid.bidType)) {
-      errors.push('Bid type must be normal, dash, dash-call, or with.');
+    if (!['normal', 'dash', 'dash-call', 'with', 'hold'].includes(bid.bidType)) {
+      errors.push('Bid type must be normal, dash, dash-call, with, or hold.');
+    }
+
+    if (mode === 'auction-calls' && bid.bidType === 'hold') {
+      errors.push('Hold bids are only valid for accepted round estimates.');
     }
 
     if (!Number.isInteger(bid.tricks)) {
@@ -114,6 +118,9 @@ export class BidValidationService {
       } else {
         if (owner.bidType === 'with') {
           errors.push('The original highest estimator cannot be marked With.');
+        }
+        if (owner.bidType === 'hold') {
+          errors.push('The bid owner cannot be marked Hold.');
         }
 
         for (const leader of leaders) {
