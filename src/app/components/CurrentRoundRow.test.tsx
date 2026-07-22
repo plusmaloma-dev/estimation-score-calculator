@@ -66,20 +66,28 @@ describe('CurrentRoundRow', () => {
     expect(screen.getByLabelText('Ahmed estimate')).toHaveAttribute('max', '12');
   });
 
-  it('does not allow estimate acceptance while the highest estimate is tied', async () => {
+  it('marks equal highest callers With and the last caller Risk at O/U +2', async () => {
     const user = userEvent.setup();
     render(<table><tbody><CurrentRoundRow
       roundNumber={1}
       players={players}
+      biddingOrder={['A', 'B', 'C', 'D']}
       existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
       onSave={vi.fn()}
     /></tbody></table>);
 
-    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
-    await user.type(screen.getByLabelText('Mona estimate'), '5');
+    for (const [name, estimate] of [['Ahmed', '4'], ['Mona', '3'], ['Rami', '4'], ['Dina', '4']] as const) {
+      await user.type(screen.getByLabelText(`${name} estimate`), estimate);
+    }
 
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-    expect(screen.getByText('A unique highest estimate is required.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeDisabled();
+    expect(screen.getByLabelText('Ahmed trump')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('W');
+    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('W');
+    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('R');
+    expect(screen.getAllByText('+2').length).toBeGreaterThan(0);
+
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
+    expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeEnabled();
   });
 });
