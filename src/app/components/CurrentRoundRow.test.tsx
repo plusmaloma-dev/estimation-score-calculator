@@ -3,30 +3,52 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CurrentRoundRow } from './CurrentRoundRow.js';
 
+const players = [
+  { id: 'A', name: 'Ahmed' },
+  { id: 'B', name: 'Mona' },
+  { id: 'C', name: 'Rami' },
+  { id: 'D', name: 'Dina' },
+] as const;
+
 describe('CurrentRoundRow', () => {
-  it('collects estimates and actual tricks before saving', async () => {
+  it('automatically assigns the unique highest estimate and shows only that trump selector', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(<table><tbody><CurrentRoundRow
-      roundNumber={1}
-      players={[
-        { id: 'A', name: 'Ahmed' }, { id: 'B', name: 'Mona' },
-        { id: 'C', name: 'Rami' }, { id: 'D', name: 'Dina' },
-      ]}
-      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
+      roundNumber={11}
+      players={players}
+      existingTotals={{ A: 25, B: 39, C: 76, D: -70 }}
       onSave={onSave}
     /></tbody></table>);
 
-    await user.clear(screen.getByLabelText('Ahmed estimate'));
-    await user.type(screen.getByLabelText('Ahmed estimate'), '4');
-    await user.clear(screen.getByLabelText('Mona estimate'));
-    await user.type(screen.getByLabelText('Mona estimate'), '3');
-    await user.clear(screen.getByLabelText('Rami estimate'));
-    await user.type(screen.getByLabelText('Rami estimate'), '3');
-    await user.clear(screen.getByLabelText('Dina estimate'));
-    await user.type(screen.getByLabelText('Dina estimate'), '4');
+    expect(screen.queryByText('Winner')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
 
+    for (const [name, estimate] of [['Ahmed', '3'], ['Mona', '2'], ['Rami', '4'], ['Dina', '5']] as const) {
+      await user.type(screen.getByLabelText(`${name} estimate`), estimate);
+    }
+
+    expect(screen.queryByLabelText('Ahmed trump')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Mona trump')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Dina trump')).toBeInTheDocument();
     expect(screen.getByText('O/U +1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
+  });
+
+  it('does not show a trump selector while the highest estimate is tied', async () => {
+    const user = userEvent.setup();
+    render(<table><tbody><CurrentRoundRow
+      roundNumber={1}
+      players={players}
+      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
+    /></tbody></table>);
+
+    for (const [name, estimate] of [['Ahmed', '4'], ['Mona', '3'], ['Rami', '3'], ['Dina', '4']] as const) {
+      await user.type(screen.getByLabelText(`${name} estimate`), estimate);
+    }
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByText('A unique highest estimate is required.')).toBeInTheDocument();
   });
 });
