@@ -8,7 +8,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #f7f9f8; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 
@@ -101,6 +101,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .trump-select { width: min(100%, 2.9rem); min-width: 0; padding: .1rem; font-weight: 800; }
 .estimate-input:focus, .trick-input:focus, .trump-select:focus { outline: 2px solid #65ad96; outline-offset: 1px; border-color: #167d5a; }
 .estimate-annotations { display: block; min-height: .75rem; margin-top: .1rem; color: #d51118; font-size: clamp(.45rem, .52vw, .64rem); font-weight: 850; letter-spacing: .04em; }
+.with-decision-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem; margin-top: .15rem; }
+.with-decision-button { min-width: 0; min-height: 1.5rem; border: 1px solid #78a893; border-radius: .35rem; background: #edf8f3; color: #075c38; padding: .08rem .2rem; font-size: clamp(.4rem, .5vw, .58rem); font-weight: 800; line-height: 1.1; }
+.with-decision-button--hold { border-color: #d3a455; background: #fff8e8; color: #7a4f08; }
+.multiple-with-label { border-radius: 999px; background: #e7f6ef; color: #06613a; padding: .22rem .5rem; font-weight: 850; }
+.accepted-bid-label { color: #087443; font-weight: 750; }
 .pending-score { color: #697773; }
 .running-total { font-weight: 760; }
 .current-ou { color: #087443; font-size: clamp(.68rem, .8vw, .95rem); }
@@ -113,6 +118,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .round-action-panel { align-items: center; justify-content: flex-end; gap: .8rem; float: inline-end; }
 .current-round-hint { color: #68736f; font-size: .78rem; }
 
+.edit-round-scores-button { display: block; width: 1.45rem; min-height: 1.35rem; margin: .18rem auto 0; border: 1px solid #c7d3cf; border-radius: .35rem; background: white; color: #0b6650; padding: 0; font-size: .72rem; line-height: 1; }
+.edited-score-marker { display: block; width: fit-content; max-width: 100%; margin: .1rem auto 0; overflow: hidden; border-radius: 999px; background: #fff1c7; color: #744d00; padding: .08rem .26rem; font-size: clamp(.38rem, .45vw, .52rem); font-weight: 850; text-overflow: ellipsis; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+
 .score-sheet-legend { display: grid; grid-template-columns: 1fr 1fr 1.55fr; border: 1px solid #dce3e1; border-radius: .8rem; background: white; overflow: hidden; }
 .legend-group { display: grid; align-content: center; gap: .45rem; min-height: 5.25rem; padding: .8rem 1rem; border-inline-end: 1px solid #e1e6e4; font-size: .78rem; }
 .legend-group:last-child { border-inline-end: 0; }
@@ -122,6 +131,23 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .legend-failed { color: #d51118 !important; }
 .legend-suits { grid-template-columns: repeat(3, auto); }
 .legend-suits b { color: #111820; }
+
+.score-override-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; background: rgb(17 24 32 / 52%); }
+.score-override-dialog { width: min(100%, 46rem); max-height: min(90vh, 48rem); overflow: auto; border: 1px solid #cbd5d2; border-radius: 1rem; background: white; box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 24%); padding: 1rem; }
+.score-override-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: .85rem; border-bottom: 1px solid #e0e6e4; }
+.score-override-header h3 { margin: 0; }
+.score-override-header p { margin: .3rem 0 0; color: #61706b; font-size: .88rem; }
+.dialog-close-button { width: 2.25rem; min-height: 2.25rem; border: 1px solid #d2dbd8; border-radius: 999px; background: white; font-size: 1.4rem; }
+.score-override-player-list { display: grid; gap: .65rem; margin: 1rem 0; }
+.score-override-player { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(7rem, .7fr) auto; align-items: center; gap: .75rem; border: 1px solid #dde5e2; border-radius: .75rem; background: #fbfcfc; padding: .75rem; }
+.score-override-player__identity { display: grid; gap: .12rem; }
+.score-override-player__identity span { color: #61706b; font-size: .78rem; }
+.override-status { width: fit-content; margin-top: .2rem; border-radius: 999px; background: #fff1c7; color: #744d00; padding: .12rem .4rem; font-size: .72rem; }
+.score-override-player label, .score-override-reason { display: grid; gap: .3rem; font-weight: 750; }
+.score-override-player input { width: 100%; min-height: 2.55rem; border: 1px solid #bfcac7; border-radius: .55rem; padding: .45rem .6rem; }
+.restore-score-button { min-height: 2.4rem; border: 1px solid #c9d5d1; border-radius: .55rem; background: white; color: #0c6650; padding: .45rem .65rem; font-weight: 750; }
+.score-override-reason textarea { min-height: 5rem; resize: vertical; border: 1px solid #bfcac7; border-radius: .6rem; padding: .65rem; }
+.score-override-actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: 1rem; padding-top: .85rem; border-top: 1px solid #e0e6e4; }
 
 @media (max-width: 90rem) {
   .column-label-full { display: none; }
@@ -155,11 +181,16 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .score-sheet-table th, .score-sheet-table td { height: 2.55rem; padding-inline: .02rem; }
   .ranking-badge span:last-child { display: none; }
   .estimate-input, .trick-input, .trump-select { width: 100%; height: 1.65rem; padding: 0; font-size: .52rem; }
+  .with-decision-controls { display: grid; }
+  .with-decision-button { width: 100%; padding: .05rem; }
   .score-sheet-legend { grid-template-columns: 1fr; }
   .legend-group, .legend-suits { grid-column: auto; border-inline-end: 0; border-bottom: 1px solid #e1e6e4; }
   .legend-group:last-child { border-bottom: 0; }
   .round-summary, .round-action-panel { display: flex !important; width: 100%; float: none; }
   .round-action-panel { margin-top: .65rem; justify-content: space-between; }
+  .score-override-player { grid-template-columns: 1fr; }
+  .restore-score-button { width: 100%; }
+  .score-override-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }
 
 @media (min-width: 44rem) {
