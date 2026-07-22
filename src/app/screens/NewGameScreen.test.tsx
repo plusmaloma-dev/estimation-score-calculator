@@ -12,6 +12,7 @@ const services: AppServices = {
     getSessionHistory: () => ({ sessions: [] }),
     createScoreSheet,
     openSession: vi.fn(),
+    saveRound: vi.fn(),
   },
 };
 
