@@ -4,6 +4,7 @@ export type CurrentRoundPhase = 'estimating' | 'actuals';
 
 export interface CurrentRoundDraft {
   readonly playerOrder: readonly string[];
+  readonly estimateEntryOrder: readonly string[];
   readonly estimates: Readonly<Record<string, number | undefined>>;
   readonly actuals: Readonly<Record<string, number | undefined>>;
   readonly trumpSuit?: ContractSuit;
@@ -33,7 +34,14 @@ function withOverUnder(draft: Omit<CurrentRoundDraft, 'overUnder'>): CurrentRoun
 export function createCurrentRoundDraft(playerOrder: readonly string[]): CurrentRoundDraft {
   const estimates = Object.fromEntries(playerOrder.map((playerId) => [playerId, undefined]));
   const actuals = Object.fromEntries(playerOrder.map((playerId) => [playerId, undefined]));
-  return { playerOrder: [...playerOrder], estimates, actuals, overUnder: -13, phase: 'estimating' };
+  return {
+    playerOrder: [...playerOrder],
+    estimateEntryOrder: [],
+    estimates,
+    actuals,
+    overUnder: -13,
+    phase: 'estimating',
+  };
 }
 
 function assertPlayer(draft: CurrentRoundDraft, playerId: string): void {
@@ -41,10 +49,11 @@ function assertPlayer(draft: CurrentRoundDraft, playerId: string): void {
 }
 
 export function resolveHighestEstimatePlayerId(draft: CurrentRoundDraft): string | undefined {
-  const entries = draft.playerOrder.map((playerId) => [playerId, normalizedEstimate(draft, playerId)] as const);
-  const highest = Math.max(...entries.map(([, estimate]) => estimate));
+  const highest = Math.max(...draft.playerOrder.map((playerId) => normalizedEstimate(draft, playerId)));
   if (highest <= 0) return undefined;
-  return entries.find(([, estimate]) => estimate === highest)?.[0];
+
+  const isHighest = (playerId: string) => normalizedEstimate(draft, playerId) === highest;
+  return draft.estimateEntryOrder.find(isHighest) ?? draft.playerOrder.find(isHighest);
 }
 
 export function resolveWithPlayerIds(draft: CurrentRoundDraft): readonly string[] {
@@ -57,7 +66,16 @@ export function resolveWithPlayerIds(draft: CurrentRoundDraft): readonly string[
 }
 
 export function resolveAutomaticRiskPlayerId(draft: CurrentRoundDraft): string | undefined {
-  const lastCallerPlayerId = draft.playerOrder.at(-1);
+  const ownerPlayerId = resolveHighestEstimatePlayerId(draft);
+  if (ownerPlayerId === undefined || draft.playerOrder.length === 0) return undefined;
+
+  const ownerIndex = draft.playerOrder.indexOf(ownerPlayerId);
+  if (ownerIndex < 0) return undefined;
+
+  // The trump caller starts the estimate sequence. The player immediately before
+  // them in table order is therefore the final caller and potential Risk taker.
+  const lastCallerIndex = (ownerIndex - 1 + draft.playerOrder.length) % draft.playerOrder.length;
+  const lastCallerPlayerId = draft.playerOrder[lastCallerIndex];
   if (lastCallerPlayerId === undefined) return undefined;
 
   const totalEstimates = sumValues(draft.estimates);
@@ -101,10 +119,21 @@ export function currentRoundReducer(draft: CurrentRoundDraft, action: CurrentRou
     case 'set-estimate': {
       assertPlayer(draft, action.playerId);
       if (draft.phase !== 'estimating') return draft;
-      const previousWinner = resolveHighestEstimatePlayerId(draft);
-      const next = withOverUnder({ ...draft, estimates: { ...draft.estimates, [action.playerId]: action.value } });
-      const nextWinner = resolveHighestEstimatePlayerId(next);
-      return previousWinner !== nextWinner ? { ...next, trumpSuit: undefined } : next;
+
+      const previousOwner = resolveHighestEstimatePlayerId(draft);
+      const wasEntered = draft.estimates[action.playerId] !== undefined;
+      const estimateEntryOrder = action.value === undefined
+        ? draft.estimateEntryOrder.filter((playerId) => playerId !== action.playerId)
+        : wasEntered
+          ? draft.estimateEntryOrder
+          : [...draft.estimateEntryOrder, action.playerId];
+      const next = withOverUnder({
+        ...draft,
+        estimateEntryOrder,
+        estimates: { ...draft.estimates, [action.playerId]: action.value },
+      });
+      const nextOwner = resolveHighestEstimatePlayerId(next);
+      return previousOwner !== nextOwner ? { ...next, trumpSuit: undefined } : next;
     }
     case 'set-actual': {
       assertPlayer(draft, action.playerId);
