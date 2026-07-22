@@ -20,6 +20,7 @@ function createServices(): AppServices {
       }),
       createScoreSheet: vi.fn(),
       openSession: vi.fn(),
+      saveRound: vi.fn(),
     },
   };
 }
