@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import type { UiOpenSessionResult } from '../../index.js';
 import { ScoreSheetScreen } from './ScoreSheetScreen.js';
 
@@ -57,8 +58,6 @@ const emptyOpened: UiOpenSessionResult = {
   roundHistory: [],
 };
 
-const emptyShell = { openSession: () => emptyOpened };
-
 describe('ScoreSheetScreen', () => {
   it('renders the approved game header and score table', () => {
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={shell} />);
@@ -79,13 +78,30 @@ describe('ScoreSheetScreen', () => {
     expect(within(table).getByText('KING')).toBeInTheDocument();
   });
 
-  it('shows an editable current round immediately for a new game', () => {
-    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={emptyShell} />);
+  it('accepts estimates and saves the calculated round through the shell', async () => {
+    const user = userEvent.setup();
+    const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
 
-    for (const player of ['Ahmed', 'Mona', 'Rami', 'Dina']) {
-      expect(screen.getByRole('spinbutton', { name: `${player} estimate` })).toBeInTheDocument();
-      expect(screen.getByRole('spinbutton', { name: `${player} actual tricks` })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+
+    for (const [name, actual] of [['Ahmed', '5'], ['Mona', '3'], ['Rami', '3'], ['Dina', '2']] as const) {
+      await user.type(screen.getByLabelText(`${name} actual tricks`), actual);
     }
-    expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Calculate scores' }));
+
+    expect(saveRound).toHaveBeenCalledTimes(1);
+    expect(saveRound).toHaveBeenCalledWith('sheet-1', expect.objectContaining({
+      roundNumber: 1,
+      bidOwnerPlayerId: 'A',
+      bids: [
+        { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 0 },
+        { playerId: 'C', bidType: 'normal', tricks: 0 },
+        { playerId: 'D', bidType: 'normal', tricks: 0 },
+      ],
+    }));
   });
 });
