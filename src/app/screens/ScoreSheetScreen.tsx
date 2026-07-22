@@ -12,8 +12,7 @@ import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
 import {
   resolveAutomaticRiskPlayerId,
-  resolveHighestEstimatePlayerId,
-  resolveWithPlayerIds,
+  resolveMultipleWithRoundMultiplier,
 } from '../scoreSheet/currentRoundReducer.js';
 import { buildScoreSheetViewModel } from '../scoreSheet/scoreSheetViewModel.js';
 
@@ -65,27 +64,29 @@ export function ScoreSheetScreen({
   const saveCurrentRound = shell.saveRound === undefined
     ? undefined
     : (draft: CurrentRoundDraft) => {
-      const bidOwnerPlayerId = resolveHighestEstimatePlayerId(draft);
-      if (bidOwnerPlayerId === undefined || draft.trumpSuit === undefined) {
-        setSaveErrors(['The accepted estimates must have a highest estimator and a selected trump.']);
+      const bidOwnerPlayerId = draft.bidding.bidOwnerPlayerId;
+      if (!draft.bidding.confirmed || bidOwnerPlayerId === undefined || draft.trumpSuit === undefined) {
+        setSaveErrors(['The accepted estimates must have a confirmed bid owner and selected trump.']);
         return;
       }
 
-      const withPlayerIds = new Set(resolveWithPlayerIds(draft));
       const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
+      const multipleWithMultiplier = resolveMultipleWithRoundMultiplier(draft);
       const input: UiRoundEntryInput = {
         roundNumber: currentRoundNumber,
         bidOwnerPlayerId,
         riskPlayerId,
+        multipleWithMultiplier,
         profile: isFederation ? federationProfile : houseRulesV1ScoringProfile,
         bids: players.map((player) => {
-          const isWith = withPlayerIds.has(player.id);
+          const status = draft.bidding.statusByPlayerId[player.id] ?? 'normal';
+          const bidType = status === 'with' ? 'with' as const : status === 'hold' ? 'hold' as const : 'normal' as const;
           return {
             playerId: player.id,
-            bidType: isWith ? 'with' as const : 'normal' as const,
+            bidType,
             tricks: draft.estimates[player.id] ?? 0,
             ...(player.id === bidOwnerPlayerId ? { trumpSuit: draft.trumpSuit } : {}),
-            ...(isWith ? { withTargetPlayerId: bidOwnerPlayerId } : {}),
+            ...(status === 'with' ? { withTargetPlayerId: bidOwnerPlayerId } : {}),
           };
         }),
         actualResults: players.map((player) => ({
@@ -153,6 +154,7 @@ export function ScoreSheetScreen({
           <span><b>R</b> Risk</span>
           <span><b>2R / 3R</b> Multi Risk</span>
           <span><b>W</b> With</span>
+          <span><b>H</b> Hold</span>
         </div>
         <div className="legend-group legend-suits">
           <span><b>NT</b> No Trump</span>
