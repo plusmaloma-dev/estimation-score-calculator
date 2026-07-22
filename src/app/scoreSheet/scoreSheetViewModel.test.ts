@@ -65,4 +65,51 @@ describe('buildScoreSheetViewModel', () => {
     expect(model.rounds[0]?.cells.map((cell) => cell.estimateLabel)).toEqual(['4♠', '3', '3', '4']);
     expect(model.rounds[0]?.cells.map((cell) => cell.cumulativeScore)).toEqual([14, -1, 12, -14]);
   });
+
+  it('keeps calculated scores while using applied scores for rows and cumulative totals', () => {
+    const calculatedScores = openedSession.roundHistory?.[0]?.playerScores ?? [];
+    const appliedScores = calculatedScores.map((score) => score.playerId === 'A' ? { ...score, score: 20 } : score);
+    const session: UiOpenSessionResult = {
+      ...openedSession,
+      scoreSheet: {
+        ...openedSession.scoreSheet!,
+        gameResult: {
+          valid: true,
+          errors: [],
+          ruleSet: 'FEDERATION_2026',
+          rounds: [{
+            roundNumber: 1,
+            valid: true,
+            errors: [],
+            bidValidation: { valid: true, errors: [], totalEstimatedTricks: 14, roundType: 'over' },
+            scoreResult: { valid: true, errors: [], playerScores: calculatedScores },
+          }],
+          leaderboard: openedSession.leaderboard ?? [],
+        },
+      },
+      leaderboard: (openedSession.leaderboard ?? []).map((entry) => entry.playerId === 'A' ? { ...entry, totalScore: 20 } : entry),
+      roundHistory: [{ ...openedSession.roundHistory![0]!, playerScores: appliedScores }],
+    };
+
+    const cell = buildScoreSheetViewModel(session).rounds[0]?.cells[0];
+    expect(cell).toEqual(expect.objectContaining({
+      calculatedScore: 14,
+      appliedScore: 20,
+      roundScore: 20,
+      cumulativeScore: 20,
+      overridden: true,
+    }));
+  });
+
+  it('shows Hold in the historical estimate annotation', () => {
+    const session: UiOpenSessionResult = {
+      ...openedSession,
+      roundHistory: [{
+        ...openedSession.roundHistory![0]!,
+        bids: openedSession.roundHistory![0]!.bids.map((bid) => bid.playerId === 'B' ? { ...bid, bidType: 'hold' as const } : bid),
+      }],
+    };
+
+    expect(buildScoreSheetViewModel(session).rounds[0]?.cells[1]?.estimateLabel).toBe('3 H');
+  });
 });
