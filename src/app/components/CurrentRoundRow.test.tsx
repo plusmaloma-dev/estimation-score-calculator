@@ -10,6 +10,16 @@ const players = [
   { id: 'D', name: 'Dina' },
 ] as const;
 
+function renderRow(onSave = vi.fn()) {
+  render(<table><tbody><CurrentRoundRow
+    roundNumber={1}
+    players={players}
+    existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
+    onSave={onSave}
+  /></tbody></table>);
+  return onSave;
+}
+
 describe('CurrentRoundRow', () => {
   it('uses blank estimates as zero, accepts and freezes the bid, then unlocks actual tricks', async () => {
     const user = userEvent.setup();
@@ -52,12 +62,7 @@ describe('CurrentRoundRow', () => {
 
   it('blocks estimate 13 and keeps estimates editable until accepted', async () => {
     const user = userEvent.setup();
-    render(<table><tbody><CurrentRoundRow
-      roundNumber={1}
-      players={players}
-      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
-      onSave={vi.fn()}
-    /></tbody></table>);
+    renderRow();
 
     await user.type(screen.getByLabelText('Ahmed estimate'), '13');
 
@@ -68,12 +73,7 @@ describe('CurrentRoundRow', () => {
 
   it('assigns trump to the first entered top estimate, supports multiple With players, and derives Risk from that caller', async () => {
     const user = userEvent.setup();
-    render(<table><tbody><CurrentRoundRow
-      roundNumber={1}
-      players={players}
-      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
-      onSave={vi.fn()}
-    /></tbody></table>);
+    renderRow();
 
     await user.type(screen.getByLabelText('Rami estimate'), '5');
     await user.type(screen.getByLabelText('Ahmed estimate'), '5');
@@ -86,9 +86,61 @@ describe('CurrentRoundRow', () => {
     expect(screen.getByLabelText('Ahmed estimate annotations')).toHaveTextContent('W');
     expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('W');
     expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('R');
+    expect(screen.getByText('Multiple WITH: ×2')).toBeInTheDocument();
     expect(screen.getAllByText('+2').length).toBeGreaterThan(0);
 
     await user.selectOptions(screen.getByLabelText('Rami trump'), 'hearts');
     expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeEnabled();
+  });
+
+  it('keeps trump with the bid owner while matching players choose Follow or Hold', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '4');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
+    await user.type(screen.getByLabelText('Rami estimate'), '4');
+    await user.type(screen.getByLabelText('Dina estimate'), '4');
+
+    await user.clear(screen.getByLabelText('Ahmed estimate'));
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+
+    expect(screen.getByLabelText('Ahmed trump')).toHaveValue('hearts');
+    expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rami follow 5' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Rami hold 4' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Dina follow 5' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Dina hold 4' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Rami follow 5' }));
+    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
+
+    expect(screen.getByLabelText('Rami estimate')).toHaveValue(5);
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('W');
+    expect(screen.getByLabelText('Dina estimate')).toHaveValue(4);
+    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('H');
+    expect(screen.getByLabelText('Ahmed trump')).toHaveValue('hearts');
+    expect(screen.queryByText('Multiple WITH: ×2')).not.toBeInTheDocument();
+  });
+
+  it('skips all Hold players and marks the remaining eligible player Risk at the threshold', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '4');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
+    await user.type(screen.getByLabelText('Mona estimate'), '2');
+    await user.type(screen.getByLabelText('Rami estimate'), '4');
+    await user.type(screen.getByLabelText('Dina estimate'), '4');
+    await user.clear(screen.getByLabelText('Ahmed estimate'));
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+
+    await user.click(screen.getByRole('button', { name: 'Rami hold 4' }));
+    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
+
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('H');
+    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('H');
+    expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('R');
   });
 });
