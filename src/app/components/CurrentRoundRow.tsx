@@ -5,6 +5,8 @@ import {
   currentRoundReducer,
   resolveAutomaticRiskPlayerId,
   resolveHighestEstimatePlayerId,
+  resolveHoldPlayerIds,
+  resolveMultipleWithRoundMultiplier,
   resolveWithPlayerIds,
   validateAcceptedEstimates,
   validateActualTricks,
@@ -39,7 +41,10 @@ export function CurrentRoundRow({
   const actualErrors = validateActualTricks(draft);
   const winnerPlayerId = resolveHighestEstimatePlayerId(draft);
   const withPlayerIds = new Set(resolveWithPlayerIds(draft));
+  const holdPlayerIds = new Set(resolveHoldPlayerIds(draft));
+  const pendingPlayerIds = new Set(draft.pendingWithDecisionPlayerIds);
   const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
+  const multipleWithMultiplier = resolveMultipleWithRoundMultiplier(draft);
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
   const totalEstimates = draft.overUnder + 13;
   const hint = isEstimating
@@ -55,8 +60,13 @@ export function CurrentRoundRow({
         </th>
         {players.flatMap((player) => {
           const isWinner = winnerPlayerId === player.id;
+          const isPending = pendingPlayerIds.has(player.id);
+          const heldEstimate = draft.bidding.previousWithEstimateByPlayerId[player.id]
+            ?? draft.estimates[player.id]
+            ?? 0;
           const annotations = [
             ...(withPlayerIds.has(player.id) ? ['W'] : []),
+            ...(holdPlayerIds.has(player.id) ? ['H'] : []),
             ...(riskPlayerId === player.id ? ['R'] : []),
           ];
           return [
@@ -69,7 +79,7 @@ export function CurrentRoundRow({
                   min="0"
                   max="12"
                   inputMode="numeric"
-                  disabled={!isEstimating}
+                  disabled={!isEstimating || isPending}
                   value={draft.estimates[player.id] ?? ''}
                   onChange={(event) => dispatch({ type: 'set-estimate', playerId: player.id, value: numberValue(event.target.value) })}
                 />
@@ -90,6 +100,26 @@ export function CurrentRoundRow({
                   </select>
                 )}
               </div>
+              {isPending && (
+                <div className="with-decision-controls" aria-label={`${player.name} Follow or Hold decision`}>
+                  <button
+                    type="button"
+                    className="with-decision-button"
+                    aria-label={`${player.name} follow ${draft.bidding.winningEstimate}`}
+                    onClick={() => dispatch({ type: 'follow-with', playerId: player.id })}
+                  >
+                    Follow {draft.bidding.winningEstimate}
+                  </button>
+                  <button
+                    type="button"
+                    className="with-decision-button with-decision-button--hold"
+                    aria-label={`${player.name} hold ${heldEstimate}`}
+                    onClick={() => dispatch({ type: 'hold-with', playerId: player.id })}
+                  >
+                    Hold {heldEstimate}
+                  </button>
+                </div>
+              )}
               {annotations.length > 0 && (
                 <span className="estimate-annotations" aria-label={`${player.name} estimate annotations`}>
                   {annotations.join(' ')}
@@ -120,6 +150,7 @@ export function CurrentRoundRow({
           <div className="round-summary">
             <span>Total estimates: <strong>{totalEstimates}</strong></span>
             <span>O/U ({totalEstimates} − 13) = <strong>{overUnderLabel}</strong></span>
+            {multipleWithMultiplier === 2 && <span className="multiple-with-label">Multiple WITH: ×2</span>}
             {!isEstimating && <span className="accepted-bid-label">Estimates accepted and frozen</span>}
           </div>
           <div className="round-action-panel">
