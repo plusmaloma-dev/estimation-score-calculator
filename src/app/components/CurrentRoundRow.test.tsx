@@ -66,28 +66,29 @@ describe('CurrentRoundRow', () => {
     expect(screen.getByLabelText('Ahmed estimate')).toHaveAttribute('max', '12');
   });
 
-  it('marks equal highest callers With and the last caller Risk at O/U +2', async () => {
+  it('assigns trump to the first entered top estimate, supports multiple With players, and derives Risk from that caller', async () => {
     const user = userEvent.setup();
     render(<table><tbody><CurrentRoundRow
       roundNumber={1}
       players={players}
-      biddingOrder={['A', 'B', 'C', 'D']}
       existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
       onSave={vi.fn()}
     /></tbody></table>);
 
-    for (const [name, estimate] of [['Ahmed', '4'], ['Mona', '3'], ['Rami', '4'], ['Dina', '4']] as const) {
-      await user.type(screen.getByLabelText(`${name} estimate`), estimate);
-    }
+    await user.type(screen.getByLabelText('Rami estimate'), '5');
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.type(screen.getByLabelText('Mona estimate'), '5');
+    await user.type(screen.getByLabelText('Dina estimate'), '0');
 
-    expect(screen.getByLabelText('Ahmed trump')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('W');
-    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('W');
-    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('R');
+    expect(screen.getByLabelText('Rami trump')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Ahmed trump')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Mona trump')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Ahmed estimate annotations')).toHaveTextContent('W');
+    expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('W');
+    expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('R');
     expect(screen.getAllByText('+2').length).toBeGreaterThan(0);
 
-    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
+    await user.selectOptions(screen.getByLabelText('Rami trump'), 'hearts');
     expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeEnabled();
   });
 });
