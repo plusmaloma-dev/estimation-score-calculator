@@ -17,10 +17,10 @@ const openedSession: UiOpenSessionResult = {
     gameInput: { playerOrder: ['A', 'B', 'C', 'D'], rounds: [], ruleSet: 'FEDERATION_2026' },
   },
   leaderboard: [
-    { playerId: 'A', totalScore: 14 },
-    { playerId: 'C', totalScore: 12 },
-    { playerId: 'B', totalScore: -1 },
-    { playerId: 'D', totalScore: -14 },
+    { playerId: 'A', totalScore: 14, roundsPlayed: 1, rank: 1 },
+    { playerId: 'C', totalScore: 12, roundsPlayed: 1, rank: 2 },
+    { playerId: 'B', totalScore: -1, roundsPlayed: 1, rank: 3 },
+    { playerId: 'D', totalScore: -14, roundsPlayed: 1, rank: 4 },
   ],
   roundHistory: [
     {
