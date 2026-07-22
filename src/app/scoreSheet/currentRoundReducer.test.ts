@@ -4,6 +4,8 @@ import {
   currentRoundReducer,
   resolveAutomaticRiskPlayerId,
   resolveHighestEstimatePlayerId,
+  resolveHoldPlayerIds,
+  resolveMultipleWithRoundMultiplier,
   resolveWithPlayerIds,
   validateAcceptedEstimates,
   validateActualTricks,
@@ -62,8 +64,31 @@ describe('currentRoundReducer', () => {
 
     expect(resolveHighestEstimatePlayerId(draft)).toBe('C');
     expect(resolveWithPlayerIds(draft)).toEqual(['A', 'B']);
+    expect(resolveMultipleWithRoundMultiplier(draft)).toBe(2);
     expect(draft.trumpSuit).toBe('hearts');
     expect(validateAcceptedEstimates(draft)).toEqual([]);
+  });
+
+  it('keeps trump with the owner while With players Follow or Hold an increase', () => {
+    let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 4 });
+    draft = currentRoundReducer(draft, { type: 'set-trump', suit: 'hearts' });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'C', value: 4 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'D', value: 4 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
+
+    expect(draft.pendingWithDecisionPlayerIds).toEqual(['C', 'D']);
+    expect(validateAcceptedEstimates(draft)).toContain('Every With player must choose Follow or Hold.');
+
+    draft = currentRoundReducer(draft, { type: 'follow-with', playerId: 'C' });
+    draft = currentRoundReducer(draft, { type: 'hold-with', playerId: 'D' });
+
+    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
+    expect(resolveWithPlayerIds(draft)).toEqual(['C']);
+    expect(resolveHoldPlayerIds(draft)).toEqual(['D']);
+    expect(draft.estimates).toEqual({ A: 5, B: undefined, C: 5, D: 4 });
+    expect(draft.trumpSuit).toBe('hearts');
+    expect(resolveMultipleWithRoundMultiplier(draft)).toBe(1);
   });
 
   it('derives the Risk taker from the trump caller rather than the dealer', () => {
@@ -76,7 +101,6 @@ describe('currentRoundReducer', () => {
     expect(draft.overUnder).toBe(2);
     expect(resolveHighestEstimatePlayerId(draft)).toBe('C');
     expect(resolveWithPlayerIds(draft)).toEqual(['A']);
-    // C calls trump first, so the estimate order is C, D, A, B and B is the last caller.
     expect(resolveAutomaticRiskPlayerId(draft)).toBe('B');
   });
 });
