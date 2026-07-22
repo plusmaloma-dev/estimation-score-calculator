@@ -195,7 +195,7 @@ Completed frontend slices:
 - Frozen round serialization for owner, trump, W/H, Risk, and multiplier.
 - Audited completed-round score editing, restore-original, downstream totals/rankings, persistence, and backup preservation.
 - Responsive fit-to-screen table and visible score-override markers.
-- Final validation for this delivery passed in GitHub Actions CI run 554.
+- This delivery is covered by passing GitHub Actions validation on the latest branch head.
 
 Remaining prototype slices:
 
