@@ -14,8 +14,11 @@ export interface ScoreSheetCellView {
   readonly estimateLabel: string;
   readonly actualTricks: number;
   readonly roundScore: number;
+  readonly calculatedScore: number;
+  readonly appliedScore: number;
   readonly cumulativeScore: number;
   readonly successful: boolean;
+  readonly overridden: boolean;
 }
 
 export interface ScoreSheetRoundView {
@@ -49,6 +52,7 @@ function annotationForBid(bid: EstimationBid, riskModifier: number, riskType: st
   const annotations: string[] = [];
   if (riskType === 'round-risk') annotations.push(riskModifier > 10 ? `${Math.max(2, riskModifier / 10)}R` : 'R');
   if (bid.bidType === 'with' || riskType === 'with') annotations.push('W');
+  if (bid.bidType === 'hold') annotations.push('H');
   return annotations.length > 0 ? ` ${annotations.join(' ')}` : '';
 }
 
@@ -77,11 +81,18 @@ export function buildScoreSheetViewModel(opened: UiOpenSessionResult): ScoreShee
   });
   const rankByPlayer = new Map(rankedIds.map((playerId, index) => [playerId, rankTitles[index] ?? 'Kooz']));
 
+  const calculatedRoundByNumber = new Map(
+    (opened.scoreSheet.gameResult?.rounds ?? []).map((round) => [round.roundNumber, round]),
+  );
   const cumulative = new Map(playerOrder.map((playerId) => [playerId, 0]));
   const rounds = (opened.roundHistory ?? []).map((round) => {
     const bidByPlayer = new Map(round.bids.map((bid) => [bid.playerId, bid]));
     const actualByPlayer = new Map(round.actualResults.map((actual) => [actual.playerId, actual.actualTricks]));
     const scoreByPlayer = new Map(round.playerScores.map((score) => [score.playerId, score]));
+    const calculatedScoreByPlayer = new Map(
+      (calculatedRoundByNumber.get(round.roundNumber)?.scoreResult?.playerScores ?? round.playerScores)
+        .map((score) => [score.playerId, score.score]),
+    );
     const bidOwnerPlayerId = round.playerScores.find((score) => score.role === 'bid-owner')?.playerId;
     const estimateTotal = round.bids.reduce((sum, bid) => sum + bid.tricks, 0);
 
@@ -91,15 +102,20 @@ export function buildScoreSheetViewModel(opened: UiOpenSessionResult): ScoreShee
       if (bid === undefined || score === undefined) {
         throw new Error(`Round ${round.roundNumber} is missing player data for ${playerId}.`);
       }
-      const cumulativeScore = (cumulative.get(playerId) ?? 0) + score.score;
+      const calculatedScore = calculatedScoreByPlayer.get(playerId) ?? score.score;
+      const appliedScore = score.score;
+      const cumulativeScore = (cumulative.get(playerId) ?? 0) + appliedScore;
       cumulative.set(playerId, cumulativeScore);
       return {
         playerId,
         estimateLabel: estimateLabel(bid, playerId === bidOwnerPlayerId, score.riskModifier, score.riskType),
         actualTricks: actualByPlayer.get(playerId) ?? score.actualTricks,
-        roundScore: score.score,
+        roundScore: appliedScore,
+        calculatedScore,
+        appliedScore,
         cumulativeScore,
         successful: score.didMatchBid,
+        overridden: calculatedScore !== appliedScore,
       };
     });
 
