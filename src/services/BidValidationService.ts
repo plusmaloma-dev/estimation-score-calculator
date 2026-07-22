@@ -105,12 +105,29 @@ export class BidValidationService {
     if (mode === 'round-estimates') {
       const highest = Math.max(...bids.map((bid) => bid.tricks));
       const leaders = bids.filter((bid) => bid.tricks === highest);
-      if (leaders.length !== 1) {
-        errors.push('A unique highest estimate is required.');
-      } else if (options.bidOwnerPlayerId === undefined) {
+      const owner = bids.find((bid) => bid.playerId === options.bidOwnerPlayerId);
+
+      if (options.bidOwnerPlayerId === undefined) {
         errors.push('Bid owner player id is required for accepted round estimates.');
-      } else if (leaders[0]?.playerId !== options.bidOwnerPlayerId) {
-        errors.push('Bid owner must be the player with the unique highest estimate.');
+      } else if (owner === undefined || owner.tricks !== highest) {
+        errors.push('Bid owner must be one of the players with the highest estimate.');
+      } else {
+        if (owner.bidType === 'with') {
+          errors.push('The original highest estimator cannot be marked With.');
+        }
+
+        for (const leader of leaders) {
+          if (leader.playerId === owner.playerId) continue;
+          if (leader.bidType !== 'with' || leader.withTargetPlayerId !== owner.playerId) {
+            errors.push(`Player ${leader.playerId} must be marked With the bid owner.`);
+          }
+        }
+
+        for (const bid of bids) {
+          if (bid.tricks !== highest && bid.bidType === 'with') {
+            errors.push(`Player ${bid.playerId} cannot be marked With without matching the highest estimate.`);
+          }
+        }
       }
     }
 
