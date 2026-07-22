@@ -8,6 +8,7 @@ export * from './services/HighestBidResolver.js';
 export * from './services/TrickValidationService.js';
 export * from './services/LeaderboardService.js';
 export * from './services/EstimationMvpService.js';
+export * from './services/ScoreOverrideService.js';
 export * from './scoring/types.js';
 export * from './scoring/ruleSets.js';
 export * from './scoring/houseRulesV1Profile.js';
