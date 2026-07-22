@@ -4,10 +4,13 @@ import {
   houseRulesV1ScoringProfile,
   type ScoringProfile,
   type UiOpenSessionResult,
+  type UiOverrideRoundScoresInput,
+  type UiOverrideRoundScoresResult,
   type UiRoundEntryInput,
   type UiSaveRoundResult,
 } from '../../index.js';
 import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
+import { ScoreOverrideDialog } from '../components/ScoreOverrideDialog.js';
 import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
 import {
@@ -27,6 +30,7 @@ const federationProfile: ScoringProfile = {
 export interface ScoreSheetShellPort {
   openSession(scoreSheetId: string): UiOpenSessionResult;
   saveRound?(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
+  overrideRoundScores?(scoreSheetId: string, input: UiOverrideRoundScoresInput): UiOverrideRoundScoresResult;
 }
 
 export function ScoreSheetScreen({
@@ -42,6 +46,7 @@ export function ScoreSheetScreen({
 }) {
   const [, refresh] = useReducer((value: number) => value + 1, 0);
   const [saveErrors, setSaveErrors] = useState<readonly string[]>([]);
+  const [editingRoundNumber, setEditingRoundNumber] = useState<number | undefined>();
   const opened = shell.openSession(scoreSheetId);
   if (!opened.valid || opened.scoreSheet === undefined) {
     return (
@@ -60,6 +65,9 @@ export function ScoreSheetScreen({
   const currentRoundNumber = model.rounds.length + 1;
   const dealerIndex = (currentRoundNumber - 1) % players.length;
   const dealer = players[dealerIndex];
+  const editingRound = editingRoundNumber === undefined
+    ? undefined
+    : model.rounds.find((round) => round.roundNumber === editingRoundNumber);
 
   const saveCurrentRound = shell.saveRound === undefined
     ? undefined
@@ -105,6 +113,24 @@ export function ScoreSheetScreen({
       refresh();
     };
 
+  const submitScoreOverrides = editingRound === undefined || shell.overrideRoundScores === undefined
+    ? undefined
+    : (overridesByPlayerId: Readonly<Record<string, number>>, reason: string) => {
+      const result = shell.overrideRoundScores?.(scoreSheetId, {
+        roundNumber: editingRound.roundNumber,
+        overridesByPlayerId,
+        reason,
+      });
+      if (result === undefined || !result.valid) {
+        setSaveErrors(result?.errors ?? ['Score overrides could not be saved.']);
+        return;
+      }
+
+      setSaveErrors([]);
+      setEditingRoundNumber(undefined);
+      refresh();
+    };
+
   return (
     <section className="score-sheet-screen">
       <header className="game-header">
@@ -134,6 +160,7 @@ export function ScoreSheetScreen({
 
       <ScoreSheetTable
         model={model}
+        onEditScores={shell.overrideRoundScores === undefined ? undefined : setEditingRoundNumber}
         currentRound={(
           <CurrentRoundRow
             key={currentRoundNumber}
@@ -144,6 +171,18 @@ export function ScoreSheetScreen({
           />
         )}
       />
+
+      {editingRound !== undefined && submitScoreOverrides !== undefined && (
+        <ScoreOverrideDialog
+          round={editingRound}
+          players={players}
+          onCancel={() => {
+            setSaveErrors([]);
+            setEditingRoundNumber(undefined);
+          }}
+          onSubmit={submitScoreOverrides}
+        />
+      )}
 
       <footer className="score-sheet-legend" aria-label="Score sheet legend">
         <div className="legend-group">
