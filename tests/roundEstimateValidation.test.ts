@@ -39,6 +39,38 @@ test('accepted round estimates allow 0 through 12 and require trump only for the
   assert.equal(result.scoreResult?.playerScores.find((score) => score.playerId === 'A')?.role, 'bid-owner');
 });
 
+test('equal highest estimates are With and the last caller receives Risk at O/U +2', () => {
+  const result = new EstimationMvpService().calculateRound({
+    roundNumber: 1,
+    bidValidationMode: 'round-estimates',
+    bidOwnerPlayerId: 'A',
+    riskPlayerId: 'D',
+    profile,
+    bids: [
+      { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
+      { playerId: 'B', bidType: 'normal', tricks: 3 },
+      { playerId: 'C', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
+      { playerId: 'D', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
+    ],
+    actualResults: [
+      { playerId: 'A', actualTricks: 4 },
+      { playerId: 'B', actualTricks: 2 },
+      { playerId: 'C', actualTricks: 4 },
+      { playerId: 'D', actualTricks: 3 },
+    ],
+  });
+
+  assert.equal(result.valid, true, result.errors.join('; '));
+  assert.equal(result.bidValidation.totalEstimatedTricks, 15);
+  assert.equal(result.bidValidation.roundType, 'over');
+
+  const scores = result.scoreResult?.playerScores ?? [];
+  assert.equal(scores.find((score) => score.playerId === 'C')?.role, 'with-player');
+  assert.equal(scores.find((score) => score.playerId === 'D')?.riskType, 'round-risk');
+  assert.equal(scores.find((score) => score.playerId === 'D')?.isRiskTaker, true);
+  assert.equal(scores.find((score) => score.playerId === 'D')?.score, -21);
+});
+
 test('accepted round estimates reject any player estimate of 13', () => {
   const result = new EstimationMvpService().calculateRound({
     roundNumber: 1,
