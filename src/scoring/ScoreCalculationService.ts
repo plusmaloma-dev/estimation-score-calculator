@@ -134,6 +134,7 @@ export class ScoreCalculationService {
           roundType: input.roundType,
           roundRiskLevel,
           roundMultiplier: input.roundMultiplier,
+          multipleWithMultiplier: input.multipleWithMultiplier,
           winningContractNumber: input.winningContractNumber,
           bidOwnerPlayerId: input.bidOwnerPlayerId,
           ownerOutcome,
