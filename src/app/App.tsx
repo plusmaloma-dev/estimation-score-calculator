@@ -2,9 +2,10 @@ import { AppProvider, useApp } from './AppContext.js';
 import { I18nProvider, useI18n } from './i18n/I18nContext.js';
 import { HomeScreen } from './screens/HomeScreen.js';
 import { NewGameScreen } from './screens/NewGameScreen.js';
+import { ScoreSheetScreen } from './screens/ScoreSheetScreen.js';
 
 function AppContent() {
-  const { route, activeScoreSheetId, navigate } = useApp();
+  const { route, activeScoreSheetId, navigate, services } = useApp();
   const { language, setLanguage, t } = useI18n();
 
   return (
@@ -22,11 +23,8 @@ function AppContent() {
 
       {route === 'home' && <HomeScreen />}
       {route === 'new-game' && <NewGameScreen />}
-      {route === 'score-sheet' && (
-        <section className="screen-stack">
-          <h2>{t('scoreSheet')}</h2>
-          <p data-testid="active-score-sheet">{activeScoreSheetId}</p>
-        </section>
+      {route === 'score-sheet' && activeScoreSheetId !== undefined && (
+        <ScoreSheetScreen scoreSheetId={activeScoreSheetId} shell={services.shell} />
       )}
     </main>
   );
