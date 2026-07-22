@@ -60,16 +60,21 @@ const emptyOpened: UiOpenSessionResult = {
 const emptyShell = { openSession: () => emptyOpened };
 
 describe('ScoreSheetScreen', () => {
-  it('renders players as columns and previous rounds as rows', () => {
+  it('renders the approved game header and score table', () => {
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={shell} />);
 
     expect(screen.getByRole('heading', { name: 'Thursday Table' })).toBeInTheDocument();
+    expect(screen.getByText('Round 2')).toBeInTheDocument();
+    expect(screen.getByText('Dealer: Mona')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New Round' })).toBeInTheDocument();
+
     const table = screen.getByRole('table', { name: 'Thursday Table score sheet' });
     for (const player of ['Ahmed', 'Mona', 'Rami', 'Dina']) {
       expect(within(table).getByText(player)).toBeInTheDocument();
     }
     expect(within(table).getByText('4♠')).toBeInTheDocument();
-    expect(within(table).getByText('+1')).toBeInTheDocument();
+    expect(within(table).getAllByText('+1').length).toBeGreaterThan(0);
     expect(within(table).getByText('KING')).toBeInTheDocument();
   });
 
@@ -80,6 +85,6 @@ describe('ScoreSheetScreen', () => {
       expect(screen.getByRole('spinbutton', { name: `${player} estimate` })).toBeInTheDocument();
       expect(screen.getByRole('spinbutton', { name: `${player} actual tricks` })).toBeInTheDocument();
     }
-    expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Calculate and save/ })).toBeDisabled();
   });
 });
