@@ -14,6 +14,8 @@ export class InMemoryScoreSheetRepository implements ScoreSheetRepository {
     const id = input.id ?? this.allocateId();
     const nowIso = input.nowIso ?? new Date().toISOString();
     const playerNamesById = input.playerNamesById ?? existing?.playerNamesById;
+    const scoreOverrides = input.scoreOverrides ?? existing?.scoreOverrides;
+    const appliedGameResult = input.appliedGameResult ?? existing?.appliedGameResult;
     const scoreSheet: PersistedScoreSheet = {
       id,
       name: input.name.trim(),
@@ -25,6 +27,8 @@ export class InMemoryScoreSheetRepository implements ScoreSheetRepository {
       roundCount: input.gameInput.rounds.length,
       gameInput: input.gameInput,
       gameResult: input.gameResult,
+      ...(scoreOverrides === undefined ? {} : { scoreOverrides }),
+      ...(appliedGameResult === undefined ? {} : { appliedGameResult }),
     };
 
     this.validate(scoreSheet);
