@@ -6,6 +6,15 @@ function formatScore(value: number): string {
   return value > 0 ? `+${value}` : String(value);
 }
 
+function columnLabel(full: string, compact: string) {
+  return (
+    <>
+      <span className="column-label-full">{full}</span>
+      <span className="column-label-compact" aria-hidden="true">{compact}</span>
+    </>
+  );
+}
+
 export function ScoreSheetTable({
   model,
   currentRound,
@@ -14,8 +23,18 @@ export function ScoreSheetTable({
   readonly currentRound?: ReactNode;
 }) {
   return (
-    <div className="score-sheet-scroll" tabIndex={0} aria-label="Scrollable score sheet">
+    <div className="score-sheet-fit" aria-label="Responsive score sheet">
       <table className="score-sheet-table" aria-label={`${model.name} score sheet`}>
+        <colgroup>
+          <col className="round-layout-col" />
+          {model.players.flatMap((player) => [
+            <col key={`${player.id}-estimate-col`} className="player-layout-col" />,
+            <col key={`${player.id}-actual-col`} className="player-layout-col" />,
+            <col key={`${player.id}-round-col`} className="player-layout-col" />,
+            <col key={`${player.id}-total-col`} className="player-layout-col" />,
+          ])}
+          <col className="ou-layout-col" />
+        </colgroup>
         <thead>
           <tr>
             <th className="round-column" rowSpan={2}>Rnd</th>
@@ -32,10 +51,10 @@ export function ScoreSheetTable({
           </tr>
           <tr>
             {model.players.flatMap((player) => [
-              <th key={`${player.id}-estimate`}>Estimate</th>,
-              <th key={`${player.id}-actual`}>Actual</th>,
-              <th key={`${player.id}-round`}>Round</th>,
-              <th key={`${player.id}-total`}>Total</th>,
+              <th key={`${player.id}-estimate`}>{columnLabel('Estimate', 'Est.')}</th>,
+              <th key={`${player.id}-actual`}>{columnLabel('Actual', 'Act.')}</th>,
+              <th key={`${player.id}-round`}>{columnLabel('Round', 'Rnd')}</th>,
+              <th key={`${player.id}-total`}>{columnLabel('Total', 'Tot.')}</th>,
             ])}
           </tr>
         </thead>
