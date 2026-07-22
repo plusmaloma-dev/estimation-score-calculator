@@ -43,8 +43,28 @@ function assertPlayer(draft: CurrentRoundDraft, playerId: string): void {
 export function resolveHighestEstimatePlayerId(draft: CurrentRoundDraft): string | undefined {
   const entries = draft.playerOrder.map((playerId) => [playerId, normalizedEstimate(draft, playerId)] as const);
   const highest = Math.max(...entries.map(([, estimate]) => estimate));
-  const leaders = entries.filter(([, estimate]) => estimate === highest);
-  return leaders.length === 1 ? leaders[0]?.[0] : undefined;
+  if (highest <= 0) return undefined;
+  return entries.find(([, estimate]) => estimate === highest)?.[0];
+}
+
+export function resolveWithPlayerIds(draft: CurrentRoundDraft): readonly string[] {
+  const ownerPlayerId = resolveHighestEstimatePlayerId(draft);
+  if (ownerPlayerId === undefined) return [];
+  const highest = normalizedEstimate(draft, ownerPlayerId);
+  return draft.playerOrder.filter(
+    (playerId) => playerId !== ownerPlayerId && normalizedEstimate(draft, playerId) === highest,
+  );
+}
+
+export function resolveAutomaticRiskPlayerId(draft: CurrentRoundDraft): string | undefined {
+  const lastCallerPlayerId = draft.playerOrder.at(-1);
+  if (lastCallerPlayerId === undefined) return undefined;
+
+  const totalEstimates = sumValues(draft.estimates);
+  const lastEstimate = normalizedEstimate(draft, lastCallerPlayerId);
+  const isUnderRisk = totalEstimates <= 11;
+  const isOverRisk = totalEstimates >= 15 && lastEstimate >= 2;
+  return isUnderRisk || isOverRisk ? lastCallerPlayerId : undefined;
 }
 
 export function validateAcceptedEstimates(draft: CurrentRoundDraft): readonly string[] {
@@ -55,7 +75,7 @@ export function validateAcceptedEstimates(draft: CurrentRoundDraft): readonly st
     errors.push('Each estimate must be between 0 and 12.');
   }
   if (sumValues(draft.estimates) === 13) errors.push('Total estimates cannot equal 13.');
-  if (resolveHighestEstimatePlayerId(draft) === undefined) errors.push('A unique highest estimate is required.');
+  if (resolveHighestEstimatePlayerId(draft) === undefined) errors.push('At least one positive estimate is required.');
   if (draft.trumpSuit === undefined) errors.push('Trump suit is required.');
 
   return errors;
