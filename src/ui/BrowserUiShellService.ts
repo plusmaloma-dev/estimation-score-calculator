@@ -3,7 +3,7 @@ import { FederationAuctionService } from '../auction/FederationAuctionService.js
 import type { FederationAuctionAction, FederationAuctionResolution } from '../auction/types.js';
 import type { AnalyticsScreenModel } from '../browser/analytics/AnalyticsScreenModel.js';
 import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.js';
-import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryModel.js';
+import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryViewService.js';
 import { GameSummaryViewService } from '../browser/gameSummary/GameSummaryViewService.js';
 import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
 import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
@@ -38,6 +38,7 @@ export interface UiRoundEntryInput {
   readonly actualResults: readonly PlayerRoundActualResult[];
   readonly profile: ScoringProfile;
   readonly roundMultiplier?: number;
+  readonly multipleWithMultiplier?: 1 | 2;
   readonly riskPlayerId?: string;
   readonly bidOwnerPlayerId?: string;
 }
@@ -391,6 +392,7 @@ export class BrowserUiShellService {
       actualResults: input.actualResults,
       profile: input.profile,
       roundMultiplier: input.roundMultiplier,
+      multipleWithMultiplier: input.multipleWithMultiplier,
       riskPlayerId: input.riskPlayerId,
       bidOwnerPlayerId: input.bidOwnerPlayerId,
     };
