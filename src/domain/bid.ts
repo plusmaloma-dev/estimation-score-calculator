@@ -1,6 +1,7 @@
 import type { ContractSuit } from './card.js';
 
 export type BidType = 'normal' | 'dash' | 'dash-call' | 'with';
+export type BidValidationMode = 'auction-calls' | 'round-estimates';
 
 export interface EstimationBid {
   readonly playerId: string;
@@ -13,6 +14,8 @@ export interface EstimationBid {
 export interface BidValidationOptions {
   readonly playerCount: number;
   readonly cardsPerPlayer: number;
+  readonly mode?: BidValidationMode;
+  readonly bidOwnerPlayerId?: string;
 }
 
 export interface ValidationResult {
