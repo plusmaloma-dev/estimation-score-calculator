@@ -41,6 +41,24 @@ const opened: UiOpenSessionResult = {
 
 const shell = { openSession: () => opened };
 
+const emptyOpened: UiOpenSessionResult = {
+  ...opened,
+  scoreSheet: {
+    ...opened.scoreSheet!,
+    roundCount: 0,
+    gameInput: { playerOrder: ['A', 'B', 'C', 'D'], rounds: [], ruleSet: 'HOUSE_RULES_V1' },
+  },
+  leaderboard: [
+    { playerId: 'A', totalScore: 0, roundsPlayed: 0, rank: 1 },
+    { playerId: 'B', totalScore: 0, roundsPlayed: 0, rank: 2 },
+    { playerId: 'C', totalScore: 0, roundsPlayed: 0, rank: 3 },
+    { playerId: 'D', totalScore: 0, roundsPlayed: 0, rank: 4 },
+  ],
+  roundHistory: [],
+};
+
+const emptyShell = { openSession: () => emptyOpened };
+
 describe('ScoreSheetScreen', () => {
   it('renders players as columns and previous rounds as rows', () => {
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={shell} />);
@@ -53,5 +71,15 @@ describe('ScoreSheetScreen', () => {
     expect(within(table).getByText('4♠')).toBeInTheDocument();
     expect(within(table).getByText('+1')).toBeInTheDocument();
     expect(within(table).getByText('KING')).toBeInTheDocument();
+  });
+
+  it('shows an editable current round immediately for a new game', () => {
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={emptyShell} />);
+
+    for (const player of ['Ahmed', 'Mona', 'Rami', 'Dina']) {
+      expect(screen.getByRole('spinbutton', { name: `${player} estimate` })).toBeInTheDocument();
+      expect(screen.getByRole('spinbutton', { name: `${player} actual tricks` })).toBeInTheDocument();
+    }
+    expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
   });
 });
