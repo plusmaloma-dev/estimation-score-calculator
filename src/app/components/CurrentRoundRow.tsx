@@ -26,11 +26,13 @@ export function CurrentRoundRow({
   readonly roundNumber: number;
   readonly players: readonly CurrentRoundPlayer[];
   readonly existingTotals: Readonly<Record<string, number>>;
-  readonly onSave: (draft: CurrentRoundDraft) => void;
+  readonly onSave?: (draft: CurrentRoundDraft) => void;
 }) {
   const [draft, dispatch] = useReducer(currentRoundReducer, players.map((player) => player.id), createCurrentRoundDraft);
   const errors = validateCurrentRoundDraft(draft);
+  const saveUnavailable = onSave === undefined;
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
+  const hint = errors[0] ?? (saveUnavailable ? 'Round calculation and saving are being connected.' : undefined);
 
   return (
     <>
@@ -93,12 +95,12 @@ export function CurrentRoundRow({
       </tr>
       <tr className="current-round-actions">
         <td colSpan={18}>
-          {errors.length > 0 && <span className="current-round-hint">{errors[0]}</span>}
+          {hint !== undefined && <span className="current-round-hint">{hint}</span>}
           <button
             className="primary-button"
             type="button"
-            disabled={errors.length > 0}
-            onClick={() => onSave(draft)}
+            disabled={errors.length > 0 || saveUnavailable}
+            onClick={() => onSave?.(draft)}
           >
             Calculate and save
           </button>
