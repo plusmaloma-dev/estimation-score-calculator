@@ -1,6 +1,6 @@
 import type { ContractSuit } from './card.js';
 
-export type BidType = 'normal' | 'dash' | 'dash-call' | 'with';
+export type BidType = 'normal' | 'dash' | 'dash-call' | 'with' | 'hold';
 export type BidValidationMode = 'auction-calls' | 'round-estimates';
 
 export interface EstimationBid {
