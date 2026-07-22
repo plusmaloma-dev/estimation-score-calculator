@@ -9,6 +9,7 @@ export interface PersistedScoreSheetMetadata {
   readonly createdAtIso: string;
   readonly updatedAtIso: string;
   readonly playerOrder: readonly string[];
+  readonly playerNamesById?: Readonly<Record<string, string>>;
   readonly roundCount: number;
 }
 
@@ -21,6 +22,7 @@ export interface SaveScoreSheetInput {
   readonly id?: string;
   readonly name: string;
   readonly status?: PersistedScoreSheetStatus;
+  readonly playerNamesById?: Readonly<Record<string, string>>;
   readonly gameInput: MvpGameInput;
   readonly gameResult?: MvpGameResult;
   readonly nowIso?: string;
