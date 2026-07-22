@@ -63,8 +63,9 @@ export class EstimationMvpService {
   }
 
   calculateRound(input: MvpRoundInput): MvpRoundResult {
+    const validationMode = input.bidValidationMode ?? this.inferBidValidationMode(input.bids, input.bidOwnerPlayerId);
     const bidValidation = this.validateBids(input.bids, {
-      mode: input.bidValidationMode,
+      mode: validationMode,
       bidOwnerPlayerId: input.bidOwnerPlayerId,
     });
     if (!bidValidation.valid || bidValidation.roundType === undefined) {
@@ -132,6 +133,26 @@ export class EstimationMvpService {
       rounds,
       leaderboard,
     };
+  }
+
+  private inferBidValidationMode(
+    bids: readonly EstimationBid[],
+    bidOwnerPlayerId: string | undefined,
+  ): BidValidationMode {
+    if (bidOwnerPlayerId === undefined) return 'auction-calls';
+
+    const hasPlayerEstimateBelowAuctionMinimum = bids.some(
+      (bid) => (bid.bidType === 'normal' || bid.bidType === 'with') && bid.tricks < 4,
+    );
+    const hasNonOwnerEstimateWithoutTrump = bids.some(
+      (bid) => bid.playerId !== bidOwnerPlayerId
+        && (bid.bidType === 'normal' || bid.bidType === 'with')
+        && bid.trumpSuit === undefined,
+    );
+
+    return hasPlayerEstimateBelowAuctionMinimum || hasNonOwnerEstimateWithoutTrump
+      ? 'round-estimates'
+      : 'auction-calls';
   }
 
   private resolveScoringProfile(profile: ScoringProfile, ruleSet: ScoringRuleSetId | undefined): ScoringProfile {
