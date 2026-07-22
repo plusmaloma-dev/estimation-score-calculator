@@ -19,6 +19,7 @@ import {
   type MvpRoundResult,
 } from '../services/EstimationMvpService.js';
 import type { LeaderboardEntry } from '../services/LeaderboardService.js';
+import { ScoreOverrideService, type ScoreOverrideInput } from '../services/ScoreOverrideService.js';
 
 export interface UiPlayerSetupInput {
   readonly id: string;
@@ -43,6 +44,8 @@ export interface UiRoundEntryInput {
   readonly bidOwnerPlayerId?: string;
 }
 
+export interface UiOverrideRoundScoresInput extends ScoreOverrideInput {}
+
 export interface UiFederationAuctionInput {
   readonly roundNumber: number;
   readonly dealerPlayerId: string;
@@ -63,6 +66,11 @@ export interface UiRoundPreviewResult extends UiValidationResult {
 }
 
 export interface UiSaveRoundResult extends UiValidationResult {
+  readonly scoreSheet?: PersistedScoreSheet;
+  readonly gameResult?: MvpGameResult;
+}
+
+export interface UiOverrideRoundScoresResult extends UiValidationResult {
   readonly scoreSheet?: PersistedScoreSheet;
   readonly gameResult?: MvpGameResult;
 }
@@ -129,6 +137,7 @@ export class BrowserUiShellService {
     private readonly analyticsViewService = new AnalyticsViewService(),
     private readonly gameSummaryViewService = new GameSummaryViewService(),
     private readonly federationAuctionService = new FederationAuctionService(),
+    private readonly scoreOverrideService = new ScoreOverrideService(),
   ) {}
 
   validatePlayerSetup(players: readonly UiPlayerSetupInput[]): UiValidationResult {
@@ -211,7 +220,7 @@ export class BrowserUiShellService {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
 
-    const gameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    const gameResult = this.resolveAppliedGameResult(scoreSheet);
     const analytics = this.analyticsViewService.buildModel(gameResult, {
       title: `${scoreSheet.name} Analytics`,
       generatedAt,
@@ -224,7 +233,7 @@ export class BrowserUiShellService {
       scoreSheet,
       leaderboard: gameResult.leaderboard,
       analytics,
-      roundHistory: this.buildRoundHistory(scoreSheet),
+      roundHistory: this.buildRoundHistory(scoreSheet, gameResult),
     };
   }
 
@@ -233,10 +242,11 @@ export class BrowserUiShellService {
     if (scoreSheet === undefined) {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
+    const gameResult = this.resolveAppliedGameResult(scoreSheet);
     return {
       valid: true,
       errors: [],
-      summary: this.gameSummaryViewService.buildModel(scoreSheet, { generatedAt }),
+      summary: this.gameSummaryViewService.buildModel({ ...scoreSheet, gameResult }, { generatedAt }),
     };
   }
 
@@ -285,6 +295,9 @@ export class BrowserUiShellService {
     };
     const gameResult = this.mvpService.calculateGame(gameInput);
     if (!gameResult.valid) return { valid: false, errors: gameResult.errors, gameResult };
+    const appliedGameResult = (scoreSheet.scoreOverrides?.length ?? 0) > 0
+      ? this.scoreOverrideService.buildAppliedGameResult(gameResult, scoreSheet.scoreOverrides ?? [], scoreSheet.playerOrder)
+      : undefined;
 
     const saved = this.repository.save({
       id: scoreSheet.id,
@@ -293,18 +306,53 @@ export class BrowserUiShellService {
       playerNamesById: scoreSheet.playerNamesById,
       gameInput,
       gameResult,
+      scoreOverrides: scoreSheet.scoreOverrides,
+      appliedGameResult,
       nowIso,
     });
-    return { valid: true, errors: [], scoreSheet: saved, gameResult };
+    return { valid: true, errors: [], scoreSheet: saved, gameResult: appliedGameResult ?? gameResult };
+  }
+
+  overrideRoundScores(scoreSheetId: string, input: UiOverrideRoundScoresInput): UiOverrideRoundScoresResult {
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    if (scoreSheet === undefined) {
+      return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
+    }
+
+    const result = this.scoreOverrideService.apply(scoreSheet, input);
+    if (!result.valid || result.scoreOverrides === undefined || result.appliedGameResult === undefined) {
+      return { valid: false, errors: result.errors };
+    }
+
+    const calculatedGameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    const saved = this.repository.save({
+      id: scoreSheet.id,
+      name: scoreSheet.name,
+      status: scoreSheet.status,
+      playerNamesById: scoreSheet.playerNamesById,
+      gameInput: scoreSheet.gameInput,
+      gameResult: calculatedGameResult,
+      scoreOverrides: result.scoreOverrides,
+      appliedGameResult: result.appliedGameResult,
+      nowIso: input.changedAtIso,
+    });
+
+    return {
+      valid: true,
+      errors: [],
+      scoreSheet: saved,
+      gameResult: result.appliedGameResult,
+    };
   }
 
   getRoundHistory(scoreSheetId: string): readonly UiRoundHistoryEntry[] {
     const scoreSheet = this.repository.getById(scoreSheetId);
-    return scoreSheet === undefined ? [] : this.buildRoundHistory(scoreSheet);
+    return scoreSheet === undefined ? [] : this.buildRoundHistory(scoreSheet, this.resolveAppliedGameResult(scoreSheet));
   }
 
   getLeaderboard(scoreSheetId: string): readonly LeaderboardEntry[] {
-    return this.repository.getById(scoreSheetId)?.gameResult?.leaderboard ?? [];
+    const scoreSheet = this.repository.getById(scoreSheetId);
+    return scoreSheet === undefined ? [] : this.resolveAppliedGameResult(scoreSheet).leaderboard;
   }
 
   getAnalyticsDashboard(scoreSheetId: string, generatedAt?: Date | string): UiAnalyticsDashboardResult {
@@ -312,7 +360,7 @@ export class BrowserUiShellService {
     if (scoreSheet === undefined) {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
-    const gameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    const gameResult = this.resolveAppliedGameResult(scoreSheet);
     return {
       valid: true,
       errors: [],
@@ -340,6 +388,17 @@ export class BrowserUiShellService {
     };
   }
 
+  private resolveAppliedGameResult(scoreSheet: PersistedScoreSheet): MvpGameResult {
+    const calculatedGameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
+    if (scoreSheet.appliedGameResult !== undefined) return scoreSheet.appliedGameResult;
+    if ((scoreSheet.scoreOverrides?.length ?? 0) === 0) return calculatedGameResult;
+    return this.scoreOverrideService.buildAppliedGameResult(
+      calculatedGameResult,
+      scoreSheet.scoreOverrides ?? [],
+      scoreSheet.playerOrder,
+    );
+  }
+
   private toSessionHistoryItem(metadata: PersistedScoreSheetMetadata): UiSessionHistoryItem {
     return {
       id: metadata.id,
@@ -356,9 +415,12 @@ export class BrowserUiShellService {
     return updatedAtIso.slice(0, 16).replace('T', ' ');
   }
 
-  private buildRoundHistory(scoreSheet: PersistedScoreSheet): readonly UiRoundHistoryEntry[] {
+  private buildRoundHistory(
+    scoreSheet: PersistedScoreSheet,
+    effectiveGameResult: MvpGameResult,
+  ): readonly UiRoundHistoryEntry[] {
     return scoreSheet.gameInput.rounds.map((roundInput, index) => {
-      const roundResult = scoreSheet.gameResult?.rounds[index] ?? this.mvpService.calculateRound({
+      const roundResult = effectiveGameResult.rounds[index] ?? this.mvpService.calculateRound({
         ...roundInput,
         ruleSet: scoreSheet.gameInput.ruleSet,
       });
