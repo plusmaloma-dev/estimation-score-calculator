@@ -108,7 +108,7 @@ export function CurrentRoundRow({
               disabled={errors.length > 0 || saveUnavailable}
               onClick={() => onSave?.(draft)}
             >
-              Calculate and save →
+              Calculate and save <span aria-hidden="true">→</span>
             </button>
           </div>
         </td>
