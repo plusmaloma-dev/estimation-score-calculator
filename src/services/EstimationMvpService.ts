@@ -1,4 +1,4 @@
-import type { EstimationBid, RoundBidValidationResult } from '../domain/bid.js';
+import type { BidValidationMode, EstimationBid, RoundBidValidationResult } from '../domain/bid.js';
 import type { PlayerRoundActualResult, RoundScoreResult, ScoringProfile } from '../scoring/types.js';
 import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
 import { FEDERATION_2026, HOUSE_RULES_V1, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
@@ -14,6 +14,7 @@ export interface MvpRoundInput {
   readonly actualResults: readonly PlayerRoundActualResult[];
   readonly profile: ScoringProfile;
   readonly ruleSet?: ScoringRuleSetId;
+  readonly bidValidationMode?: BidValidationMode;
   readonly roundMultiplier?: number;
   readonly riskPlayerId?: string;
   readonly bidOwnerPlayerId?: string;
@@ -49,12 +50,23 @@ export class EstimationMvpService {
     private readonly scoringStrategyFactory = new ScoringStrategyFactory(),
   ) {}
 
-  validateBids(bids: readonly EstimationBid[]): RoundBidValidationResult {
-    return this.bidValidationService.validateRoundBids(bids);
+  validateBids(
+    bids: readonly EstimationBid[],
+    options: { readonly mode?: BidValidationMode; readonly bidOwnerPlayerId?: string } = {},
+  ): RoundBidValidationResult {
+    return this.bidValidationService.validateRoundBids(bids, {
+      playerCount: 4,
+      cardsPerPlayer: 13,
+      mode: options.mode,
+      bidOwnerPlayerId: options.bidOwnerPlayerId,
+    });
   }
 
   calculateRound(input: MvpRoundInput): MvpRoundResult {
-    const bidValidation = this.validateBids(input.bids);
+    const bidValidation = this.validateBids(input.bids, {
+      mode: input.bidValidationMode,
+      bidOwnerPlayerId: input.bidOwnerPlayerId,
+    });
     if (!bidValidation.valid || bidValidation.roundType === undefined) {
       return {
         roundNumber: input.roundNumber,
