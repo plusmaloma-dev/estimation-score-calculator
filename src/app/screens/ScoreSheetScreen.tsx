@@ -10,7 +10,11 @@ import {
 import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
 import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
-import { resolveHighestEstimatePlayerId } from '../scoreSheet/currentRoundReducer.js';
+import {
+  resolveAutomaticRiskPlayerId,
+  resolveHighestEstimatePlayerId,
+  resolveWithPlayerIds,
+} from '../scoreSheet/currentRoundReducer.js';
 import { buildScoreSheetViewModel } from '../scoreSheet/scoreSheetViewModel.js';
 
 const federationProfile: ScoringProfile = {
@@ -55,27 +59,39 @@ export function ScoreSheetScreen({
   const players = model.players.map((player) => ({ id: player.id, name: player.name }));
   const existingTotals = Object.fromEntries(model.players.map((player) => [player.id, player.totalScore]));
   const currentRoundNumber = model.rounds.length + 1;
-  const dealer = players[(currentRoundNumber - 1) % players.length];
+  const dealerIndex = (currentRoundNumber - 1) % players.length;
+  const dealer = players[dealerIndex];
+  const biddingOrder = [
+    ...players.slice(dealerIndex),
+    ...players.slice(0, dealerIndex),
+  ].map((player) => player.id);
 
   const saveCurrentRound = shell.saveRound === undefined
     ? undefined
     : (draft: CurrentRoundDraft) => {
       const bidOwnerPlayerId = resolveHighestEstimatePlayerId(draft);
       if (bidOwnerPlayerId === undefined || draft.trumpSuit === undefined) {
-        setSaveErrors(['The accepted estimates must have one highest estimator and a selected trump.']);
+        setSaveErrors(['The accepted estimates must have a highest estimator and a selected trump.']);
         return;
       }
 
+      const withPlayerIds = new Set(resolveWithPlayerIds(draft));
+      const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
       const input: UiRoundEntryInput = {
         roundNumber: currentRoundNumber,
         bidOwnerPlayerId,
+        riskPlayerId,
         profile: isFederation ? federationProfile : houseRulesV1ScoringProfile,
-        bids: players.map((player) => ({
-          playerId: player.id,
-          bidType: 'normal' as const,
-          tricks: draft.estimates[player.id] ?? 0,
-          ...(player.id === bidOwnerPlayerId ? { trumpSuit: draft.trumpSuit } : {}),
-        })),
+        bids: players.map((player) => {
+          const isWith = withPlayerIds.has(player.id);
+          return {
+            playerId: player.id,
+            bidType: isWith ? 'with' as const : 'normal' as const,
+            tricks: draft.estimates[player.id] ?? 0,
+            ...(player.id === bidOwnerPlayerId ? { trumpSuit: draft.trumpSuit } : {}),
+            ...(isWith ? { withTargetPlayerId: bidOwnerPlayerId } : {}),
+          };
+        }),
         actualResults: players.map((player) => ({
           playerId: player.id,
           actualTricks: draft.actuals[player.id] ?? 0,
@@ -126,6 +142,7 @@ export function ScoreSheetScreen({
             key={currentRoundNumber}
             roundNumber={currentRoundNumber}
             players={players}
+            biddingOrder={biddingOrder}
             existingTotals={existingTotals}
             onSave={saveCurrentRound}
           />
