@@ -132,32 +132,21 @@ export class BrowserUiShellService {
 
   validatePlayerSetup(players: readonly UiPlayerSetupInput[]): UiValidationResult {
     const errors: string[] = [];
-
-    if (players.length !== 4) {
-      errors.push('Exactly four players are required.');
-    }
+    if (players.length !== 4) errors.push('Exactly four players are required.');
 
     const seenIds = new Set<string>();
     const seenNames = new Set<string>();
     players.forEach((player, index) => {
       const id = player.id.trim();
       const name = player.name.trim();
+      if (id.length === 0) errors.push(`Player ${index + 1} id is required.`);
+      else if (seenIds.has(id)) errors.push(`Player id must be unique: ${id}.`);
+      else seenIds.add(id);
 
-      if (id.length === 0) {
-        errors.push(`Player ${index + 1} id is required.`);
-      } else if (seenIds.has(id)) {
-        errors.push(`Player id must be unique: ${id}.`);
-      } else {
-        seenIds.add(id);
-      }
-
-      if (name.length === 0) {
-        errors.push(`Player ${index + 1} name is required.`);
-      } else if (seenNames.has(name.toLocaleLowerCase())) {
-        errors.push(`Player name must be unique: ${name}.`);
-      } else {
-        seenNames.add(name.toLocaleLowerCase());
-      }
+      const normalizedName = name.toLocaleLowerCase();
+      if (name.length === 0) errors.push(`Player ${index + 1} name is required.`);
+      else if (seenNames.has(normalizedName)) errors.push(`Player name must be unique: ${name}.`);
+      else seenNames.add(normalizedName);
     });
 
     return { valid: errors.length === 0, errors };
@@ -165,22 +154,19 @@ export class BrowserUiShellService {
 
   createScoreSheet(input: UiCreateScoreSheetInput): UiCreateScoreSheetResult {
     const errors: string[] = [];
-    if (input.name.trim().length === 0) {
-      errors.push('Score-sheet name is required.');
-    }
-
+    if (input.name.trim().length === 0) errors.push('Score-sheet name is required.');
     if (input.ruleSet !== undefined && !isScoringRuleSetId(input.ruleSet)) {
       errors.push(`Unsupported scoring rule set: ${String(input.ruleSet)}.`);
     }
 
     const playerSetup = this.validatePlayerSetup(input.players);
     errors.push(...playerSetup.errors);
-
-    if (errors.length > 0) {
-      return { valid: false, errors };
-    }
+    if (errors.length > 0) return { valid: false, errors };
 
     const playerOrder = input.players.map((player) => player.id.trim());
+    const playerNamesById = Object.fromEntries(
+      input.players.map((player) => [player.id.trim(), player.name.trim()]),
+    );
     const gameInput: MvpGameInput = {
       rounds: [],
       playerOrder,
@@ -190,6 +176,7 @@ export class BrowserUiShellService {
     const scoreSheet = this.repository.save({
       name: input.name,
       status: 'draft',
+      playerNamesById,
       gameInput,
       gameResult,
       nowIso: input.nowIso,
@@ -210,11 +197,11 @@ export class BrowserUiShellService {
   }
 
   getSessionHistory(): UiSessionHistoryResult {
-    const sessions = [...this.repository.list()]
-      .sort((left, right) => right.updatedAtIso.localeCompare(left.updatedAtIso))
-      .map((metadata) => this.toSessionHistoryItem(metadata));
-
-    return { sessions };
+    return {
+      sessions: [...this.repository.list()]
+        .sort((left, right) => right.updatedAtIso.localeCompare(left.updatedAtIso))
+        .map((metadata) => this.toSessionHistoryItem(metadata)),
+    };
   }
 
   openSession(scoreSheetId: string, generatedAt?: Date | string): UiOpenSessionResult {
@@ -245,7 +232,6 @@ export class BrowserUiShellService {
     if (scoreSheet === undefined) {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
-
     return {
       valid: true,
       errors: [],
@@ -253,19 +239,11 @@ export class BrowserUiShellService {
     };
   }
 
-  resolveFederationAuction(
-    scoreSheetId: string,
-    input: UiFederationAuctionInput,
-  ): FederationAuctionResolution {
+  resolveFederationAuction(scoreSheetId: string, input: UiFederationAuctionInput): FederationAuctionResolution {
     const scoreSheet = this.repository.getById(scoreSheetId);
     if (scoreSheet === undefined) {
-      return {
-        valid: false,
-        errors: [`Score sheet not found: ${scoreSheetId}.`],
-        status: 'invalid',
-      };
+      return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`], status: 'invalid' };
     }
-
     if (resolveScoringRuleSetId(scoreSheet.gameInput.ruleSet) !== FEDERATION_2026) {
       return {
         valid: false,
@@ -273,7 +251,6 @@ export class BrowserUiShellService {
         status: 'invalid',
       };
     }
-
     return this.federationAuctionService.resolve({
       roundNumber: input.roundNumber,
       dealerPlayerId: input.dealerPlayerId,
@@ -283,8 +260,7 @@ export class BrowserUiShellService {
   }
 
   previewRound(input: UiRoundEntryInput): UiRoundPreviewResult {
-    const roundInput = this.toMvpRoundInput(input);
-    const round = this.mvpService.calculateRound(roundInput);
+    const round = this.mvpService.calculateRound(this.toMvpRoundInput(input));
     return { valid: round.valid, errors: round.errors, round };
   }
 
@@ -299,9 +275,7 @@ export class BrowserUiShellService {
       ...roundInput,
       ruleSet: scoreSheet.gameInput.ruleSet,
     });
-    if (!previewRound.valid) {
-      return { valid: false, errors: previewRound.errors };
-    }
+    if (!previewRound.valid) return { valid: false, errors: previewRound.errors };
 
     const gameInput: MvpGameInput = {
       ...scoreSheet.gameInput,
@@ -309,29 +283,23 @@ export class BrowserUiShellService {
       rounds: [...scoreSheet.gameInput.rounds, roundInput],
     };
     const gameResult = this.mvpService.calculateGame(gameInput);
-    if (!gameResult.valid) {
-      return { valid: false, errors: gameResult.errors, gameResult };
-    }
+    if (!gameResult.valid) return { valid: false, errors: gameResult.errors, gameResult };
 
     const saved = this.repository.save({
       id: scoreSheet.id,
       name: scoreSheet.name,
       status: scoreSheet.status,
+      playerNamesById: scoreSheet.playerNamesById,
       gameInput,
       gameResult,
       nowIso,
     });
-
     return { valid: true, errors: [], scoreSheet: saved, gameResult };
   }
 
   getRoundHistory(scoreSheetId: string): readonly UiRoundHistoryEntry[] {
     const scoreSheet = this.repository.getById(scoreSheetId);
-    if (scoreSheet === undefined) {
-      return [];
-    }
-
-    return this.buildRoundHistory(scoreSheet);
+    return scoreSheet === undefined ? [] : this.buildRoundHistory(scoreSheet);
   }
 
   getLeaderboard(scoreSheetId: string): readonly LeaderboardEntry[] {
@@ -343,15 +311,16 @@ export class BrowserUiShellService {
     if (scoreSheet === undefined) {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
-
     const gameResult = scoreSheet.gameResult ?? this.mvpService.calculateGame(scoreSheet.gameInput);
-    const analytics = this.analyticsViewService.buildModel(gameResult, {
-      title: `${scoreSheet.name} Analytics`,
-      generatedAt,
-      playerOrder: scoreSheet.playerOrder,
-    });
-
-    return { valid: true, errors: [], analytics };
+    return {
+      valid: true,
+      errors: [],
+      analytics: this.analyticsViewService.buildModel(gameResult, {
+        title: `${scoreSheet.name} Analytics`,
+        generatedAt,
+        playerOrder: scoreSheet.playerOrder,
+      }),
+    };
   }
 
   exportScoreSheet(scoreSheetId: string, exportedAtIso?: string): UiExportBackupResult {
@@ -359,14 +328,15 @@ export class BrowserUiShellService {
     if (scoreSheet === undefined) {
       return { valid: false, errors: [`Score sheet not found: ${scoreSheetId}.`] };
     }
-
-    const document = this.backupService.exportScoreSheets({
-      scoreSheets: [scoreSheet],
-      exportedAtIso,
-      source: 'browser-ui-shell',
-    });
-
-    return { valid: true, errors: [], document };
+    return {
+      valid: true,
+      errors: [],
+      document: this.backupService.exportScoreSheets({
+        scoreSheets: [scoreSheet],
+        exportedAtIso,
+        source: 'browser-ui-shell',
+      }),
+    };
   }
 
   private toSessionHistoryItem(metadata: PersistedScoreSheetMetadata): UiSessionHistoryItem {
@@ -374,7 +344,7 @@ export class BrowserUiShellService {
       id: metadata.id,
       name: metadata.name,
       status: metadata.status,
-      players: metadata.playerOrder,
+      players: metadata.playerOrder.map((playerId) => metadata.playerNamesById?.[playerId] ?? playerId),
       roundCount: metadata.roundCount,
       updatedAtIso: metadata.updatedAtIso,
       updatedAtLabel: this.formatSessionDateLabel(metadata.updatedAtIso),
@@ -409,11 +379,8 @@ export class BrowserUiShellService {
   private resolveRiskTypes(playerScores: NonNullable<MvpRoundResult['scoreResult']>['playerScores']): readonly RiskType[] {
     const riskTypes = new Set<RiskType>();
     for (const playerScore of playerScores) {
-      if (playerScore.riskType !== 'none') {
-        riskTypes.add(playerScore.riskType);
-      }
+      if (playerScore.riskType !== 'none') riskTypes.add(playerScore.riskType);
     }
-
     return [...riskTypes];
   }
 
