@@ -65,7 +65,8 @@ describe('ScoreSheetScreen', () => {
 
     expect(screen.getByRole('heading', { name: 'Thursday Table' })).toBeInTheDocument();
     expect(screen.getByText('Round 2')).toBeInTheDocument();
-    expect(screen.getByText('Dealer: Mona')).toBeInTheDocument();
+    expect(screen.getByText(/Dealer:/)).toBeInTheDocument();
+    expect(screen.getByText('Mona', { selector: '.round-dealer-card b' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New Round' })).toBeInTheDocument();
 
@@ -85,6 +86,6 @@ describe('ScoreSheetScreen', () => {
       expect(screen.getByRole('spinbutton', { name: `${player} estimate` })).toBeInTheDocument();
       expect(screen.getByRole('spinbutton', { name: `${player} actual tricks` })).toBeInTheDocument();
     }
-    expect(screen.getByRole('button', { name: /Calculate and save/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
   });
 });
