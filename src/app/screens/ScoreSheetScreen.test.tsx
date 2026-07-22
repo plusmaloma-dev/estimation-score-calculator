@@ -104,4 +104,33 @@ describe('ScoreSheetScreen', () => {
       ],
     }));
   });
+
+  it('submits tied highest estimates as With and the O/U +2 last caller as Risk', async () => {
+    const user = userEvent.setup();
+    const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
+
+    for (const [name, estimate] of [['Ahmed', '4'], ['Mona', '3'], ['Rami', '4'], ['Dina', '4']] as const) {
+      await user.type(screen.getByLabelText(`${name} estimate`), estimate);
+    }
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+
+    for (const [name, actual] of [['Ahmed', '4'], ['Mona', '2'], ['Rami', '4'], ['Dina', '3']] as const) {
+      await user.type(screen.getByLabelText(`${name} actual tricks`), actual);
+    }
+    await user.click(screen.getByRole('button', { name: 'Calculate scores' }));
+
+    expect(saveRound).toHaveBeenCalledWith('sheet-1', expect.objectContaining({
+      roundNumber: 1,
+      bidOwnerPlayerId: 'A',
+      riskPlayerId: 'D',
+      bids: [
+        { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
+        { playerId: 'B', bidType: 'normal', tricks: 3 },
+        { playerId: 'C', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
+        { playerId: 'D', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
+      ],
+    }));
+  });
 });
