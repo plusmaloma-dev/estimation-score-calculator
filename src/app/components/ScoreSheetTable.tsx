@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { RankingBadge } from './RankingBadge.js';
 import type { ScoreSheetViewModel } from '../scoreSheet/scoreSheetViewModel.js';
 
@@ -5,7 +6,13 @@ function formatScore(value: number): string {
   return value > 0 ? `+${value}` : String(value);
 }
 
-export function ScoreSheetTable({ model }: { readonly model: ScoreSheetViewModel }) {
+export function ScoreSheetTable({
+  model,
+  currentRound,
+}: {
+  readonly model: ScoreSheetViewModel;
+  readonly currentRound?: ReactNode;
+}) {
   return (
     <div className="score-sheet-scroll" tabIndex={0} aria-label="Scrollable score sheet">
       <table className="score-sheet-table" aria-label={`${model.name} score sheet`}>
@@ -47,6 +54,7 @@ export function ScoreSheetTable({ model }: { readonly model: ScoreSheetViewModel
               <td className="ou-column">{round.overUnder}</td>
             </tr>
           ))}
+          {currentRound}
         </tbody>
       </table>
     </div>
