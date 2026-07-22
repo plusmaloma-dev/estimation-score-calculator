@@ -1,4 +1,5 @@
 import type { UiOpenSessionResult } from '../../index.js';
+import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
 import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import { buildScoreSheetViewModel } from '../scoreSheet/scoreSheetViewModel.js';
 
@@ -25,6 +26,8 @@ export function ScoreSheetScreen({
 
   const model = buildScoreSheetViewModel(opened);
   const ruleSet = opened.scoreSheet.gameInput.ruleSet === 'FEDERATION_2026' ? 'Federation 2026' : 'House Rules V1';
+  const players = model.players.map((player) => ({ id: player.id, name: player.name }));
+  const existingTotals = Object.fromEntries(model.players.map((player) => [player.id, player.totalScore]));
 
   return (
     <section className="screen-stack score-sheet-screen">
@@ -35,8 +38,16 @@ export function ScoreSheetScreen({
         </div>
         <span className="rule-chip">{ruleSet}</span>
       </div>
-      <ScoreSheetTable model={model} />
-      {model.rounds.length === 0 && <p className="empty-score-sheet">No completed rounds yet.</p>}
+      <ScoreSheetTable
+        model={model}
+        currentRound={(
+          <CurrentRoundRow
+            roundNumber={model.rounds.length + 1}
+            players={players}
+            existingTotals={existingTotals}
+          />
+        )}
+      />
     </section>
   );
 }
