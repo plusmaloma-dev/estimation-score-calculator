@@ -3,6 +3,8 @@ import type {
   UiCreateScoreSheetInput,
   UiCreateScoreSheetResult,
   UiOpenSessionResult,
+  UiRoundEntryInput,
+  UiSaveRoundResult,
   UiSessionHistoryResult,
 } from '../index.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
@@ -12,6 +14,7 @@ export interface BrowserShellPort {
   getSessionHistory(): UiSessionHistoryResult;
   createScoreSheet(input: UiCreateScoreSheetInput): UiCreateScoreSheetResult;
   openSession(scoreSheetId: string): UiOpenSessionResult;
+  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
 }
 
 export interface AppServices {
