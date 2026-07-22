@@ -2,13 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   createCurrentRoundDraft,
   currentRoundReducer,
+  resolveAutomaticRiskPlayerId,
   resolveHighestEstimatePlayerId,
+  resolveWithPlayerIds,
   validateAcceptedEstimates,
   validateActualTricks,
 } from './currentRoundReducer.js';
 
 describe('currentRoundReducer', () => {
-  it('treats blank estimates as zero and exposes the first unique highest estimator', () => {
+  it('treats blank estimates as zero and exposes the first highest estimator', () => {
     let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
 
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
@@ -51,12 +53,27 @@ describe('currentRoundReducer', () => {
     expect(validateAcceptedEstimates(draft)).toContain('Total estimates cannot equal 13.');
   });
 
-  it('requires one unique highest estimate before estimates can be accepted', () => {
+  it('keeps the first highest caller as owner and marks equal highest callers With', () => {
     let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
+    draft = currentRoundReducer(draft, { type: 'set-trump', suit: 'hearts' });
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'B', value: 5 });
 
-    expect(resolveHighestEstimatePlayerId(draft)).toBeUndefined();
-    expect(validateAcceptedEstimates(draft)).toContain('A unique highest estimate is required.');
+    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
+    expect(resolveWithPlayerIds(draft)).toEqual(['B']);
+    expect(draft.trumpSuit).toBe('hearts');
+    expect(validateAcceptedEstimates(draft)).toEqual([]);
+  });
+
+  it('marks the last caller Risk when their estimate makes the total 15', () => {
+    let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
+    for (const [playerId, value] of Object.entries({ A: 4, B: 3, C: 4, D: 4 })) {
+      draft = currentRoundReducer(draft, { type: 'set-estimate', playerId, value });
+    }
+
+    expect(draft.overUnder).toBe(2);
+    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
+    expect(resolveWithPlayerIds(draft)).toEqual(['C', 'D']);
+    expect(resolveAutomaticRiskPlayerId(draft)).toBe('D');
   });
 });
