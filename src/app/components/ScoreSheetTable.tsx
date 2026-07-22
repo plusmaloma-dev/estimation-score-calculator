@@ -18,10 +18,13 @@ function columnLabel(full: string, compact: string) {
 export function ScoreSheetTable({
   model,
   currentRound,
+  onEditScores,
 }: {
   readonly model: ScoreSheetViewModel;
   readonly currentRound?: ReactNode;
+  readonly onEditScores?: (roundNumber: number) => void;
 }) {
+  const playerNameById = new Map(model.players.map((player) => [player.id, player.name]));
   return (
     <div className="score-sheet-fit" aria-label="Responsive score sheet">
       <table className="score-sheet-table" aria-label={`${model.name} score sheet`}>
@@ -61,13 +64,35 @@ export function ScoreSheetTable({
         <tbody>
           {model.rounds.map((round) => (
             <tr key={round.roundNumber}>
-              <th className="round-column" scope="row">{round.roundNumber}</th>
+              <th className="round-column" scope="row">
+                <span>{round.roundNumber}</span>
+                {onEditScores !== undefined && (
+                  <button
+                    type="button"
+                    className="edit-round-scores-button"
+                    aria-label={`Edit scores for round ${round.roundNumber}`}
+                    onClick={() => onEditScores(round.roundNumber)}
+                  >
+                    ✎
+                  </button>
+                )}
+              </th>
               {round.cells.flatMap((cell) => [
                 <td key={`${round.roundNumber}-${cell.playerId}-estimate`} className={cell.successful ? 'score-success' : 'score-failed'}>
                   <span aria-hidden="true">{cell.successful ? '▲' : '▼'}</span> {cell.estimateLabel}
                 </td>,
                 <td key={`${round.roundNumber}-${cell.playerId}-actual`}>{cell.actualTricks}</td>,
-                <td key={`${round.roundNumber}-${cell.playerId}-round`} className={cell.roundScore >= 0 ? 'score-positive' : 'score-negative'}>{formatScore(cell.roundScore)}</td>,
+                <td key={`${round.roundNumber}-${cell.playerId}-round`} className={cell.roundScore >= 0 ? 'score-positive' : 'score-negative'}>
+                  {formatScore(cell.roundScore)}
+                  {cell.overridden && (
+                    <>
+                      <span className="edited-score-marker">Edited</span>
+                      <span className="visually-hidden">
+                        {playerNameById.get(cell.playerId) ?? cell.playerId} round {round.roundNumber} calculated score {cell.calculatedScore}; applied score {cell.appliedScore}
+                      </span>
+                    </>
+                  )}
+                </td>,
                 <td key={`${round.roundNumber}-${cell.playerId}-total`}>{cell.cumulativeScore}</td>,
               ])}
               <td className="ou-column">{round.overUnder}</td>
