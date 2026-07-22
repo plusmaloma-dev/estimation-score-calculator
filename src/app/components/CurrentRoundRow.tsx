@@ -24,18 +24,16 @@ function numberValue(value: string): number | undefined {
 export function CurrentRoundRow({
   roundNumber,
   players,
-  biddingOrder,
   existingTotals,
   onSave,
 }: {
   readonly roundNumber: number;
   readonly players: readonly CurrentRoundPlayer[];
-  readonly biddingOrder?: readonly string[];
   readonly existingTotals: Readonly<Record<string, number>>;
   readonly onSave?: (draft: CurrentRoundDraft) => void;
 }) {
-  const draftOrder = biddingOrder ?? players.map((player) => player.id);
-  const [draft, dispatch] = useReducer(currentRoundReducer, draftOrder, createCurrentRoundDraft);
+  const playerOrder = players.map((player) => player.id);
+  const [draft, dispatch] = useReducer(currentRoundReducer, playerOrder, createCurrentRoundDraft);
   const isEstimating = draft.phase === 'estimating';
   const estimateErrors = validateAcceptedEstimates(draft);
   const actualErrors = validateActualTricks(draft);
