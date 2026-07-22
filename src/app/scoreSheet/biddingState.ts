@@ -95,14 +95,26 @@ export function setBiddingEstimate(
   assertPlayer(state, playerId);
   if (state.confirmed) return state;
 
-  const wasEntered = state.estimatesByPlayerId[playerId] !== undefined;
+  const isTemporaryOwnerBlank = value === undefined && state.bidOwnerPlayerId === playerId;
+  const wasEntered = state.estimatesByPlayerId[playerId] !== undefined
+    || state.estimateEntryOrder.includes(playerId);
   const estimateEntryOrder = value === undefined
-    ? state.estimateEntryOrder.filter((candidate) => candidate !== playerId)
+    ? isTemporaryOwnerBlank
+      ? state.estimateEntryOrder
+      : state.estimateEntryOrder.filter((candidate) => candidate !== playerId)
     : wasEntered
       ? state.estimateEntryOrder
       : [...state.estimateEntryOrder, playerId];
   const estimatesByPlayerId = { ...state.estimatesByPlayerId, [playerId]: value };
   const nextValue = value ?? 0;
+
+  if (isTemporaryOwnerBlank) {
+    return {
+      ...state,
+      estimateEntryOrder,
+      estimatesByPlayerId,
+    };
+  }
 
   if (state.bidOwnerPlayerId === undefined) {
     const owner = firstEnteredHighestPlayerId(state.playerOrder, estimateEntryOrder, estimatesByPlayerId);
@@ -266,6 +278,8 @@ export function confirmBidding(state: BiddingState): ConfirmBiddingResult {
   }
   if (state.bidOwnerPlayerId === undefined || state.winningEstimate <= 0) {
     errors.push('At least one positive estimate is required.');
+  } else if (normalizedEstimate(state, state.bidOwnerPlayerId) !== state.winningEstimate) {
+    errors.push('Bid owner must keep the highest estimate.');
   }
   if (state.trumpSuit === undefined) {
     errors.push('Trump suit is required.');
