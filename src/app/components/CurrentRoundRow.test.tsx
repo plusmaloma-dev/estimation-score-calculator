@@ -33,7 +33,7 @@ describe('CurrentRoundRow', () => {
     expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Dina trump')).toBeInTheDocument();
     expect(screen.getAllByText('+1').length).toBeGreaterThan(0);
-    expect(screen.getByText('Total estimates: 14')).toBeInTheDocument();
+    expect(screen.getByText('14', { selector: '.round-summary strong' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Calculate and save' })).toBeDisabled();
   });
 
