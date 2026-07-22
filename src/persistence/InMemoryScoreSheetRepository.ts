@@ -20,6 +20,7 @@ export class InMemoryScoreSheetRepository implements ScoreSheetRepository {
       createdAtIso: existing?.createdAtIso ?? nowIso,
       updatedAtIso: nowIso,
       playerOrder: input.gameInput.playerOrder ?? this.inferPlayerOrder(input.gameInput),
+      playerNamesById: input.playerNamesById ?? existing?.playerNamesById,
       roundCount: input.gameInput.rounds.length,
       gameInput: input.gameInput,
       gameResult: input.gameResult,
@@ -42,6 +43,7 @@ export class InMemoryScoreSheetRepository implements ScoreSheetRepository {
       createdAtIso: scoreSheet.createdAtIso,
       updatedAtIso: scoreSheet.updatedAtIso,
       playerOrder: scoreSheet.playerOrder,
+      playerNamesById: scoreSheet.playerNamesById,
       roundCount: scoreSheet.roundCount,
     })).sort((left, right) => left.updatedAtIso.localeCompare(right.updatedAtIso));
   }
