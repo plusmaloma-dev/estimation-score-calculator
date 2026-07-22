@@ -71,6 +71,57 @@ test('equal highest estimates are With and the last caller receives Risk at O/U 
   assert.equal(scores.find((score) => score.playerId === 'D')?.score, -21);
 });
 
+test('Hold players keep their estimate and receive normal other-player scoring', () => {
+  const result = new EstimationMvpService().calculateRound({
+    roundNumber: 1,
+    bidValidationMode: 'round-estimates',
+    bidOwnerPlayerId: 'A',
+    profile,
+    bids: [
+      { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+      { playerId: 'B', bidType: 'normal', tricks: 2 },
+      { playerId: 'C', bidType: 'hold', tricks: 4 },
+      { playerId: 'D', bidType: 'hold', tricks: 4 },
+    ],
+    actualResults: [
+      { playerId: 'A', actualTricks: 5 },
+      { playerId: 'B', actualTricks: 2 },
+      { playerId: 'C', actualTricks: 4 },
+      { playerId: 'D', actualTricks: 2 },
+    ],
+  });
+
+  assert.equal(result.valid, true, result.errors.join('; '));
+  const scores = result.scoreResult?.playerScores ?? [];
+  assert.equal(scores.find((score) => score.playerId === 'C')?.role, 'other-player');
+  assert.equal(scores.find((score) => score.playerId === 'C')?.riskType, 'none');
+  assert.equal(scores.find((score) => score.playerId === 'D')?.role, 'other-player');
+});
+
+test('accepted round estimates reject Hold for a player still matching the final highest estimate', () => {
+  const result = new EstimationMvpService().calculateRound({
+    roundNumber: 1,
+    bidValidationMode: 'round-estimates',
+    bidOwnerPlayerId: 'A',
+    profile,
+    bids: [
+      { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+      { playerId: 'B', bidType: 'normal', tricks: 2 },
+      { playerId: 'C', bidType: 'hold', tricks: 5 },
+      { playerId: 'D', bidType: 'normal', tricks: 3 },
+    ],
+    actualResults: [
+      { playerId: 'A', actualTricks: 5 },
+      { playerId: 'B', actualTricks: 2 },
+      { playerId: 'C', actualTricks: 4 },
+      { playerId: 'D', actualTricks: 2 },
+    ],
+  });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.includes('Player C must be marked With the bid owner.'));
+});
+
 test('accepted round estimates reject any player estimate of 13', () => {
   const result = new EstimationMvpService().calculateRound({
     roundNumber: 1,
