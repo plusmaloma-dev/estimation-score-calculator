@@ -61,10 +61,6 @@ export function ScoreSheetScreen({
   const currentRoundNumber = model.rounds.length + 1;
   const dealerIndex = (currentRoundNumber - 1) % players.length;
   const dealer = players[dealerIndex];
-  const biddingOrder = [
-    ...players.slice(dealerIndex),
-    ...players.slice(0, dealerIndex),
-  ].map((player) => player.id);
 
   const saveCurrentRound = shell.saveRound === undefined
     ? undefined
@@ -142,7 +138,6 @@ export function ScoreSheetScreen({
             key={currentRoundNumber}
             roundNumber={currentRoundNumber}
             players={players}
-            biddingOrder={biddingOrder}
             existingTotals={existingTotals}
             onSave={saveCurrentRound}
           />
