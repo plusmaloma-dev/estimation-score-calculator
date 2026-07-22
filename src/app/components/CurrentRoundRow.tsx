@@ -3,7 +3,9 @@ import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
 import {
   createCurrentRoundDraft,
   currentRoundReducer,
+  resolveAutomaticRiskPlayerId,
   resolveHighestEstimatePlayerId,
+  resolveWithPlayerIds,
   validateAcceptedEstimates,
   validateActualTricks,
 } from '../scoreSheet/currentRoundReducer.js';
@@ -22,19 +24,24 @@ function numberValue(value: string): number | undefined {
 export function CurrentRoundRow({
   roundNumber,
   players,
+  biddingOrder,
   existingTotals,
   onSave,
 }: {
   readonly roundNumber: number;
   readonly players: readonly CurrentRoundPlayer[];
+  readonly biddingOrder?: readonly string[];
   readonly existingTotals: Readonly<Record<string, number>>;
   readonly onSave?: (draft: CurrentRoundDraft) => void;
 }) {
-  const [draft, dispatch] = useReducer(currentRoundReducer, players.map((player) => player.id), createCurrentRoundDraft);
+  const draftOrder = biddingOrder ?? players.map((player) => player.id);
+  const [draft, dispatch] = useReducer(currentRoundReducer, draftOrder, createCurrentRoundDraft);
   const isEstimating = draft.phase === 'estimating';
   const estimateErrors = validateAcceptedEstimates(draft);
   const actualErrors = validateActualTricks(draft);
   const winnerPlayerId = resolveHighestEstimatePlayerId(draft);
+  const withPlayerIds = new Set(resolveWithPlayerIds(draft));
+  const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
   const totalEstimates = draft.overUnder + 13;
   const hint = isEstimating
@@ -50,6 +57,10 @@ export function CurrentRoundRow({
         </th>
         {players.flatMap((player) => {
           const isWinner = winnerPlayerId === player.id;
+          const annotations = [
+            ...(withPlayerIds.has(player.id) ? ['W'] : []),
+            ...(riskPlayerId === player.id ? ['R'] : []),
+          ];
           return [
             <td key={`${player.id}-estimate`} className={isWinner ? 'current-estimate current-estimate--winner' : 'current-estimate'}>
               <div className="current-cell">
@@ -81,6 +92,11 @@ export function CurrentRoundRow({
                   </select>
                 )}
               </div>
+              {annotations.length > 0 && (
+                <span className="estimate-annotations" aria-label={`${player.name} estimate annotations`}>
+                  {annotations.join(' ')}
+                </span>
+              )}
             </td>,
             <td key={`${player.id}-actual`}>
               <input
