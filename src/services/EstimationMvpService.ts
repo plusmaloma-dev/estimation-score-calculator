@@ -16,6 +16,7 @@ export interface MvpRoundInput {
   readonly ruleSet?: ScoringRuleSetId;
   readonly bidValidationMode?: BidValidationMode;
   readonly roundMultiplier?: number;
+  readonly multipleWithMultiplier?: 1 | 2;
   readonly riskPlayerId?: string;
   readonly bidOwnerPlayerId?: string;
 }
@@ -87,6 +88,7 @@ export class EstimationMvpService {
       roundNumber: input.roundNumber,
       roundType: bidValidation.roundType,
       roundMultiplier: input.roundMultiplier,
+      multipleWithMultiplier: input.multipleWithMultiplier,
       riskPlayerId: input.riskPlayerId,
       bidOwnerPlayerId: input.bidOwnerPlayerId,
       winningContractNumber: this.resolveWinningContractNumber(input.bids, input.bidOwnerPlayerId),
@@ -140,6 +142,7 @@ export class EstimationMvpService {
     bidOwnerPlayerId: string | undefined,
   ): BidValidationMode {
     if (bidOwnerPlayerId === undefined) return 'auction-calls';
+    if (bids.some((bid) => bid.bidType === 'hold')) return 'round-estimates';
 
     const hasPlayerEstimateBelowAuctionMinimum = bids.some(
       (bid) => (bid.bidType === 'normal' || bid.bidType === 'with') && bid.tricks < 4,
