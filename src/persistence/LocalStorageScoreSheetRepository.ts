@@ -32,6 +32,7 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
       : state.scoreSheets.find((scoreSheet) => scoreSheet.id === input.id);
     const id = input.id ?? `score-sheet-${state.nextId}`;
     const nowIso = input.nowIso ?? new Date().toISOString();
+    const playerNamesById = input.playerNamesById ?? existing?.playerNamesById;
     const scoreSheet: PersistedScoreSheet = {
       id,
       name: input.name.trim(),
@@ -39,21 +40,19 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
       createdAtIso: existing?.createdAtIso ?? nowIso,
       updatedAtIso: nowIso,
       playerOrder: input.gameInput.playerOrder ?? this.inferPlayerOrder(input.gameInput),
-      playerNamesById: input.playerNamesById ?? existing?.playerNamesById,
+      ...(playerNamesById === undefined ? {} : { playerNamesById }),
       roundCount: input.gameInput.rounds.length,
       gameInput: input.gameInput,
       gameResult: input.gameResult,
     };
 
     this.validate(scoreSheet);
-
     const scoreSheets = [
       ...state.scoreSheets.filter((candidate) => candidate.id !== id),
       scoreSheet,
     ];
     const nextId = input.id === undefined ? state.nextId + 1 : state.nextId;
     this.saveState({ version: 1, nextId, scoreSheets });
-
     return scoreSheet;
   }
 
@@ -69,7 +68,7 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
       createdAtIso: scoreSheet.createdAtIso,
       updatedAtIso: scoreSheet.updatedAtIso,
       playerOrder: scoreSheet.playerOrder,
-      playerNamesById: scoreSheet.playerNamesById,
+      ...(scoreSheet.playerNamesById === undefined ? {} : { playerNamesById: scoreSheet.playerNamesById }),
       roundCount: scoreSheet.roundCount,
     })).sort((left, right) => left.updatedAtIso.localeCompare(right.updatedAtIso));
   }
@@ -77,10 +76,7 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
   deleteById(id: string): boolean {
     const state = this.loadState();
     const scoreSheets = state.scoreSheets.filter((scoreSheet) => scoreSheet.id !== id);
-    if (scoreSheets.length === state.scoreSheets.length) {
-      return false;
-    }
-
+    if (scoreSheets.length === state.scoreSheets.length) return false;
     this.saveState({ ...state, scoreSheets });
     return true;
   }
@@ -91,17 +87,10 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
 
   private loadState(): LocalStorageScoreSheetState {
     const raw = this.storage.getItem(this.storageKey);
-    if (raw === null) {
-      return this.emptyState();
-    }
-
+    if (raw === null) return this.emptyState();
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (!this.isState(parsed)) {
-        return this.emptyState();
-      }
-
-      return parsed;
+      return this.isState(parsed) ? parsed : this.emptyState();
     } catch {
       return this.emptyState();
     }
@@ -130,24 +119,15 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
   }
 
   private validate(scoreSheet: PersistedScoreSheet): void {
-    if (scoreSheet.id.trim().length === 0) {
-      throw new Error('Score sheet id is required.');
-    }
-
-    if (scoreSheet.name.trim().length === 0) {
-      throw new Error('Score sheet name is required.');
-    }
-
+    if (scoreSheet.id.trim().length === 0) throw new Error('Score sheet id is required.');
+    if (scoreSheet.name.trim().length === 0) throw new Error('Score sheet name is required.');
     if (scoreSheet.roundCount !== scoreSheet.gameInput.rounds.length) {
       throw new Error('Score sheet round count must match game input rounds.');
     }
   }
 
   private isState(value: unknown): value is LocalStorageScoreSheetState {
-    if (typeof value !== 'object' || value === null) {
-      return false;
-    }
-
+    if (typeof value !== 'object' || value === null) return false;
     const candidate = value as Partial<LocalStorageScoreSheetState>;
     return candidate.version === 1
       && typeof candidate.nextId === 'number'
