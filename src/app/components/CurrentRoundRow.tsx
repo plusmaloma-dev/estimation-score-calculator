@@ -4,7 +4,8 @@ import {
   createCurrentRoundDraft,
   currentRoundReducer,
   resolveHighestEstimatePlayerId,
-  validateCurrentRoundDraft,
+  validateAcceptedEstimates,
+  validateActualTricks,
 } from '../scoreSheet/currentRoundReducer.js';
 
 export interface CurrentRoundPlayer {
@@ -30,19 +31,22 @@ export function CurrentRoundRow({
   readonly onSave?: (draft: CurrentRoundDraft) => void;
 }) {
   const [draft, dispatch] = useReducer(currentRoundReducer, players.map((player) => player.id), createCurrentRoundDraft);
-  const errors = validateCurrentRoundDraft(draft);
-  const saveUnavailable = onSave === undefined;
+  const isEstimating = draft.phase === 'estimating';
+  const estimateErrors = validateAcceptedEstimates(draft);
+  const actualErrors = validateActualTricks(draft);
   const winnerPlayerId = resolveHighestEstimatePlayerId(draft);
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
   const totalEstimates = draft.overUnder + 13;
-  const hint = errors[0] ?? (saveUnavailable ? 'Round calculation and saving are being connected.' : undefined);
+  const hint = isEstimating
+    ? estimateErrors[0]
+    : actualErrors[0] ?? (onSave === undefined ? 'Round calculation and saving are being connected.' : undefined);
 
   return (
     <>
-      <tr className="current-round-row">
+      <tr className={isEstimating ? 'current-round-row' : 'current-round-row current-round-row--accepted'}>
         <th className="round-column" scope="row">
           <strong>{roundNumber}</strong>
-          <small>Current</small>
+          <small>{isEstimating ? 'Current' : 'Accepted'}</small>
         </th>
         {players.flatMap((player) => {
           const isWinner = winnerPlayerId === player.id;
@@ -54,8 +58,9 @@ export function CurrentRoundRow({
                   aria-label={`${player.name} estimate`}
                   type="number"
                   min="0"
-                  max="13"
+                  max="12"
                   inputMode="numeric"
+                  disabled={!isEstimating}
                   value={draft.estimates[player.id] ?? ''}
                   onChange={(event) => dispatch({ type: 'set-estimate', playerId: player.id, value: numberValue(event.target.value) })}
                 />
@@ -64,6 +69,7 @@ export function CurrentRoundRow({
                     className="trump-select"
                     aria-label={`${player.name} trump`}
                     value={draft.trumpSuit ?? ''}
+                    disabled={!isEstimating}
                     onChange={(event) => dispatch({ type: 'set-trump', suit: event.target.value as 'no-trump' | 'spades' | 'hearts' | 'diamonds' | 'clubs' })}
                   >
                     <option value="">Trump</option>
@@ -84,6 +90,7 @@ export function CurrentRoundRow({
                 min="0"
                 max="13"
                 inputMode="numeric"
+                disabled={isEstimating}
                 value={draft.actuals[player.id] ?? ''}
                 onChange={(event) => dispatch({ type: 'set-actual', playerId: player.id, value: numberValue(event.target.value) })}
               />
@@ -99,17 +106,29 @@ export function CurrentRoundRow({
           <div className="round-summary">
             <span>Total estimates: <strong>{totalEstimates}</strong></span>
             <span>O/U ({totalEstimates} − 13) = <strong>{overUnderLabel}</strong></span>
+            {!isEstimating && <span className="accepted-bid-label">Estimates accepted and frozen</span>}
           </div>
           <div className="round-action-panel">
             {hint !== undefined && <span className="current-round-hint">{hint}</span>}
-            <button
-              className="primary-button"
-              type="button"
-              disabled={errors.length > 0 || saveUnavailable}
-              onClick={() => onSave?.(draft)}
-            >
-              Calculate and save <span aria-hidden="true">→</span>
-            </button>
+            {isEstimating ? (
+              <button
+                className="primary-button"
+                type="button"
+                disabled={estimateErrors.length > 0}
+                onClick={() => dispatch({ type: 'accept-estimates' })}
+              >
+                Accept estimates <span aria-hidden="true">→</span>
+              </button>
+            ) : (
+              <button
+                className="primary-button"
+                type="button"
+                disabled={actualErrors.length > 0 || onSave === undefined}
+                onClick={() => onSave?.(draft)}
+              >
+                Calculate scores <span aria-hidden="true">→</span>
+              </button>
+            )}
           </div>
         </td>
       </tr>
