@@ -53,27 +53,30 @@ describe('currentRoundReducer', () => {
     expect(validateAcceptedEstimates(draft)).toContain('Total estimates cannot equal 13.');
   });
 
-  it('keeps the first highest caller as owner and marks equal highest callers With', () => {
+  it('keeps the first entered top estimate as trump owner and supports multiple With players', () => {
     let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
-    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'C', value: 5 });
     draft = currentRoundReducer(draft, { type: 'set-trump', suit: 'hearts' });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'B', value: 5 });
 
-    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
-    expect(resolveWithPlayerIds(draft)).toEqual(['B']);
+    expect(resolveHighestEstimatePlayerId(draft)).toBe('C');
+    expect(resolveWithPlayerIds(draft)).toEqual(['A', 'B']);
     expect(draft.trumpSuit).toBe('hearts');
     expect(validateAcceptedEstimates(draft)).toEqual([]);
   });
 
-  it('marks the last caller Risk when their estimate makes the total 15', () => {
+  it('derives the Risk taker from the trump caller rather than the dealer', () => {
     let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
-    for (const [playerId, value] of Object.entries({ A: 4, B: 3, C: 4, D: 4 })) {
-      draft = currentRoundReducer(draft, { type: 'set-estimate', playerId, value });
-    }
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'C', value: 5 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'B', value: 3 });
+    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'D', value: 2 });
 
     expect(draft.overUnder).toBe(2);
-    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
-    expect(resolveWithPlayerIds(draft)).toEqual(['C', 'D']);
-    expect(resolveAutomaticRiskPlayerId(draft)).toBe('D');
+    expect(resolveHighestEstimatePlayerId(draft)).toBe('C');
+    expect(resolveWithPlayerIds(draft)).toEqual(['A']);
+    // C calls trump first, so the estimate order is C, D, A, B and B is the last caller.
+    expect(resolveAutomaticRiskPlayerId(draft)).toBe('B');
   });
 });
