@@ -96,6 +96,7 @@ describe('ScoreSheetScreen', () => {
     expect(saveRound).toHaveBeenCalledWith('sheet-1', expect.objectContaining({
       roundNumber: 1,
       bidOwnerPlayerId: 'A',
+      multipleWithMultiplier: 1,
       bids: [
         { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
         { playerId: 'B', bidType: 'normal', tricks: 0 },
@@ -105,7 +106,7 @@ describe('ScoreSheetScreen', () => {
     }));
   });
 
-  it('submits tied highest estimates as With and the O/U +2 last caller as Risk', async () => {
+  it('submits the frozen multiple-With state and x2 multiplier', async () => {
     const user = userEvent.setup();
     const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
@@ -125,11 +126,46 @@ describe('ScoreSheetScreen', () => {
       roundNumber: 1,
       bidOwnerPlayerId: 'A',
       riskPlayerId: 'D',
+      multipleWithMultiplier: 2,
       bids: [
         { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
         { playerId: 'B', bidType: 'normal', tricks: 3 },
         { playerId: 'C', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
         { playerId: 'D', bidType: 'with', tricks: 4, withTargetPlayerId: 'A' },
+      ],
+    }));
+  });
+
+  it('submits Hold players as Hold and preserves the finalized remaining Risk player', async () => {
+    const user = userEvent.setup();
+    const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '4');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'clubs');
+    await user.type(screen.getByLabelText('Mona estimate'), '2');
+    await user.type(screen.getByLabelText('Rami estimate'), '4');
+    await user.type(screen.getByLabelText('Dina estimate'), '4');
+    await user.clear(screen.getByLabelText('Ahmed estimate'));
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.click(screen.getByRole('button', { name: 'Rami hold 4' }));
+    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+
+    for (const [name, actual] of [['Ahmed', '5'], ['Mona', '2'], ['Rami', '4'], ['Dina', '2']] as const) {
+      await user.type(screen.getByLabelText(`${name} actual tricks`), actual);
+    }
+    await user.click(screen.getByRole('button', { name: 'Calculate scores' }));
+
+    expect(saveRound).toHaveBeenCalledWith('sheet-1', expect.objectContaining({
+      bidOwnerPlayerId: 'A',
+      riskPlayerId: 'B',
+      multipleWithMultiplier: 1,
+      bids: [
+        { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'clubs' },
+        { playerId: 'B', bidType: 'normal', tricks: 2 },
+        { playerId: 'C', bidType: 'hold', tricks: 4 },
+        { playerId: 'D', bidType: 'hold', tricks: 4 },
       ],
     }));
   });
