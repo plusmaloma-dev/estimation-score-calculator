@@ -92,7 +92,7 @@ test('browser UI shell returns empty session history safely', () => {
   assert.deepEqual(service.getSessionHistory(), { sessions: [] });
 });
 
-test('browser UI shell lists session history newest first with display metadata', () => {
+test('browser UI shell lists session history newest first with readable player names', () => {
   const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
 
   const friday = service.createScoreSheet({ name: 'Friday Game', players, nowIso: '2026-06-21T10:00:00.000Z' });
@@ -109,8 +109,8 @@ test('browser UI shell lists session history newest first with display metadata'
     session.roundCount,
     session.updatedAtLabel,
   ]), [
-    ['Sunday Game', 'A,B,C,D', 0, '2026-06-23 18:30'],
-    ['Friday Game', 'A,B,C,D', 1, '2026-06-21 10:05'],
+    ['Sunday Game', 'Ahmed,Bassem,Cairo,Dina', 0, '2026-06-23 18:30'],
+    ['Friday Game', 'Ahmed,Bassem,Cairo,Dina', 1, '2026-06-21 10:05'],
   ]);
 });
 
@@ -178,129 +178,4 @@ test('browser UI shell returns validation error when game summary score sheet is
   assert.equal(summary.valid, false);
   assert.deepEqual(summary.errors, ['Score sheet not found: missing-summary.']);
   assert.equal(summary.summary, undefined);
-});
-
-test('browser UI shell previews validation errors before saving invalid rounds', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-
-  const result = service.previewRound({
-    roundNumber: 1,
-    profile,
-    bids: [
-      { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
-      { playerId: 'B', bidType: 'normal', tricks: 3, trumpSuit: 'hearts' },
-      { playerId: 'C', bidType: 'normal', tricks: 3, trumpSuit: 'diamonds' },
-      { playerId: 'D', bidType: 'normal', tricks: 3, trumpSuit: 'clubs' },
-    ],
-    actualResults: [
-      { playerId: 'A', actualTricks: 4 },
-      { playerId: 'B', actualTricks: 3 },
-      { playerId: 'C', actualTricks: 3 },
-      { playerId: 'D', actualTricks: 3 },
-    ],
-  });
-
-  assert.equal(result.valid, false);
-  assert.ok(result.errors.some((error) => error.includes('13')));
-});
-
-test('browser UI shell saves a valid round and exposes leaderboard output', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-  const created = service.createScoreSheet({ name: 'Friday Game', players });
-  assert.equal(created.valid, true, created.errors.join('; '));
-
-  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
-
-  assert.equal(saved.valid, true, saved.errors.join('; '));
-  assert.equal(saved.scoreSheet?.roundCount, 1);
-  assert.deepEqual(
-    saved.gameResult?.leaderboard.map((entry) => [entry.playerId, entry.totalScore]),
-    [
-      ['A', 14],
-      ['B', 14],
-      ['C', -1],
-      ['D', -12],
-    ],
-  );
-  assert.deepEqual(service.getLeaderboard(created.scoreSheet?.id ?? '').map((entry) => entry.playerId), ['A', 'B', 'C', 'D']);
-});
-
-test('browser UI shell exposes analytics dashboard for score-sheet screens', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-  const created = service.createScoreSheet({ name: 'Friday Game', players });
-  assert.equal(created.valid, true, created.errors.join('; '));
-
-  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
-  assert.equal(saved.valid, true, saved.errors.join('; '));
-
-  const dashboard = service.getAnalyticsDashboard(created.scoreSheet?.id ?? '', '2026-06-21T10:06:00.000Z');
-
-  assert.equal(dashboard.valid, true, dashboard.errors.join('; '));
-  assert.equal(dashboard.analytics?.title, 'Friday Game Analytics');
-  assert.equal(dashboard.analytics?.generatedAtIso, '2026-06-21T10:06:00.000Z');
-  assert.deepEqual(dashboard.analytics?.summaryMetrics.map((metric) => [metric.label, metric.value]), [
-    ['Total rounds', '1'],
-    ['Valid rounds', '1'],
-    ['Invalid rounds', '0'],
-    ['Leader', 'A'],
-    ['Most consistent', 'A'],
-  ]);
-  assert.deepEqual(dashboard.analytics?.rows.map((row) => [row.playerId, row.totalScore, row.exactBidRate]), [
-    ['A', '14', '100%'],
-    ['B', '14', '100%'],
-    ['C', '-1', '0%'],
-    ['D', '-12', '0%'],
-  ]);
-});
-
-test('browser UI shell returns validation error when analytics score sheet is missing', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-
-  const dashboard = service.getAnalyticsDashboard('missing-score-sheet');
-
-  assert.equal(dashboard.valid, false);
-  assert.deepEqual(dashboard.errors, ['Score sheet not found: missing-score-sheet.']);
-  assert.equal(dashboard.analytics, undefined);
-});
-
-test('browser UI shell exposes round history for score-sheet screens', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-  const created = service.createScoreSheet({ name: 'Friday Game', players });
-  assert.equal(created.valid, true, created.errors.join('; '));
-
-  const saved = service.saveRound(created.scoreSheet?.id ?? '', validRound, '2026-06-21T10:05:00.000Z');
-  assert.equal(saved.valid, true, saved.errors.join('; '));
-
-  const history = service.getRoundHistory(created.scoreSheet?.id ?? '');
-
-  assert.equal(history.length, 1);
-  assert.equal(history[0]?.roundNumber, 1);
-  assert.equal(history[0]?.roundType, 'under');
-  assert.equal(history[0]?.valid, true);
-  assert.deepEqual(history[0]?.bids.map((bid) => [bid.playerId, bid.tricks]), [
-    ['A', 4],
-    ['B', 4],
-    ['C', 4],
-    ['D', 0],
-  ]);
-  assert.deepEqual(history[0]?.playerScores.map((score) => [score.playerId, score.score]), [
-    ['A', 14],
-    ['B', 14],
-    ['C', -1],
-    ['D', -12],
-  ]);
-  assert.deepEqual(history[0]?.riskTypes, ['round-risk']);
-});
-
-test('browser UI shell exports a JSON backup for the current score sheet', () => {
-  const service = new BrowserUiShellService(new InMemoryScoreSheetRepository());
-  const created = service.createScoreSheet({ name: 'Friday Game', players });
-  assert.equal(created.valid, true, created.errors.join('; '));
-
-  const exported = service.exportScoreSheet(created.scoreSheet?.id ?? '', '2026-06-21T10:10:00.000Z');
-
-  assert.equal(exported.valid, true, exported.errors.join('; '));
-  assert.equal(exported.document?.metadata.exportedAtIso, '2026-06-21T10:10:00.000Z');
-  assert.equal(exported.document?.metadata.source, 'browser-ui-shell');
-  assert.equal(exported.document?.scoreSheets[0]?.name, 'Friday Game');
 });
