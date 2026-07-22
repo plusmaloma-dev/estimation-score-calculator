@@ -66,6 +66,7 @@ test('accepted round estimates reject any player estimate of 13', () => {
 test('auction-call validation keeps the existing 4 through 13 normal contract rule', () => {
   const result = new EstimationMvpService().calculateRound({
     roundNumber: 1,
+    bidValidationMode: 'auction-calls',
     bidOwnerPlayerId: 'A',
     profile,
     bids: [
