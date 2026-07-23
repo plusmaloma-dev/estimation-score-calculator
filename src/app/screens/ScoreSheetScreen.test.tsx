@@ -59,7 +59,7 @@ const emptyOpened: UiOpenSessionResult = {
 };
 
 describe('ScoreSheetScreen', () => {
-  it('renders the approved game header and score table', () => {
+  it('renders the approved game header and score table without a New Round button', () => {
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={shell} />);
 
     expect(screen.getByRole('heading', { name: 'Thursday Table' })).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('ScoreSheetScreen', () => {
     expect(screen.getByText(/Dealer:/)).toBeInTheDocument();
     expect(screen.getByText('Mona', { selector: '.round-dealer-card b' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New Round' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New Round' })).not.toBeInTheDocument();
 
     const table = screen.getByRole('table', { name: 'Thursday Table score sheet' });
     for (const player of ['Ahmed', 'Mona', 'Rami', 'Dina']) {
