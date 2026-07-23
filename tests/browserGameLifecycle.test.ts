@@ -42,15 +42,15 @@ function round(roundNumber: number): UiRoundEntryInput {
     bidOwnerPlayerId: 'A',
     riskPlayerId: 'D',
     bids: [
-      { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
+      { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
       { playerId: 'B', bidType: 'normal', tricks: 4 },
-      { playerId: 'C', bidType: 'normal', tricks: 4 },
+      { playerId: 'C', bidType: 'normal', tricks: 3 },
       { playerId: 'D', bidType: 'dash', tricks: 0 },
     ],
     actualResults: [
-      { playerId: 'A', actualTricks: 4 },
+      { playerId: 'A', actualTricks: 5 },
       { playerId: 'B', actualTricks: 4 },
-      { playerId: 'C', actualTricks: 3 },
+      { playerId: 'C', actualTricks: 2 },
       { playerId: 'D', actualTricks: 2 },
     ],
   };
