@@ -71,6 +71,22 @@ describe('biddingState', () => {
     expect(state.statusByPlayerId.P1).toBe('normal');
   });
 
+  it('updates the winning estimate when the owner lowers their bid but remains highest', () => {
+    let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
+    state = setBiddingEstimate(state, 'P1', 9);
+    state = setBiddingTrump(state, 'hearts');
+    state = setBiddingEstimate(state, 'P2', 3);
+    state = setBiddingEstimate(state, 'P3', 3);
+    state = setBiddingEstimate(state, 'P4', 3);
+
+    state = setBiddingEstimate(state, 'P1', 6);
+
+    expect(state.bidOwnerPlayerId).toBe('P1');
+    expect(state.winningEstimate).toBe(6);
+    expect(state.trumpSuit).toBe('hearts');
+    expect(confirmBidding(state).errors).toEqual([]);
+  });
+
   it('requires every pending With player to Follow or Hold before confirmation', () => {
     let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
     state = setBiddingEstimate(state, 'P1', 4);
