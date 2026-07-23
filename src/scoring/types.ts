@@ -128,6 +128,13 @@ export interface RoundScoreResult {
   readonly playerScores: readonly PlayerScoreResult[];
 }
 
+export interface AllLoserCarryMetadata {
+  readonly isAllLoserRound: boolean;
+  readonly consecutiveAllLoserCountBeforeRound: number;
+  readonly carriedAllLoserMultiplier: number;
+  readonly carryConsumed: boolean;
+}
+
 export interface ScoringStrategy {
   calculatePlayerScore(context: ScoreContext): PlayerScoreResult;
 }
