@@ -2,20 +2,34 @@ import { createContext, useContext, useMemo, useReducer, type ReactNode } from '
 import type {
   UiCreateScoreSheetInput,
   UiCreateScoreSheetResult,
+  UiGameLifecycleResult,
   UiOpenSessionResult,
   UiRoundEntryInput,
   UiSaveRoundResult,
-  UiSessionHistoryResult,
+  UiSessionHistoryItem,
 } from '../index.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
 import { createBrowserServices } from './services/createBrowserServices.js';
 
+export type Awaitable<T> = T | Promise<T>;
+
+export interface AppSessionHistoryItem extends UiSessionHistoryItem {
+  readonly createdAtIso: string;
+  readonly createdAtLabel: string;
+}
+
+export interface AppSessionHistoryResult {
+  readonly sessions: readonly AppSessionHistoryItem[];
+}
+
 export interface BrowserShellPort {
-  getSessionHistory(): UiSessionHistoryResult;
-  createScoreSheet(input: UiCreateScoreSheetInput): UiCreateScoreSheetResult;
-  openSession(scoreSheetId: string): UiOpenSessionResult;
-  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
+  getSessionHistory(): Awaitable<AppSessionHistoryResult>;
+  createScoreSheet(input: UiCreateScoreSheetInput): Awaitable<UiCreateScoreSheetResult>;
+  openSession(scoreSheetId: string): Awaitable<UiOpenSessionResult>;
+  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): Awaitable<UiSaveRoundResult>;
+  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
 }
 
 export interface AppServices {
