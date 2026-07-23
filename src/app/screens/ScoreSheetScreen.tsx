@@ -9,7 +9,9 @@ import {
   type UiOverrideRoundScoresResult,
   type UiRoundEntryInput,
   type UiSaveRoundResult,
+  type UiValidationResult,
 } from '../../index.js';
+import type { WorkspaceRole } from '../../online/auth/types.js';
 import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
 import { GameLifecycleDialog, type GameLifecycleDialogMode } from '../components/GameLifecycleDialog.js';
 import { ScoreOverrideDialog } from '../components/ScoreOverrideDialog.js';
@@ -40,6 +42,9 @@ export interface ScoreSheetShellPort {
   ): Awaitable<UiOverrideRoundScoresResult>;
   finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
   reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  heartbeatGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
+  releaseGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
+  forceReleaseGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
 }
 
 function isPromiseLike<T>(value: Awaitable<T>): value is Promise<T> {
@@ -51,17 +56,21 @@ export function ScoreSheetScreen({
   shell,
   onHistory,
   actorId = 'local-user',
+  actorRole,
 }: {
   readonly scoreSheetId: string;
   readonly shell: ScoreSheetShellPort;
   readonly onHistory?: () => void;
   readonly actorId?: string;
+  readonly actorRole?: WorkspaceRole;
 }) {
   const [refreshVersion, refresh] = useReducer((value: number) => value + 1, 0);
   const [saveErrors, setSaveErrors] = useState<readonly string[]>([]);
   const [editingRoundNumber, setEditingRoundNumber] = useState<number | undefined>();
   const [lifecycleDialog, setLifecycleDialog] = useState<GameLifecycleDialogMode | undefined>();
   const [asyncOpened, setAsyncOpened] = useState<UiOpenSessionResult | undefined>();
+  const [lockLost, setLockLost] = useState(false);
+  const [forceReleasing, setForceReleasing] = useState(false);
   const openedRequest = useMemo(
     () => shell.openSession(scoreSheetId),
     [refreshVersion, scoreSheetId, shell],
@@ -94,6 +103,31 @@ export function ScoreSheetScreen({
   }, [openedRequest]);
 
   const opened = isPromiseLike(openedRequest) ? asyncOpened : openedRequest;
+  const hasEditableOnlineLock = opened?.valid === true && opened.editAccess?.mode === 'editable';
+
+  useEffect(() => {
+    if (!hasEditableOnlineLock || shell.heartbeatGameLock === undefined) {
+      setLockLost(false);
+      return;
+    }
+
+    setLockLost(false);
+    const heartbeat = () => {
+      void Promise.resolve(shell.heartbeatGameLock?.(scoreSheetId))
+        .then((result) => {
+          if (result === undefined || result.valid) return;
+          setLockLost(true);
+          setSaveErrors(result.errors);
+        })
+        .catch((reason: unknown) => {
+          setLockLost(true);
+          setSaveErrors([reason instanceof Error ? reason.message : 'The editing lock was lost.']);
+        });
+    };
+    const timer = window.setInterval(heartbeat, 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [hasEditableOnlineLock, scoreSheetId, shell]);
+
   if (opened === undefined) {
     return (
       <section className="screen-stack" aria-live="polite">
@@ -112,6 +146,8 @@ export function ScoreSheetScreen({
 
   const model = buildScoreSheetViewModel(opened);
   const isCompleted = opened.scoreSheet.status === 'finalized';
+  const isViewOnly = !isCompleted && (opened.editAccess?.mode === 'view-only' || lockLost);
+  const canEdit = !isCompleted && !isViewOnly;
   const isFederation = opened.scoreSheet.gameInput.ruleSet === FEDERATION_2026;
   const ruleSet = isFederation ? 'Federation 2026' : 'House Rules V1';
   const players = model.players.map((player) => ({ id: player.id, name: player.name }));
@@ -122,9 +158,9 @@ export function ScoreSheetScreen({
   const editingRound = editingRoundNumber === undefined
     ? undefined
     : model.rounds.find((round) => round.roundNumber === editingRoundNumber);
-  const canFinish = !isCompleted && model.rounds.length >= 18 && shell.finalizeGame !== undefined;
+  const canFinish = canEdit && model.rounds.length >= 18 && shell.finalizeGame !== undefined;
 
-  const saveCurrentRound = isCompleted || shell.saveRound === undefined
+  const saveCurrentRound = !canEdit || shell.saveRound === undefined
     ? undefined
     : async (draft: CurrentRoundDraft) => {
       const bidOwnerPlayerId = draft.bidding.bidOwnerPlayerId;
@@ -172,7 +208,7 @@ export function ScoreSheetScreen({
       }
     };
 
-  const submitScoreOverrides = isCompleted || editingRound === undefined || shell.overrideRoundScores === undefined
+  const submitScoreOverrides = !canEdit || editingRound === undefined || shell.overrideRoundScores === undefined
     ? undefined
     : async (overridesByPlayerId: Readonly<Record<string, number>>, reason: string) => {
       try {
@@ -224,6 +260,34 @@ export function ScoreSheetScreen({
     }
   }
 
+  async function leaveToHistory() {
+    try {
+      if (hasEditableOnlineLock && shell.releaseGameLock !== undefined) {
+        await Promise.resolve(shell.releaseGameLock(scoreSheetId));
+      }
+    } finally {
+      onHistory?.();
+    }
+  }
+
+  async function forceReleaseAndRetry() {
+    if (shell.forceReleaseGameLock === undefined) return;
+    setForceReleasing(true);
+    try {
+      const result = await Promise.resolve(shell.forceReleaseGameLock(scoreSheetId));
+      if (!result.valid) {
+        setSaveErrors(result.errors);
+        return;
+      }
+      setSaveErrors([]);
+      refresh();
+    } catch (reason: unknown) {
+      setSaveErrors([reason instanceof Error ? reason.message : 'The editing lock could not be released.']);
+    } finally {
+      setForceReleasing(false);
+    }
+  }
+
   return (
     <section className="score-sheet-screen">
       <header className="game-header">
@@ -239,7 +303,7 @@ export function ScoreSheetScreen({
         </div>
 
         <div className="game-header-actions">
-          {!isCompleted && (
+          {canEdit && (
             <div className="round-dealer-card">
               <strong>Round {currentRoundNumber}</strong>
               <span><span aria-hidden="true">♟</span> Dealer: <b>{dealer?.name ?? '—'}</b></span>
@@ -255,18 +319,33 @@ export function ScoreSheetScreen({
               Reopen Game
             </button>
           )}
-          <button className="secondary-button game-action-button" type="button" onClick={onHistory}>
+          <button className="secondary-button game-action-button" type="button" onClick={() => void leaveToHistory()}>
             <span aria-hidden="true">◴</span> History
           </button>
         </div>
       </header>
 
+      {isViewOnly && (
+        <div className="lock-status" role="status">
+          This game is view-only. {opened.editAccess?.reason ?? 'The editing lock is no longer available.'}
+          {actorRole === 'admin' && shell.forceReleaseGameLock !== undefined && (
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={forceReleasing}
+              onClick={() => void forceReleaseAndRetry()}
+            >
+              {forceReleasing ? 'Releasing lockâ€¦' : 'Force Release & Edit'}
+            </button>
+          )}
+        </div>
+      )}
       {saveErrors.length > 0 && <div className="error-summary" role="alert">{saveErrors.join('; ')}</div>}
 
       <ScoreSheetTable
         model={model}
-        onEditScores={isCompleted || shell.overrideRoundScores === undefined ? undefined : setEditingRoundNumber}
-        currentRound={isCompleted ? undefined : (
+        onEditScores={!canEdit || shell.overrideRoundScores === undefined ? undefined : setEditingRoundNumber}
+        currentRound={!canEdit ? undefined : (
           <CurrentRoundRow
             key={currentRoundNumber}
             roundNumber={currentRoundNumber}

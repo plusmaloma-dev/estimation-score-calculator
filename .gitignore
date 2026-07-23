@@ -1,6 +1,12 @@
 node_modules/
 dist/
+dist-app/
 coverage/
 .env
+.env.*
+!.env.example
+*.tsbuildinfo
+.vercel/
+supabase/.temp/
 .DS_Store
 npm-debug.log*

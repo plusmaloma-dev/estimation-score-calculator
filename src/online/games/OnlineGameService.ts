@@ -48,12 +48,13 @@ export class OnlineGameService {
   }
 
   async saveRound(gameId: string, payload: OnlineSaveRoundPayload): Promise<OnlineGameResult<OnlineSavedRound>> {
+    const rpcPayload = this.withValidatedRoundType(payload);
     const result = await this.client.rpc('save_game_round', {
       p_game_id: gameId,
       p_workspace_id: this.session.membership.workspaceId,
       p_actor_user_id: this.session.user.id,
       p_expected_version: payload.expectedVersion,
-      p_round_payload: payload,
+      p_round_payload: rpcPayload,
     });
     if (result.error !== null) return this.failure(result.error.message);
     const row = this.firstRow(result.data);
@@ -64,6 +65,23 @@ export class OnlineGameService {
       return this.failure('Round save returned incomplete data.');
     }
     return { valid: true, errors: [], value: { gameId: savedGameId, roundNumber, version } };
+  }
+
+  private withValidatedRoundType(payload: OnlineSaveRoundPayload): OnlineSaveRoundPayload {
+    if (typeof payload.roundResult !== 'object' || payload.roundResult === null || Array.isArray(payload.roundResult)) {
+      return payload;
+    }
+    const roundResult = payload.roundResult as Readonly<Record<string, unknown>>;
+    const bidValidation = roundResult.bidValidation;
+    if (typeof bidValidation !== 'object' || bidValidation === null || Array.isArray(bidValidation)) {
+      return payload;
+    }
+    const roundType = (bidValidation as Readonly<Record<string, unknown>>).roundType;
+    if (roundType !== 'over' && roundType !== 'under') return payload;
+    return {
+      ...payload,
+      roundResult: { ...roundResult, roundType },
+    };
   }
 
   async finalizeGame(gameId: string, expectedVersion: number): Promise<OnlineGameResult<OnlineLifecycleState>> {

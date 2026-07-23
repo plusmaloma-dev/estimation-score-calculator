@@ -9,6 +9,7 @@ import type {
   UiRoundEntryInput,
   UiSaveRoundResult,
   UiSessionHistoryItem,
+  UiValidationResult,
 } from '../index.js';
 import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
@@ -37,6 +38,9 @@ export interface BrowserShellPort {
   ): Awaitable<UiOverrideRoundScoresResult>;
   finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
   reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  heartbeatGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
+  releaseGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
+  forceReleaseGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
 }
 
 export interface AuthPort {

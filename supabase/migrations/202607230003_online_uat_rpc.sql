@@ -42,6 +42,37 @@ begin
 end;
 $$;
 
+create or replace function public.assert_exact_game_player_set(
+  p_game_id uuid,
+  p_items jsonb,
+  p_label text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if jsonb_typeof(p_items) is distinct from 'array' then
+    raise exception '% must be an array.', p_label using errcode = '22023';
+  end if;
+  if jsonb_array_length(p_items) <> 4
+    or (select count(distinct item->>'playerId') from jsonb_array_elements(p_items) item) <> 4
+    or exists (
+      select 1
+      from jsonb_array_elements(p_items) item
+      left join public.game_players game_player
+        on game_player.game_id = p_game_id
+       and game_player.player_id::text = item->>'playerId'
+      where game_player.player_id is null
+    )
+  then
+    raise exception '% must contain each of the four game players exactly once.', p_label
+      using errcode = '22023';
+  end if;
+end;
+$$;
+
 create or replace function public.create_game(
   p_workspace_id uuid,
   p_actor_user_id uuid,
@@ -57,6 +88,7 @@ as $$
 declare
   created_game_id uuid;
   player_item jsonb;
+  canonical_player_name text;
 begin
   perform public.assert_rpc_actor(p_workspace_id, p_actor_user_id);
   if not public.has_workspace_role(p_workspace_id, array['admin', 'tester']) then
@@ -84,12 +116,12 @@ begin
 
   for player_item in select value from jsonb_array_elements(p_players)
   loop
-    if not exists (
-      select 1 from public.players
+    select display_name into canonical_player_name
+      from public.players
       where id = (player_item->>'player_id')::uuid
         and workspace_id = p_workspace_id
-        and archived_at is null
-    ) then
+        and archived_at is null;
+    if not found then
       raise exception 'Selected player is unavailable.' using errcode = '22023';
     end if;
     insert into public.game_players(game_id, player_id, seat_number, player_name_snapshot)
@@ -97,7 +129,7 @@ begin
       created_game_id,
       (player_item->>'player_id')::uuid,
       (player_item->>'seat_number')::smallint,
-      trim(player_item->>'player_name_snapshot')
+      canonical_player_name
     );
   end loop;
 
@@ -105,6 +137,181 @@ begin
   values (p_workspace_id, p_actor_user_id, 'game.created', 'game', created_game_id);
 
   return query select created_game_id, 'draft'::text, 1;
+end;
+$$;
+
+create or replace function public.get_game_snapshot(
+  p_game_id uuid,
+  p_workspace_id uuid,
+  p_actor_user_id uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  game_row public.games%rowtype;
+begin
+  perform public.assert_rpc_actor(p_workspace_id, p_actor_user_id);
+
+  select *
+  into game_row
+  from public.games
+  where id = p_game_id
+    and workspace_id = p_workspace_id;
+
+  if not found then
+    raise exception 'Game not found.' using errcode = 'P0002';
+  end if;
+
+  return jsonb_build_object(
+    'game', jsonb_build_object(
+      'id', game_row.id,
+      'workspace_id', game_row.workspace_id,
+      'name', game_row.name,
+      'rule_set', game_row.rule_set,
+      'status', game_row.status,
+      'version', game_row.version,
+      'finalized_at', game_row.finalized_at,
+      'finalized_by', game_row.finalized_by,
+      'created_at', game_row.created_at,
+      'created_by', game_row.created_by,
+      'updated_at', game_row.updated_at,
+      'updated_by', game_row.updated_by
+    ),
+    'lifecycle', jsonb_build_object(
+      'status', game_row.status,
+      'version', game_row.version,
+      'finalized_at', game_row.finalized_at,
+      'finalized_by', game_row.finalized_by
+    ),
+    'lock', (
+      select jsonb_build_object(
+        'holder_user_id', game_lock.holder_user_id,
+        'acquired_at', game_lock.acquired_at,
+        'heartbeat_at', game_lock.heartbeat_at,
+        'expires_at', game_lock.expires_at
+      )
+      from public.game_edit_locks game_lock
+      where game_lock.game_id = p_game_id
+        and game_lock.workspace_id = p_workspace_id
+        and game_lock.expires_at > now()
+    ),
+    'players', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'player_id', game_player.player_id,
+          'seat_number', game_player.seat_number,
+          'player_name_snapshot', game_player.player_name_snapshot
+        )
+        order by game_player.seat_number
+      )
+      from public.game_players game_player
+      where game_player.game_id = p_game_id
+    ), '[]'::jsonb),
+    'rounds', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', round_row.id,
+          'round_number', round_row.round_number,
+          'round_type', round_row.round_type,
+          'bid_owner_player_id', round_row.bid_owner_player_id,
+          'risk_player_id', round_row.risk_player_id,
+          'trump_suit', round_row.trump_suit,
+          'is_all_loser_round', round_row.is_all_loser_round,
+          'consecutive_all_loser_count_before_round', round_row.consecutive_all_loser_count_before_round,
+          'carried_all_loser_multiplier', round_row.carried_all_loser_multiplier,
+          'carry_consumed', round_row.carry_consumed,
+          'multiple_with_multiplier', round_row.multiple_with_multiplier,
+          'created_at', round_row.created_at,
+          'created_by', round_row.created_by,
+          'bids', coalesce((
+            select jsonb_agg(
+              jsonb_build_object(
+                'player_id', round_bid.player_id,
+                'bid_type', round_bid.bid_type,
+                'tricks', round_bid.tricks,
+                'trump_suit', round_bid.trump_suit,
+                'with_target_player_id', round_bid.with_target_player_id
+              )
+              order by game_player.seat_number
+            )
+            from public.round_bids round_bid
+            join public.game_players game_player
+              on game_player.game_id = p_game_id
+             and game_player.player_id = round_bid.player_id
+            where round_bid.round_id = round_row.id
+          ), '[]'::jsonb),
+          'actuals', coalesce((
+            select jsonb_agg(
+              jsonb_build_object(
+                'player_id', round_actual.player_id,
+                'actual_tricks', round_actual.actual_tricks
+              )
+              order by game_player.seat_number
+            )
+            from public.round_actuals round_actual
+            join public.game_players game_player
+              on game_player.game_id = p_game_id
+             and game_player.player_id = round_actual.player_id
+            where round_actual.round_id = round_row.id
+          ), '[]'::jsonb),
+          'scores', coalesce((
+            select jsonb_agg(
+              jsonb_build_object(
+                'player_id', round_score.player_id,
+                'bid_tricks', round_score.bid_tricks,
+                'actual_tricks', round_score.actual_tricks,
+                'delta', round_score.delta,
+                'did_match_bid', round_score.did_match_bid,
+                'role', round_score.role,
+                'risk_type', round_score.risk_type,
+                'is_risk_taker', round_score.is_risk_taker,
+                'risk_modifier', round_score.risk_modifier,
+                'is_high_contract', round_score.is_high_contract,
+                'is_only_winner', round_score.is_only_winner,
+                'is_only_loser', round_score.is_only_loser,
+                'status', round_score.status,
+                'calculated_score', round_score.calculated_score,
+                'applied_score', round_score.applied_score,
+                'notes', round_score.notes
+              )
+              order by game_player.seat_number
+            )
+            from public.round_scores round_score
+            join public.game_players game_player
+              on game_player.game_id = p_game_id
+             and game_player.player_id = round_score.player_id
+            where round_score.round_id = round_row.id
+          ), '[]'::jsonb)
+        )
+        order by round_row.round_number
+      )
+      from public.rounds round_row
+      where round_row.game_id = p_game_id
+    ), '[]'::jsonb),
+    'overrides', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', score_override.id,
+          'round_number', round_row.round_number,
+          'player_id', score_override.player_id,
+          'calculated_score', score_override.calculated_score,
+          'previous_applied_score', score_override.previous_applied_score,
+          'new_applied_score', score_override.new_applied_score,
+          'reason', score_override.reason,
+          'changed_at', score_override.changed_at,
+          'changed_by', score_override.changed_by
+        )
+        order by score_override.changed_at, score_override.id
+      )
+      from public.score_overrides score_override
+      join public.rounds round_row on round_row.id = score_override.round_id
+      where round_row.game_id = p_game_id
+    ), '[]'::jsonb)
+  );
 end;
 $$;
 
@@ -225,6 +432,8 @@ language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+declare
+  released_count integer;
 begin
   perform public.assert_rpc_actor(p_workspace_id, p_actor_user_id);
   if not public.has_workspace_role(p_workspace_id, array['admin']) then
@@ -232,15 +441,18 @@ begin
   end if;
   delete from public.game_edit_locks
   where game_id = p_game_id and workspace_id = p_workspace_id;
-  insert into public.audit_events(workspace_id, actor_user_id, event_type, entity_type, entity_id)
-  values (
-    p_workspace_id,
-    p_actor_user_id,
-    'game.lock.force_released',
-    'game',
-    p_game_id
-  );
-  return jsonb_build_object('released', found);
+  get diagnostics released_count = row_count;
+  if released_count > 0 then
+    insert into public.audit_events(workspace_id, actor_user_id, event_type, entity_type, entity_id)
+    values (
+      p_workspace_id,
+      p_actor_user_id,
+      'game.lock.force_released',
+      'game',
+      p_game_id
+    );
+  end if;
+  return jsonb_build_object('released', released_count > 0);
 end;
 $$;
 
@@ -282,6 +494,42 @@ begin
     raise exception 'Round number is not the next available round.' using errcode = '22023';
   end if;
 
+  score_items := coalesce(round_result->'playerScores', round_result->'scoreResult'->'playerScores');
+  perform public.assert_exact_game_player_set(p_game_id, round_input->'bids', 'Bids');
+  perform public.assert_exact_game_player_set(p_game_id, round_input->'actualResults', 'Actual results');
+  perform public.assert_exact_game_player_set(p_game_id, score_items, 'Calculated scores');
+  if not exists (
+    select 1
+    from public.game_players
+    where game_id = p_game_id
+      and player_id::text = round_input->>'bidOwnerPlayerId'
+  ) then
+    raise exception 'Selected player is not part of this game.' using errcode = '22023';
+  end if;
+  if nullif(round_input->>'riskPlayerId', '') is not null
+    and not exists (
+      select 1
+      from public.game_players
+      where game_id = p_game_id
+        and player_id::text = round_input->>'riskPlayerId'
+    )
+  then
+    raise exception 'Selected player is not part of this game.' using errcode = '22023';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(round_input->'bids') bid
+    where nullif(bid->>'withTargetPlayerId', '') is not null
+      and not exists (
+        select 1
+        from public.game_players
+        where game_id = p_game_id
+          and player_id::text = bid->>'withTargetPlayerId'
+      )
+  ) then
+    raise exception 'Selected player is not part of this game.' using errcode = '22023';
+  end if;
+
   insert into public.rounds(
     game_id, round_number, round_type, bid_owner_player_id, risk_player_id, trump_suit,
     is_all_loser_round, consecutive_all_loser_count_before_round,
@@ -289,7 +537,11 @@ begin
   ) values (
     p_game_id,
     requested_round_number,
-    coalesce(round_result->>'roundType', round_input->>'roundType')::text,
+    coalesce(
+      round_result->'scoreResult'->>'roundType',
+      round_result->>'roundType',
+      round_input->>'roundType'
+    )::text,
     (round_input->>'bidOwnerPlayerId')::uuid,
     nullif(round_input->>'riskPlayerId', '')::uuid,
     (select bid->>'trumpSuit' from jsonb_array_elements(round_input->'bids') bid where bid->>'playerId' = round_input->>'bidOwnerPlayerId' limit 1),
@@ -320,7 +572,6 @@ begin
     values (created_round_id, (actual_item->>'playerId')::uuid, (actual_item->>'actualTricks')::integer);
   end loop;
 
-  score_items := coalesce(round_result->'playerScores', round_result->'scoreResult'->'playerScores');
   for score_item in select value from jsonb_array_elements(score_items)
   loop
     insert into public.round_scores(
@@ -394,6 +645,11 @@ begin
   if game_row.status <> 'draft' then raise exception 'A completed game is read-only.' using errcode = '55000'; end if;
   if game_row.version <> p_expected_version then raise exception 'The game changed. Reload before saving.' using errcode = '40001'; end if;
   if length(target_reason) = 0 then raise exception 'Override reason is required.' using errcode = '22023'; end if;
+  if jsonb_typeof(p_override_payload->'overridesByPlayerId') is distinct from 'object'
+    or p_override_payload->'overridesByPlayerId' = '{}'::jsonb
+  then
+    raise exception 'At least one score override is required.' using errcode = '22023';
+  end if;
 
   select id into target_round_id from public.rounds
   where rounds.game_id = p_game_id and round_number = (p_override_payload->>'roundNumber')::integer;
@@ -404,6 +660,9 @@ begin
     select * into current_score from public.round_scores
     where round_id = target_round_id and player_id = override_entry.key::uuid for update;
     if not found then raise exception 'Player score not found.' using errcode = 'P0002'; end if;
+    if current_score.applied_score = override_entry.value::integer then
+      raise exception 'A score override must change the applied score.' using errcode = '22023';
+    end if;
     insert into public.score_overrides(
       round_id, player_id, calculated_score, previous_applied_score,
       new_applied_score, reason, changed_by
@@ -424,7 +683,19 @@ begin
   next_version := game_row.version + 1;
   update public.games set version = next_version, updated_by = p_actor_user_id where id = p_game_id;
   insert into public.audit_events(workspace_id, actor_user_id, event_type, entity_type, entity_id, details)
-  values (p_workspace_id, p_actor_user_id, 'score.overridden', 'game', p_game_id, p_override_payload);
+  values (
+    p_workspace_id,
+    p_actor_user_id,
+    'score.overridden',
+    'game',
+    p_game_id,
+    jsonb_build_object(
+      'roundNumber', (p_override_payload->>'roundNumber')::integer,
+      'overridesByPlayerId', p_override_payload->'overridesByPlayerId',
+      'reason', target_reason,
+      'actorId', p_actor_user_id
+    )
+  );
   return query select p_game_id, next_version;
 end;
 $$;
@@ -503,7 +774,9 @@ $$;
 
 revoke all on function public.assert_rpc_actor(uuid, uuid) from public;
 revoke all on function public.assert_active_game_lock(uuid, uuid, uuid) from public;
+revoke all on function public.assert_exact_game_player_set(uuid, jsonb, text) from public;
 revoke all on function public.create_game(uuid, uuid, text, text, jsonb) from public;
+revoke all on function public.get_game_snapshot(uuid, uuid, uuid) from public;
 revoke all on function public.acquire_game_lock(uuid, uuid, uuid) from public;
 revoke all on function public.heartbeat_game_lock(uuid, uuid, uuid) from public;
 revoke all on function public.release_game_lock(uuid, uuid, uuid) from public;
@@ -514,6 +787,7 @@ revoke all on function public.finalize_game(uuid, uuid, uuid, integer) from publ
 revoke all on function public.reopen_game(uuid, uuid, uuid, integer) from public;
 
 grant execute on function public.create_game(uuid, uuid, text, text, jsonb) to authenticated;
+grant execute on function public.get_game_snapshot(uuid, uuid, uuid) to authenticated;
 grant execute on function public.acquire_game_lock(uuid, uuid, uuid) to authenticated;
 grant execute on function public.heartbeat_game_lock(uuid, uuid, uuid) to authenticated;
 grant execute on function public.release_game_lock(uuid, uuid, uuid) to authenticated;

@@ -76,6 +76,30 @@ describe('OnlineGameService', () => {
     });
   });
 
+  it('serializes the validated round type at the RPC payload boundary', async () => {
+    const client = rpcClient({
+      save_game_round: [{ data: { game_id: 'game-1', round_number: 1, version: 2 }, error: null }],
+    });
+    const service = new OnlineGameService(client, session);
+
+    await service.saveRound('game-1', {
+      roundNumber: 1,
+      roundInput: { bids: [], actualResults: [] },
+      roundResult: {
+        valid: true,
+        bidValidation: { valid: true, errors: [], totalEstimatedTricks: 14, roundType: 'over' },
+        scoreResult: { valid: true, errors: [], playerScores: [] },
+      },
+      expectedVersion: 1,
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith('save_game_round', expect.objectContaining({
+      p_round_payload: expect.objectContaining({
+        roundResult: expect.objectContaining({ roundType: 'over' }),
+      }),
+    }));
+  });
+
   it('finalizes and reopens through audited lifecycle RPCs', async () => {
     const client = rpcClient({
       finalize_game: [{ data: { game_id: 'game-1', status: 'finalized' }, error: null }],

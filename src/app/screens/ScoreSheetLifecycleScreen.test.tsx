@@ -98,6 +98,49 @@ describe('ScoreSheetScreen lifecycle', () => {
     expect(reopenGame).toHaveBeenCalledWith('sheet-1', 'admin-1');
   });
 
+  it('shows an in-progress game as view-only when another user owns the edit lock', () => {
+    const opened = {
+      ...openedWithRounds(18),
+      editAccess: {
+        mode: 'view-only' as const,
+        holderUserId: 'other-user',
+        expiresAtIso: '2026-07-23T11:15:00.000Z',
+        reason: 'Game is being edited by another user.',
+      },
+    };
+
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => opened }} actorId="tester-1" />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('view-only');
+    expect(screen.queryByRole('button', { name: 'Finish Game' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Calculate scores' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit scores/i })).not.toBeInTheDocument();
+  });
+
+  it('allows an Admin to force-release a conflicting lock and retry edit access', async () => {
+    const user = userEvent.setup();
+    const opened = {
+      ...openedWithRounds(18),
+      editAccess: {
+        mode: 'view-only' as const,
+        holderUserId: 'other-user',
+        reason: 'Game is being edited by another user.',
+      },
+    };
+    const forceReleaseGameLock = vi.fn(async () => ({ valid: true, errors: [] }));
+
+    render(<ScoreSheetScreen
+      scoreSheetId="sheet-1"
+      shell={{ openSession: () => opened, forceReleaseGameLock }}
+      actorId="admin-1"
+      actorRole="admin"
+    />);
+
+    await user.click(screen.getByRole('button', { name: 'Force Release & Edit' }));
+
+    expect(forceReleaseGameLock).toHaveBeenCalledWith('sheet-1');
+  });
+
   it('suggests finishing only after Round 18 saves successfully', async () => {
     const user = userEvent.setup();
     const saveRound = vi.fn(() => ({ valid: true, errors: [] }));

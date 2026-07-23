@@ -101,11 +101,19 @@ export interface UiSessionHistoryResult {
   readonly sessions: readonly UiSessionHistoryItem[];
 }
 
+export interface UiEditAccess {
+  readonly mode: 'editable' | 'view-only';
+  readonly holderUserId?: string;
+  readonly expiresAtIso?: string;
+  readonly reason?: string;
+}
+
 export interface UiOpenSessionResult extends UiValidationResult {
   readonly scoreSheet?: PersistedScoreSheet;
   readonly leaderboard?: readonly LeaderboardEntry[];
   readonly analytics?: AnalyticsScreenModel;
   readonly roundHistory?: readonly UiRoundHistoryEntry[];
+  readonly editAccess?: UiEditAccess;
 }
 
 export interface UiScoreSheetSummary {

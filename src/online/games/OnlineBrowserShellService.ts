@@ -8,6 +8,7 @@ import { LeaderboardService } from '../../services/LeaderboardService.js';
 import type {
   UiCreateScoreSheetInput,
   UiCreateScoreSheetResult,
+  UiEditAccess,
   UiOpenSessionResult,
   UiOverrideRoundScoresInput,
   UiOverrideRoundScoresResult,
@@ -18,6 +19,7 @@ import type {
 } from '../../ui/BrowserUiShellService.js';
 import type { UiGameLifecycleResult } from '../../ui/LifecycleBrowserUiShellService.js';
 import type { AuthSessionState } from '../auth/types.js';
+import { GameLockService, type GameLockResult, type GameLockState } from '../locks/GameLockService.js';
 import { OnlineGameService, type OnlineGameDatabase } from './OnlineGameService.js';
 
 export interface OnlineShellDatabase extends OnlineGameDatabase {
@@ -123,11 +125,17 @@ interface SnapshotOverrideRow {
   readonly changed_by: string;
 }
 
+interface SnapshotLockRow {
+  readonly holder_user_id: string;
+  readonly expires_at: string;
+}
+
 interface GameSnapshot {
   readonly game: SnapshotGameRow;
   readonly players: readonly SnapshotPlayerRow[];
   readonly rounds: readonly SnapshotRoundRow[];
   readonly overrides?: readonly SnapshotOverrideRow[];
+  readonly lock?: SnapshotLockRow | null;
 }
 
 const federationProfile: ScoringProfile = {
@@ -140,15 +148,18 @@ const federationProfile: ScoringProfile = {
 
 export class OnlineBrowserShellService {
   private readonly gameService: OnlineGameService;
+  private readonly lockService: GameLockService;
   private readonly mvpService = new EstimationMvpService();
   private readonly leaderboardService = new LeaderboardService();
   private readonly versions = new Map<string, number>();
+  private readonly pendingOpens = new Map<string, Promise<UiOpenSessionResult>>();
 
   constructor(
     private readonly client: OnlineShellDatabase,
     private readonly session: AuthSessionState,
   ) {
     this.gameService = new OnlineGameService(client, session);
+    this.lockService = new GameLockService(client, session);
   }
 
   async getSessionHistory(): Promise<OnlineSessionHistoryResult> {
@@ -198,7 +209,36 @@ export class OnlineBrowserShellService {
     return { valid: true, errors: [], scoreSheet };
   }
 
-  async openSession(scoreSheetId: string): Promise<UiOpenSessionResult> {
+  openSession(scoreSheetId: string): Promise<UiOpenSessionResult> {
+    const pending = this.pendingOpens.get(scoreSheetId);
+    if (pending !== undefined) return pending;
+
+    const request = this.loadSession(scoreSheetId);
+    this.pendingOpens.set(scoreSheetId, request);
+    void request.then(
+      () => {
+        if (this.pendingOpens.get(scoreSheetId) === request) this.pendingOpens.delete(scoreSheetId);
+      },
+      () => {
+        if (this.pendingOpens.get(scoreSheetId) === request) this.pendingOpens.delete(scoreSheetId);
+      },
+    );
+    return request;
+  }
+
+  async heartbeatGameLock(scoreSheetId: string): Promise<GameLockResult<GameLockState>> {
+    return this.lockService.heartbeat(scoreSheetId);
+  }
+
+  async releaseGameLock(scoreSheetId: string): Promise<GameLockResult<void>> {
+    return this.lockService.release(scoreSheetId);
+  }
+
+  async forceReleaseGameLock(scoreSheetId: string): Promise<GameLockResult<void>> {
+    return this.lockService.forceRelease(scoreSheetId);
+  }
+
+  private async loadSession(scoreSheetId: string): Promise<UiOpenSessionResult> {
     const { data, error } = await this.client.rpc('get_game_snapshot', {
       p_game_id: scoreSheetId,
       p_workspace_id: this.session.membership.workspaceId,
@@ -208,7 +248,10 @@ export class OnlineBrowserShellService {
     const snapshot = this.readSnapshot(data);
     if (snapshot === undefined) return { valid: false, errors: ['Game snapshot was not returned.'] };
     this.versions.set(scoreSheetId, snapshot.game.version);
-    return this.mapSnapshot(snapshot);
+    const editAccess = snapshot.game.status === 'draft'
+      ? await this.acquireEditAccess(scoreSheetId, snapshot.lock)
+      : undefined;
+    return this.mapSnapshot(snapshot, editAccess);
   }
 
   async saveRound(scoreSheetId: string, input: UiRoundEntryInput): Promise<UiSaveRoundResult> {
@@ -297,7 +340,40 @@ export class OnlineBrowserShellService {
     };
   }
 
-  private mapSnapshot(snapshot: GameSnapshot): UiOpenSessionResult {
+  private async acquireEditAccess(
+    scoreSheetId: string,
+    existingLock: SnapshotLockRow | null | undefined,
+  ): Promise<UiEditAccess> {
+    try {
+      const acquired = await this.lockService.acquire(scoreSheetId);
+      if (acquired.valid && acquired.value !== undefined) {
+        return {
+          mode: 'editable',
+          holderUserId: acquired.value.holderUserId,
+          expiresAtIso: acquired.value.expiresAtIso,
+        };
+      }
+      return {
+        mode: 'view-only',
+        ...(existingLock === null || existingLock === undefined ? {} : {
+          holderUserId: existingLock.holder_user_id,
+          expiresAtIso: existingLock.expires_at,
+        }),
+        reason: acquired.errors.join('; ') || 'The editing lock could not be acquired.',
+      };
+    } catch (reason: unknown) {
+      return {
+        mode: 'view-only',
+        ...(existingLock === null || existingLock === undefined ? {} : {
+          holderUserId: existingLock.holder_user_id,
+          expiresAtIso: existingLock.expires_at,
+        }),
+        reason: reason instanceof Error ? reason.message : 'The editing lock could not be acquired.',
+      };
+    }
+  }
+
+  private mapSnapshot(snapshot: GameSnapshot, editAccess?: UiEditAccess): UiOpenSessionResult {
     const players = [...snapshot.players].sort((left, right) => left.seat_number - right.seat_number);
     const playerOrder = players.map((player) => player.player_id);
     const playerNamesById = Object.fromEntries(players.map((player) => [player.player_id, player.player_name_snapshot]));
@@ -374,7 +450,14 @@ export class OnlineBrowserShellService {
       ...(snapshot.game.finalized_at === null ? {} : { finalizedAtIso: snapshot.game.finalized_at }),
       ...(snapshot.game.finalized_by === null ? {} : { finalizedBy: snapshot.game.finalized_by }),
     };
-    return { valid: true, errors: [], scoreSheet, leaderboard, roundHistory };
+    return {
+      valid: true,
+      errors: [],
+      scoreSheet,
+      leaderboard,
+      roundHistory,
+      ...(editAccess === undefined ? {} : { editAccess }),
+    };
   }
 
   private mapPlayerScore(score: SnapshotScoreRow, appliedScore: number): PlayerScoreResult {

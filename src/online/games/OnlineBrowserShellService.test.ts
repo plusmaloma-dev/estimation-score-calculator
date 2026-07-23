@@ -122,4 +122,44 @@ describe('OnlineBrowserShellService', () => {
     expect(opened.roundHistory?.[0]?.playerScores[0]?.score).toBe(30);
     expect(opened.leaderboard?.[0]).toEqual(expect.objectContaining({ playerId: 'p1', totalScore: 30 }));
   });
+
+  it('opens a locked in-progress game as view-only instead of claiming edit access', async () => {
+    const snapshot = {
+      game: {
+        id: 'game-1', name: 'Locked Table', status: 'draft', rule_set: 'HOUSE_RULES_V1', version: 1,
+        created_at: '2026-07-23T10:00:00.000Z', updated_at: '2026-07-23T10:00:00.000Z',
+        finalized_at: null, finalized_by: null,
+      },
+      players: [
+        { player_id: 'p1', seat_number: 1, player_name_snapshot: 'Ahmed' },
+        { player_id: 'p2', seat_number: 2, player_name_snapshot: 'Mona' },
+        { player_id: 'p3', seat_number: 3, player_name_snapshot: 'Rami' },
+        { player_id: 'p4', seat_number: 4, player_name_snapshot: 'Dina' },
+      ],
+      rounds: [],
+      overrides: [],
+      lock: {
+        holder_user_id: 'other-user',
+        expires_at: '2026-07-23T10:15:00.000Z',
+      },
+    };
+    const rpc = vi.fn(async (name: string) => name === 'get_game_snapshot'
+      ? { data: snapshot, error: null }
+      : { data: null, error: { message: 'Game is being edited by another user.' } });
+    const service = new OnlineBrowserShellService({ from: vi.fn(), rpc }, session);
+
+    const opened = await service.openSession('game-1');
+
+    expect(opened.valid).toBe(true);
+    expect(opened.editAccess).toEqual({
+      mode: 'view-only',
+      holderUserId: 'other-user',
+      expiresAtIso: '2026-07-23T10:15:00.000Z',
+      reason: 'Game is being edited by another user.',
+    });
+    expect(rpc).toHaveBeenCalledWith('acquire_game_lock', expect.objectContaining({
+      p_game_id: 'game-1',
+      p_actor_user_id: 'user-1',
+    }));
+  });
 });

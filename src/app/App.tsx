@@ -46,6 +46,7 @@ function AppContent({
           scoreSheetId={activeScoreSheetId}
           shell={services.shell}
           actorId={session?.user.id}
+          actorRole={session?.membership.role}
           onHistory={() => navigate('home')}
         />
       )}
