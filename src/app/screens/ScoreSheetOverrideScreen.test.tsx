@@ -98,6 +98,7 @@ describe('ScoreSheetScreen score overrides', () => {
       roundNumber: 1,
       overridesByPlayerId: { A: 20 },
       reason: 'Correction agreed by table',
+      actorId: 'local-user',
     });
     expect(screen.queryByRole('dialog', { name: 'Edit scores for round 1' })).not.toBeInTheDocument();
   });
