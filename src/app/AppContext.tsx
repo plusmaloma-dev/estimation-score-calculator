@@ -7,6 +7,7 @@ import type {
   UiSaveRoundResult,
   UiSessionHistoryResult,
 } from '../index.js';
+import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
 import { createBrowserServices } from './services/createBrowserServices.js';
 
@@ -19,6 +20,7 @@ export interface BrowserShellPort {
 
 export interface AppServices {
   readonly shell: BrowserShellPort;
+  readonly playerDirectory: PlayerDirectoryPort;
 }
 
 interface AppContextValue extends AppState {
