@@ -35,6 +35,13 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
     const playerNamesById = input.playerNamesById ?? existing?.playerNamesById;
     const scoreOverrides = input.scoreOverrides ?? existing?.scoreOverrides;
     const appliedGameResult = input.appliedGameResult ?? existing?.appliedGameResult;
+    const finalizedAtIso = input.finalizedAtIso === null
+      ? undefined
+      : input.finalizedAtIso ?? existing?.finalizedAtIso;
+    const finalizedBy = input.finalizedBy === null
+      ? undefined
+      : input.finalizedBy ?? existing?.finalizedBy;
+    const lifecycleAudit = input.lifecycleAudit ?? existing?.lifecycleAudit;
     const scoreSheet: PersistedScoreSheet = {
       id,
       name: input.name.trim(),
@@ -48,6 +55,9 @@ export class LocalStorageScoreSheetRepository implements ScoreSheetRepository {
       gameResult: input.gameResult,
       ...(scoreOverrides === undefined ? {} : { scoreOverrides }),
       ...(appliedGameResult === undefined ? {} : { appliedGameResult }),
+      ...(finalizedAtIso === undefined ? {} : { finalizedAtIso }),
+      ...(finalizedBy === undefined ? {} : { finalizedBy }),
+      ...(lifecycleAudit === undefined ? {} : { lifecycleAudit }),
     };
 
     this.validate(scoreSheet);
