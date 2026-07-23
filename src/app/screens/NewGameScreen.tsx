@@ -14,12 +14,13 @@ export function NewGameScreen() {
   const [players, setPlayers] = useState<readonly (DirectoryPlayer | undefined)[]>(EMPTY_PLAYERS);
   const [ruleSet, setRuleSet] = useState<ScoringRuleSetId>(HOUSE_RULES_V1);
   const [errors, setErrors] = useState<readonly string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   function updatePlayer(index: number, player: DirectoryPlayer | undefined) {
     setPlayers((current) => current.map((value, playerIndex) => playerIndex === index ? player : value));
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const selected = players.filter((player): player is DirectoryPlayer => player !== undefined);
     if (selected.length !== 4) {
@@ -31,16 +32,24 @@ export function NewGameScreen() {
       return;
     }
 
-    const result = services.shell.createScoreSheet({
-      name: gameName,
-      ruleSet,
-      players: selected.map((player) => ({ id: player.id, name: player.name })),
-    });
-    if (result.valid && result.scoreSheet !== undefined) {
-      openScoreSheet(result.scoreSheet.id);
-      return;
+    setSubmitting(true);
+    try {
+      const result = await Promise.resolve(services.shell.createScoreSheet({
+        name: gameName,
+        ruleSet,
+        players: selected.map((player) => ({ id: player.id, name: player.name })),
+      }));
+      if (result.valid && result.scoreSheet !== undefined) {
+        setErrors([]);
+        openScoreSheet(result.scoreSheet.id);
+        return;
+      }
+      setErrors(result.errors);
+    } catch (reason: unknown) {
+      setErrors([reason instanceof Error ? reason.message : 'Game could not be created.']);
+    } finally {
+      setSubmitting(false);
     }
-    setErrors(result.errors);
   }
 
   return (
@@ -97,7 +106,9 @@ export function NewGameScreen() {
           />
         ))}
 
-        <button className="primary-button" type="submit">{t('createGame')}</button>
+        <button className="primary-button" type="submit" disabled={submitting}>
+          {submitting ? 'Creating game…' : t('createGame')}
+        </button>
       </form>
     </section>
   );
