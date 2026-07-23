@@ -1,28 +1,40 @@
 import { useState, type FormEvent } from 'react';
 import { FEDERATION_2026, HOUSE_RULES_V1, type ScoringRuleSetId } from '../../index.js';
+import type { DirectoryPlayer } from '../../online/players/types.js';
 import { useApp } from '../AppContext.js';
+import { PlayerCombobox } from '../components/PlayerCombobox.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
-const EMPTY_NAMES = ['', '', '', ''] as const;
+const EMPTY_PLAYERS = [undefined, undefined, undefined, undefined] as const;
 
 export function NewGameScreen() {
   const { services, navigate, openScoreSheet } = useApp();
   const { t } = useI18n();
   const [gameName, setGameName] = useState('');
-  const [names, setNames] = useState<readonly string[]>(EMPTY_NAMES);
+  const [players, setPlayers] = useState<readonly (DirectoryPlayer | undefined)[]>(EMPTY_PLAYERS);
   const [ruleSet, setRuleSet] = useState<ScoringRuleSetId>(HOUSE_RULES_V1);
   const [errors, setErrors] = useState<readonly string[]>([]);
 
-  function updateName(index: number, value: string) {
-    setNames((current) => current.map((name, playerIndex) => playerIndex === index ? value : name));
+  function updatePlayer(index: number, player: DirectoryPlayer | undefined) {
+    setPlayers((current) => current.map((value, playerIndex) => playerIndex === index ? player : value));
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const selected = players.filter((player): player is DirectoryPlayer => player !== undefined);
+    if (selected.length !== 4) {
+      setErrors(['Select or create exactly four players.']);
+      return;
+    }
+    if (new Set(selected.map((player) => player.id)).size !== 4) {
+      setErrors(['The same player cannot be selected more than once.']);
+      return;
+    }
+
     const result = services.shell.createScoreSheet({
       name: gameName,
       ruleSet,
-      players: names.map((name, index) => ({ id: `player-${index + 1}`, name })),
+      players: selected.map((player) => ({ id: player.id, name: player.name })),
     });
     if (result.valid && result.scoreSheet !== undefined) {
       openScoreSheet(result.scoreSheet.id);
@@ -72,11 +84,17 @@ export function NewGameScreen() {
           </label>
         </fieldset>
 
-        {names.map((name, index) => (
-          <label key={index}>
-            <span>{t('player')} {index + 1}</span>
-            <input value={name} onChange={(event) => updateName(index, event.target.value)} />
-          </label>
+        {players.map((player, index) => (
+          <PlayerCombobox
+            key={index}
+            label={`${t('player')} ${index + 1}`}
+            directory={services.playerDirectory}
+            selected={player}
+            excludedPlayerIds={players
+              .filter((candidate, playerIndex): candidate is DirectoryPlayer => playerIndex !== index && candidate !== undefined)
+              .map((candidate) => candidate.id)}
+            onChange={(value) => updatePlayer(index, value)}
+          />
         ))}
 
         <button className="primary-button" type="submit">{t('createGame')}</button>
