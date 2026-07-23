@@ -14,7 +14,7 @@ interface StoredDirectory {
 export class LocalPlayerDirectoryService implements PlayerDirectoryPort {
   constructor(private readonly storage: Storage) {}
 
-  listActivePlayers(query = ''): readonly DirectoryPlayer[] {
+  async listActivePlayers(query = ''): Promise<readonly DirectoryPlayer[]> {
     const normalizedQuery = normalizePlayerName(query);
     return this.read().players
       .filter((player) => !player.archived)
@@ -22,7 +22,7 @@ export class LocalPlayerDirectoryService implements PlayerDirectoryPort {
       .sort((left, right) => left.name.localeCompare(right.name));
   }
 
-  createPlayer(name: string): PlayerDirectoryResult<DirectoryPlayer> {
+  async createPlayer(name: string): Promise<PlayerDirectoryResult<DirectoryPlayer>> {
     const displayName = name.trim().replace(/\s+/g, ' ');
     const normalizedName = normalizePlayerName(displayName);
     if (normalizedName.length === 0) {
