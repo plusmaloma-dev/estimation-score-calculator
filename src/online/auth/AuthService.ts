@@ -37,7 +37,7 @@ export class AuthService {
 
     const session = await this.buildSessionState(data.user.id, data.user.email);
     if (!session.valid) await this.client.auth.signOut();
-    return session as AuthResult<AuthSessionState>;
+    return session;
   }
 
   async signOut(): Promise<AuthResult<void>> {
@@ -78,7 +78,9 @@ export class AuthService {
   ): Promise<AuthResult<AuthSessionState>> {
     if (email === undefined) return { valid: false, errors: ['Authenticated user has no email address.'] };
     const membership = await this.loadMembership(userId);
-    if (!membership.valid || membership.value === undefined) return membership as AuthResult<AuthSessionState>;
+    if (!membership.valid || membership.value === undefined) {
+      return { valid: false, errors: membership.errors };
+    }
 
     const user: AuthenticatedUser = { id: userId, email };
     return {
