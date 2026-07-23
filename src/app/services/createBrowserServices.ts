@@ -1,6 +1,8 @@
 import { LifecycleBrowserUiShellService, LocalStorageScoreSheetRepository } from '../../index.js';
 import { AuthService } from '../../online/auth/AuthService.js';
 import { readOnlineConfig, type OnlineEnvironment } from '../../online/config.js';
+import { OnlineBrowserShellService, type OnlineShellDatabase } from '../../online/games/OnlineBrowserShellService.js';
+import { PlayerDirectoryService, type PlayerDirectoryDatabase } from '../../online/players/PlayerDirectoryService.js';
 import { createSupabaseBrowserClient } from '../../online/supabaseClient.js';
 import type { AppServices } from '../AppContext.js';
 import { LocalPlayerDirectoryService } from './LocalPlayerDirectoryService.js';
@@ -21,5 +23,13 @@ export function createBrowserServices(
   return {
     ...localServices,
     auth: new AuthService(client, config.workspaceSlug),
+    onlineSessionFactory: (session) => ({
+      shell: new OnlineBrowserShellService(client as unknown as OnlineShellDatabase, session),
+      playerDirectory: new PlayerDirectoryService(
+        client as unknown as PlayerDirectoryDatabase,
+        session.membership.workspaceId,
+        session.user.id,
+      ),
+    }),
   };
 }
