@@ -58,12 +58,18 @@ create table public.games (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   name text not null,
   rule_set text not null check (rule_set in ('HOUSE_RULES_V1', 'FEDERATION_2026')),
-  status text not null default 'draft' check (status in ('draft', 'completed', 'archived')),
+  status text not null default 'draft' check (status in ('draft', 'finalized')),
   version integer not null default 1 check (version > 0),
+  finalized_at timestamptz,
+  finalized_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
   created_by uuid not null references auth.users(id),
   updated_at timestamptz not null default now(),
-  updated_by uuid not null references auth.users(id)
+  updated_by uuid not null references auth.users(id),
+  constraint games_finalization_metadata_consistent check (
+    (status = 'draft' and finalized_at is null and finalized_by is null)
+    or (status = 'finalized' and finalized_at is not null and finalized_by is not null)
+  )
 );
 create index games_workspace_updated_idx on public.games(workspace_id, updated_at desc);
 
