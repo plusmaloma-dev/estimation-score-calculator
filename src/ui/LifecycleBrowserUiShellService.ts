@@ -5,6 +5,7 @@ import {
   type UiOverrideRoundScoresResult,
   type UiRoundEntryInput,
   type UiSaveRoundResult,
+  type UiSessionHistoryItem,
   type UiValidationResult,
 } from './BrowserUiShellService.js';
 
@@ -12,9 +13,29 @@ export interface UiGameLifecycleResult extends UiValidationResult {
   readonly scoreSheet?: PersistedScoreSheet;
 }
 
+export interface LifecycleSessionHistoryItem extends UiSessionHistoryItem {
+  readonly createdAtIso: string;
+  readonly createdAtLabel: string;
+}
+
 export class LifecycleBrowserUiShellService extends BrowserUiShellService {
   constructor(private readonly lifecycleRepository: ScoreSheetRepository) {
     super(lifecycleRepository);
+  }
+
+  override getSessionHistory(): { readonly sessions: readonly LifecycleSessionHistoryItem[] } {
+    const metadataById = new Map(this.lifecycleRepository.list().map((metadata) => [metadata.id, metadata]));
+    return {
+      sessions: super.getSessionHistory().sessions.map((session) => {
+        const metadata = metadataById.get(session.id);
+        const createdAtIso = metadata?.createdAtIso ?? session.updatedAtIso;
+        return {
+          ...session,
+          createdAtIso,
+          createdAtLabel: this.formatCreatedAtLabel(createdAtIso),
+        };
+      }),
+    };
   }
 
   override saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult {
@@ -104,5 +125,17 @@ export class LifecycleBrowserUiShellService extends BrowserUiShellService {
       return { valid: false, errors: ['A completed game is read-only. Reopen it before making changes.'] };
     }
     return { valid: true, errors: [] };
+  }
+
+  private formatCreatedAtLabel(createdAtIso: string): string {
+    const formatted = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(new Date(createdAtIso));
+    return `Created ${formatted.replace(/\bam\b/i, 'AM').replace(/\bpm\b/i, 'PM')}`;
   }
 }
