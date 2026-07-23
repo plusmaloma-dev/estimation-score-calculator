@@ -3,6 +3,7 @@ import {
   FEDERATION_2026,
   houseRulesV1ScoringProfile,
   type ScoringProfile,
+  type UiGameLifecycleResult,
   type UiOpenSessionResult,
   type UiOverrideRoundScoresInput,
   type UiOverrideRoundScoresResult,
@@ -10,6 +11,7 @@ import {
   type UiSaveRoundResult,
 } from '../../index.js';
 import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
+import { GameLifecycleDialog, type GameLifecycleDialogMode } from '../components/GameLifecycleDialog.js';
 import { ScoreOverrideDialog } from '../components/ScoreOverrideDialog.js';
 import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
@@ -31,20 +33,25 @@ export interface ScoreSheetShellPort {
   openSession(scoreSheetId: string): UiOpenSessionResult;
   saveRound?(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
   overrideRoundScores?(scoreSheetId: string, input: UiOverrideRoundScoresInput): UiOverrideRoundScoresResult;
+  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
+  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
 }
 
 export function ScoreSheetScreen({
   scoreSheetId,
   shell,
   onHistory,
+  actorId = 'local-user',
 }: {
   readonly scoreSheetId: string;
   readonly shell: ScoreSheetShellPort;
   readonly onHistory?: () => void;
+  readonly actorId?: string;
 }) {
   const [, refresh] = useReducer((value: number) => value + 1, 0);
   const [saveErrors, setSaveErrors] = useState<readonly string[]>([]);
   const [editingRoundNumber, setEditingRoundNumber] = useState<number | undefined>();
+  const [lifecycleDialog, setLifecycleDialog] = useState<GameLifecycleDialogMode | undefined>();
   const opened = shell.openSession(scoreSheetId);
   if (!opened.valid || opened.scoreSheet === undefined) {
     return (
@@ -56,6 +63,7 @@ export function ScoreSheetScreen({
   }
 
   const model = buildScoreSheetViewModel(opened);
+  const isCompleted = opened.scoreSheet.status === 'finalized';
   const isFederation = opened.scoreSheet.gameInput.ruleSet === FEDERATION_2026;
   const ruleSet = isFederation ? 'Federation 2026' : 'House Rules V1';
   const players = model.players.map((player) => ({ id: player.id, name: player.name }));
@@ -66,8 +74,9 @@ export function ScoreSheetScreen({
   const editingRound = editingRoundNumber === undefined
     ? undefined
     : model.rounds.find((round) => round.roundNumber === editingRoundNumber);
+  const canFinish = !isCompleted && model.rounds.length >= 18 && shell.finalizeGame !== undefined;
 
-  const saveCurrentRound = shell.saveRound === undefined
+  const saveCurrentRound = isCompleted || shell.saveRound === undefined
     ? undefined
     : (draft: CurrentRoundDraft) => {
       const bidOwnerPlayerId = draft.bidding.bidOwnerPlayerId;
@@ -108,10 +117,11 @@ export function ScoreSheetScreen({
       }
 
       setSaveErrors([]);
+      if (currentRoundNumber === 18) setLifecycleDialog('round-18');
       refresh();
     };
 
-  const submitScoreOverrides = editingRound === undefined || shell.overrideRoundScores === undefined
+  const submitScoreOverrides = isCompleted || editingRound === undefined || shell.overrideRoundScores === undefined
     ? undefined
     : (overridesByPlayerId: Readonly<Record<string, number>>, reason: string) => {
       const result = shell.overrideRoundScores?.(scoreSheetId, {
@@ -129,6 +139,28 @@ export function ScoreSheetScreen({
       refresh();
     };
 
+  function confirmFinish() {
+    const result = shell.finalizeGame?.(scoreSheetId, actorId);
+    if (result === undefined || !result.valid) {
+      setSaveErrors(result?.errors ?? ['Game could not be completed.']);
+      return;
+    }
+    setSaveErrors([]);
+    setLifecycleDialog(undefined);
+    refresh();
+  }
+
+  function confirmReopen() {
+    const result = shell.reopenGame?.(scoreSheetId, actorId);
+    if (result === undefined || !result.valid) {
+      setSaveErrors(result?.errors ?? ['Game could not be reopened.']);
+      return;
+    }
+    setSaveErrors([]);
+    setLifecycleDialog(undefined);
+    refresh();
+  }
+
   return (
     <section className="score-sheet-screen">
       <header className="game-header">
@@ -136,15 +168,30 @@ export function ScoreSheetScreen({
           <span className="game-suit-mark" aria-hidden="true">♠</span>
           <div>
             <h2>{model.name}</h2>
-            <p>{ruleSet} <span aria-hidden="true">•</span> 4 Players <span aria-hidden="true">•</span> {model.rounds.length} Rounds</p>
+            <p>
+              {ruleSet} <span aria-hidden="true">•</span> 4 Players <span aria-hidden="true">•</span> {model.rounds.length} Rounds
+              {' '}<span aria-hidden="true">•</span> <strong>{isCompleted ? 'Completed' : 'In progress'}</strong>
+            </p>
           </div>
         </div>
 
         <div className="game-header-actions">
-          <div className="round-dealer-card">
-            <strong>Round {currentRoundNumber}</strong>
-            <span><span aria-hidden="true">♟</span> Dealer: <b>{dealer?.name ?? '—'}</b></span>
-          </div>
+          {!isCompleted && (
+            <div className="round-dealer-card">
+              <strong>Round {currentRoundNumber}</strong>
+              <span><span aria-hidden="true">♟</span> Dealer: <b>{dealer?.name ?? '—'}</b></span>
+            </div>
+          )}
+          {canFinish && (
+            <button className="primary-button game-action-button" type="button" onClick={() => setLifecycleDialog('finish')}>
+              Finish Game
+            </button>
+          )}
+          {isCompleted && shell.reopenGame !== undefined && (
+            <button className="primary-button game-action-button" type="button" onClick={() => setLifecycleDialog('reopen')}>
+              Reopen Game
+            </button>
+          )}
           <button className="secondary-button game-action-button" type="button" onClick={onHistory}>
             <span aria-hidden="true">◴</span> History
           </button>
@@ -155,8 +202,8 @@ export function ScoreSheetScreen({
 
       <ScoreSheetTable
         model={model}
-        onEditScores={shell.overrideRoundScores === undefined ? undefined : setEditingRoundNumber}
-        currentRound={(
+        onEditScores={isCompleted || shell.overrideRoundScores === undefined ? undefined : setEditingRoundNumber}
+        currentRound={isCompleted ? undefined : (
           <CurrentRoundRow
             key={currentRoundNumber}
             roundNumber={currentRoundNumber}
@@ -176,6 +223,15 @@ export function ScoreSheetScreen({
             setEditingRoundNumber(undefined);
           }}
           onSubmit={submitScoreOverrides}
+        />
+      )}
+
+      {lifecycleDialog !== undefined && (
+        <GameLifecycleDialog
+          mode={lifecycleDialog}
+          onCancel={() => setLifecycleDialog(undefined)}
+          onContinue={lifecycleDialog === 'round-18' ? () => setLifecycleDialog(undefined) : undefined}
+          onConfirm={lifecycleDialog === 'reopen' ? confirmReopen : confirmFinish}
         />
       )}
 
