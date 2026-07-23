@@ -235,7 +235,10 @@ grant select on public.workspaces, public.profiles, public.workspace_memberships
   public.players, public.games, public.game_players, public.rounds, public.round_bids,
   public.round_actuals, public.round_scores, public.score_overrides, public.audit_events,
   public.game_edit_locks to authenticated;
-grant insert, update on public.players, public.games, public.game_players, public.rounds,
-  public.round_bids, public.round_actuals, public.round_scores, public.score_overrides,
-  public.audit_events, public.game_edit_locks to authenticated;
-grant delete on public.game_edit_locks to authenticated;
+grant update on public.profiles to authenticated;
+grant insert, update on public.workspace_memberships to authenticated;
+grant insert, update on public.players to authenticated;
+
+-- Game, round, score, audit, and lock writes are intentionally not granted directly.
+-- Authenticated clients must use the security-definer RPCs in 202607230003_online_uat_rpc.sql,
+-- which enforce optimistic versions, completed-game guards, edit locks, and actor attribution.
