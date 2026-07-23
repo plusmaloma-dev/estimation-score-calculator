@@ -194,11 +194,20 @@ export class EstimationMvpService {
         carryConsumed: false,
         scoreResult: {
           ...scoreResult,
-          playerScores: scoreResult.playerScores.map((score) => ({
-            ...score,
-            score: 0,
-            notes: [...score.notes, 'All-loser round skipped: no score applied.'],
-          })),
+          playerScores: scoreResult.playerScores.map((score) => {
+            const appliedScore = score.isRiskTaker && score.riskModifier > 0
+              ? -score.riskModifier
+              : 0;
+            const note = appliedScore === 0
+              ? 'All-loser round skipped: no base score applied.'
+              : `All-loser round skipped base scoring; Risk penalty retained: ${appliedScore}.`;
+
+            return {
+              ...score,
+              score: appliedScore,
+              notes: [...score.notes, note],
+            };
+          }),
         },
       };
     }
