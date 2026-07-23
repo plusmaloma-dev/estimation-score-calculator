@@ -22,6 +22,10 @@ function createServices(): AppServices {
       openSession: vi.fn(),
       saveRound: vi.fn(),
     },
+    playerDirectory: {
+      listActivePlayers: () => [],
+      createPlayer: () => ({ valid: false, errors: ['not used'] }),
+    },
   };
 }
 
