@@ -47,17 +47,18 @@ const nextScoredRound: MvpRoundInput = {
   ],
 };
 
-test('all-loser Over +2 keeps the Risk loss while carrying x2 into the next scored round', () => {
+test('all-loser Over +2 keeps Risk metadata but scores every player zero and carries x2', () => {
   const service = new EstimationMvpService();
 
   const directRound = service.calculateRound(allLoserOverTwoRiskRound);
   assert.equal(directRound.valid, true, directRound.errors.join('; '));
   assert.deepEqual(
     directRound.scoreResult?.playerScores.map((score) => score.score),
-    [0, 0, 0, -10],
+    [0, 0, 0, 0],
   );
   assert.equal(directRound.scoreResult?.playerScores[3]?.isRiskTaker, true);
   assert.equal(directRound.scoreResult?.playerScores[3]?.riskModifier, 10);
+  assert.equal(directRound.scoreResult?.playerScores[3]?.riskType, 'round-risk');
 
   const nextRoundBase = service.calculateRound(nextScoredRound);
   assert.equal(nextRoundBase.valid, true, nextRoundBase.errors.join('; '));
@@ -72,8 +73,10 @@ test('all-loser Over +2 keeps the Risk loss while carrying x2 into the next scor
   assert.equal(game.rounds[0]?.isAllLoserRound, true);
   assert.deepEqual(
     game.rounds[0]?.scoreResult?.playerScores.map((score) => score.score),
-    [0, 0, 0, -10],
+    [0, 0, 0, 0],
   );
+  assert.equal(game.rounds[0]?.scoreResult?.playerScores[3]?.isRiskTaker, true);
+  assert.equal(game.rounds[0]?.scoreResult?.playerScores[3]?.riskModifier, 10);
   assert.equal(game.rounds[1]?.carriedAllLoserMultiplier, 2);
   assert.equal(game.rounds[1]?.carryConsumed, true);
   assert.deepEqual(
