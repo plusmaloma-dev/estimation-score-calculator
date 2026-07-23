@@ -179,9 +179,12 @@ export class EstimationMvpService {
   }
 
   private applyAllLoserCarry(
-    round: MvpRoundResult & { readonly scoreResult: RoundScoreResult },
+    round: MvpRoundResult,
     consecutiveAllLoserCountBeforeRound: number,
   ): MvpRoundResult {
+    const scoreResult = round.scoreResult;
+    if (scoreResult === undefined) return round;
+
     if (this.isAllLoserRound(round)) {
       return {
         ...round,
@@ -190,8 +193,8 @@ export class EstimationMvpService {
         carriedAllLoserMultiplier: 1,
         carryConsumed: false,
         scoreResult: {
-          ...round.scoreResult,
-          playerScores: round.scoreResult.playerScores.map((score) => ({
+          ...scoreResult,
+          playerScores: scoreResult.playerScores.map((score) => ({
             ...score,
             score: 0,
             notes: [...score.notes, 'All-loser round skipped: no score applied.'],
@@ -211,8 +214,8 @@ export class EstimationMvpService {
       carriedAllLoserMultiplier,
       carryConsumed: carriedAllLoserMultiplier > 1,
       scoreResult: {
-        ...round.scoreResult,
-        playerScores: round.scoreResult.playerScores.map((score) => ({
+        ...scoreResult,
+        playerScores: scoreResult.playerScores.map((score) => ({
           ...score,
           score: score.score * carriedAllLoserMultiplier,
           notes: carriedAllLoserMultiplier > 1
