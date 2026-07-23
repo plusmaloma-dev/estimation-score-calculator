@@ -14,6 +14,7 @@ import {
 import type { WorkspaceRole } from '../../online/auth/types.js';
 import { CurrentRoundRow } from '../components/CurrentRoundRow.js';
 import { GameLifecycleDialog, type GameLifecycleDialogMode } from '../components/GameLifecycleDialog.js';
+import { MobileLandscapeGate } from '../components/MobileLandscapeGate.js';
 import { ScoreOverrideDialog } from '../components/ScoreOverrideDialog.js';
 import { ScoreSheetTable } from '../components/ScoreSheetTable.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
@@ -289,7 +290,8 @@ export function ScoreSheetScreen({
   }
 
   return (
-    <section className="score-sheet-screen">
+    <MobileLandscapeGate>
+      <section className="score-sheet-screen">
       <header className="game-header">
         <div className="game-identity">
           <span className="game-suit-mark" aria-hidden="true">♠</span>
@@ -396,6 +398,7 @@ export function ScoreSheetScreen({
           <span>♣ Clubs</span>
         </div>
       </footer>
-    </section>
+      </section>
+    </MobileLandscapeGate>
   );
 }

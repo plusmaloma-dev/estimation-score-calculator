@@ -85,4 +85,20 @@ describe('App', () => {
     expect(await screen.findByText('Online UAT Game')).toBeVisible();
     expect(onlineSessionFactory).toHaveBeenCalledWith(session);
   });
+
+  it('keeps the home screen usable in mobile portrait', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn((query: string) => ({
+        matches: query.includes('pointer: coarse') && query.includes('orientation: portrait'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    render(<App services={createServices()} />);
+    expect(screen.getByRole('heading', { name: 'Estimation' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Landscape required' })).not.toBeInTheDocument();
+  });
 });

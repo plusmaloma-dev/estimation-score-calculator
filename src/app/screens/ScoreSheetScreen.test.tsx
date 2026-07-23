@@ -167,4 +167,23 @@ describe('ScoreSheetScreen', () => {
       ],
     }));
   });
+
+  it('scopes the mobile landscape gate to a valid active score sheet', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn((query: string) => ({
+        matches: query.includes('orientation: portrait'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={shell} />);
+    expect(screen.getByRole('dialog', { name: 'Landscape required' })).toBeVisible();
+    expect(screen.getByRole('table', {
+      name: 'Thursday Table score sheet',
+      hidden: true,
+    })).toBeInTheDocument();
+  });
 });

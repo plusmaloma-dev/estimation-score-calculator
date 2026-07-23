@@ -1,4 +1,5 @@
-import { useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
+import { useMobilePortraitScoreSheet, useMobileScoreEntry } from '../mobile/deviceMode.js';
 import type { CurrentRoundDraft } from '../scoreSheet/currentRoundReducer.js';
 import {
   createCurrentRoundDraft,
@@ -11,10 +12,17 @@ import {
   validateAcceptedEstimates,
   validateActualTricks,
 } from '../scoreSheet/currentRoundReducer.js';
+import { NumberPickerDialog } from './NumberPickerDialog.js';
 
 export interface CurrentRoundPlayer {
   readonly id: string;
   readonly name: string;
+}
+
+interface NumberPickerTarget {
+  readonly playerId: string;
+  readonly playerName: string;
+  readonly entryType: 'estimate' | 'actual';
 }
 
 function numberValue(value: string): number | undefined {
@@ -36,6 +44,14 @@ export function CurrentRoundRow({
 }) {
   const playerOrder = players.map((player) => player.id);
   const [draft, dispatch] = useReducer(currentRoundReducer, playerOrder, createCurrentRoundDraft);
+  const mobileEntry = useMobileScoreEntry();
+  const mobilePortrait = useMobilePortraitScoreSheet();
+  const [numberPickerTarget, setNumberPickerTarget] = useState<NumberPickerTarget | undefined>();
+
+  useEffect(() => {
+    if (mobilePortrait || !mobileEntry) setNumberPickerTarget(undefined);
+  }, [mobileEntry, mobilePortrait]);
+
   const isEstimating = draft.phase === 'estimating';
   const estimateErrors = validateAcceptedEstimates(draft);
   const actualErrors = validateActualTricks(draft);
@@ -70,17 +86,37 @@ export function CurrentRoundRow({
           return [
             <td key={`${player.id}-estimate`} className={isWinner ? 'current-estimate current-estimate--winner' : 'current-estimate'}>
               <div className="current-cell">
-                <input
-                  className="estimate-input"
-                  aria-label={`${player.name} estimate`}
-                  type="number"
-                  min="0"
-                  max="12"
-                  inputMode="numeric"
-                  disabled={!isEstimating}
-                  value={draft.estimates[player.id] ?? ''}
-                  onChange={(event) => dispatch({ type: 'set-estimate', playerId: player.id, value: numberValue(event.target.value) })}
-                />
+                {mobileEntry ? (
+                  <button
+                    className="estimate-input number-picker-trigger"
+                    aria-label={`${player.name} estimate`}
+                    type="button"
+                    disabled={!isEstimating}
+                    onClick={() => setNumberPickerTarget({
+                      playerId: player.id,
+                      playerName: player.name,
+                      entryType: 'estimate',
+                    })}
+                  >
+                    {draft.estimates[player.id] ?? '—'}
+                  </button>
+                ) : (
+                  <input
+                    className="estimate-input"
+                    aria-label={`${player.name} estimate`}
+                    type="number"
+                    min="0"
+                    max="12"
+                    inputMode="numeric"
+                    disabled={!isEstimating}
+                    value={draft.estimates[player.id] ?? ''}
+                    onChange={(event) => dispatch({
+                      type: 'set-estimate',
+                      playerId: player.id,
+                      value: numberValue(event.target.value),
+                    })}
+                  />
+                )}
                 {canToggleHold && (
                   <button
                     type="button"
@@ -116,17 +152,37 @@ export function CurrentRoundRow({
               )}
             </td>,
             <td key={`${player.id}-actual`}>
-              <input
-                className="trick-input"
-                aria-label={`${player.name} actual tricks`}
-                type="number"
-                min="0"
-                max="13"
-                inputMode="numeric"
-                disabled={isEstimating}
-                value={draft.actuals[player.id] ?? ''}
-                onChange={(event) => dispatch({ type: 'set-actual', playerId: player.id, value: numberValue(event.target.value) })}
-              />
+              {mobileEntry ? (
+                <button
+                  className="trick-input number-picker-trigger"
+                  aria-label={`${player.name} actual tricks`}
+                  type="button"
+                  disabled={isEstimating}
+                  onClick={() => setNumberPickerTarget({
+                    playerId: player.id,
+                    playerName: player.name,
+                    entryType: 'actual',
+                  })}
+                >
+                  {draft.actuals[player.id] ?? '—'}
+                </button>
+              ) : (
+                <input
+                  className="trick-input"
+                  aria-label={`${player.name} actual tricks`}
+                  type="number"
+                  min="0"
+                  max="13"
+                  inputMode="numeric"
+                  disabled={isEstimating}
+                  value={draft.actuals[player.id] ?? ''}
+                  onChange={(event) => dispatch({
+                    type: 'set-actual',
+                    playerId: player.id,
+                    value: numberValue(event.target.value),
+                  })}
+                />
+              )}
             </td>,
             <td key={`${player.id}-round`} className="pending-score">—</td>,
             <td key={`${player.id}-total`} className="running-total">{existingTotals[player.id] ?? 0}</td>,
@@ -166,6 +222,30 @@ export function CurrentRoundRow({
           </div>
         </td>
       </tr>
+      {numberPickerTarget !== undefined && !mobilePortrait && (
+        <NumberPickerDialog
+          title={`${numberPickerTarget.playerName} — ${
+            numberPickerTarget.entryType === 'estimate' ? 'Estimate' : 'Actual tricks'
+          }`}
+          value={numberPickerTarget.entryType === 'estimate'
+            ? draft.estimates[numberPickerTarget.playerId]
+            : draft.actuals[numberPickerTarget.playerId]}
+          max={numberPickerTarget.entryType === 'estimate' ? 12 : 13}
+          onSelect={(value) => {
+            dispatch(numberPickerTarget.entryType === 'estimate'
+              ? { type: 'set-estimate', playerId: numberPickerTarget.playerId, value }
+              : { type: 'set-actual', playerId: numberPickerTarget.playerId, value });
+            setNumberPickerTarget(undefined);
+          }}
+          onClear={() => {
+            dispatch(numberPickerTarget.entryType === 'estimate'
+              ? { type: 'set-estimate', playerId: numberPickerTarget.playerId, value: undefined }
+              : { type: 'set-actual', playerId: numberPickerTarget.playerId, value: undefined });
+            setNumberPickerTarget(undefined);
+          }}
+          onCancel={() => setNumberPickerTarget(undefined)}
+        />
+      )}
     </>
   );
 }

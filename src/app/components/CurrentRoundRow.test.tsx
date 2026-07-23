@@ -1,7 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useMobilePortraitScoreSheet, useMobileScoreEntry } from '../mobile/deviceMode.js';
 import { CurrentRoundRow } from './CurrentRoundRow.js';
+
+vi.mock('../mobile/deviceMode.js', () => ({
+  useMobileScoreEntry: vi.fn(() => false),
+  useMobilePortraitScoreSheet: vi.fn(() => false),
+}));
+
+const mobileEntry = vi.mocked(useMobileScoreEntry);
+const mobilePortrait = vi.mocked(useMobilePortraitScoreSheet);
+
+beforeEach(() => {
+  mobileEntry.mockReturnValue(false);
+  mobilePortrait.mockReturnValue(false);
+});
 
 const players = [
   { id: 'A', name: 'Ahmed' },
@@ -145,5 +159,87 @@ describe('CurrentRoundRow', () => {
 
     await user.click(screen.getByRole('button', { name: 'Dina Hold' }));
     expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('R');
+  });
+
+  it('uses a centered 0–12 picker for mobile estimates without rendering a numeric input', async () => {
+    mobileEntry.mockReturnValue(true);
+    const user = userEvent.setup();
+    renderRow();
+
+    const trigger = screen.getByRole('button', { name: 'Ahmed estimate' });
+    expect(screen.queryByRole('spinbutton', { name: 'Ahmed estimate' })).not.toBeInTheDocument();
+    await user.click(trigger);
+
+    expect(screen.getByRole('dialog', { name: 'Ahmed — Estimate' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Choose 13' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Choose 5' }));
+    expect(trigger).toHaveTextContent('5');
+  });
+
+  it('uses a centered 0–13 picker for mobile actual tricks and keeps manual Hold available', async () => {
+    mobileEntry.mockReturnValue(true);
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Choose 5' }));
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'clubs');
+    await user.click(screen.getByRole('button', { name: 'Rami estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Choose 5' }));
+    await user.click(screen.getByRole('button', { name: 'Rami Hold' }));
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('H');
+
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+    await user.click(screen.getByRole('button', { name: 'Rami actual tricks' }));
+    expect(screen.getByRole('button', { name: 'Choose 13' })).toBeInTheDocument();
+  });
+
+  it('clears a mobile value and closes the picker when portrait begins', async () => {
+    mobileEntry.mockReturnValue(true);
+    const user = userEvent.setup();
+    const view = render(<table><tbody><CurrentRoundRow
+      roundNumber={1}
+      players={players}
+      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
+      onSave={vi.fn()}
+    /></tbody></table>);
+
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Choose 4' }));
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Clear value' }));
+    expect(screen.getByRole('button', { name: 'Ahmed estimate' })).toHaveTextContent('—');
+
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    mobilePortrait.mockReturnValue(true);
+    view.rerender(<table><tbody><CurrentRoundRow
+      roundNumber={1}
+      players={players}
+      existingTotals={{ A: 0, B: 0, C: 0, D: 0 }}
+      onSave={vi.fn()}
+    /></tbody></table>);
+    expect(screen.queryByRole('dialog', { name: 'Ahmed — Estimate' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ahmed estimate' })).toHaveTextContent('—');
+  });
+
+  it('does not open the picker from disabled mobile fields', async () => {
+    mobileEntry.mockReturnValue(true);
+    const user = userEvent.setup();
+    renderRow();
+
+    const actualTrigger = screen.getByRole('button', { name: 'Ahmed actual tricks' });
+    expect(actualTrigger).toBeDisabled();
+    await user.click(actualTrigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Choose 5' }));
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+
+    const estimateTrigger = screen.getByRole('button', { name: 'Ahmed estimate' });
+    expect(estimateTrigger).toBeDisabled();
+    await user.click(estimateTrigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
