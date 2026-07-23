@@ -1,9 +1,9 @@
 import type { EstimationBid } from '../../domain/bid.js';
 import type { PersistedScoreSheet, ScoreOverrideAuditRecord } from '../../persistence/types.js';
 import { houseRulesV1ScoringProfile } from '../../scoring/houseRulesV1Profile.js';
-import { FEDERATION_2026, HOUSE_RULES_V1, resolveScoringRuleSetId, type ScoringRuleSetId } from '../../scoring/ruleSets.js';
-import type { PlayerRoundScore, RiskType, ScoringProfile } from '../../scoring/types.js';
-import { EstimationMvpService, type MvpGameInput, type MvpGameResult, type MvpRoundInput } from '../../services/EstimationMvpService.js';
+import { FEDERATION_2026, resolveScoringRuleSetId, type ScoringRuleSetId } from '../../scoring/ruleSets.js';
+import type { PlayerScoreResult, RiskType, ScoringProfile } from '../../scoring/types.js';
+import { EstimationMvpService, type MvpGameInput, type MvpRoundInput } from '../../services/EstimationMvpService.js';
 import { LeaderboardService } from '../../services/LeaderboardService.js';
 import type {
   UiCreateScoreSheetInput,
@@ -14,14 +14,23 @@ import type {
   UiRoundEntryInput,
   UiRoundHistoryEntry,
   UiSaveRoundResult,
+  UiSessionHistoryItem,
 } from '../../ui/BrowserUiShellService.js';
 import type { UiGameLifecycleResult } from '../../ui/LifecycleBrowserUiShellService.js';
-import type { AppSessionHistoryResult } from '../../app/AppContext.js';
 import type { AuthSessionState } from '../auth/types.js';
 import { OnlineGameService, type OnlineGameDatabase } from './OnlineGameService.js';
 
 export interface OnlineShellDatabase extends OnlineGameDatabase {
   from(table: string): any;
+}
+
+export interface OnlineSessionHistoryItem extends UiSessionHistoryItem {
+  readonly createdAtIso: string;
+  readonly createdAtLabel: string;
+}
+
+export interface OnlineSessionHistoryResult {
+  readonly sessions: readonly OnlineSessionHistoryItem[];
 }
 
 interface GameHistoryRow {
@@ -72,14 +81,14 @@ interface SnapshotScoreRow {
   readonly actual_tricks: number;
   readonly delta: number;
   readonly did_match_bid: boolean;
-  readonly role: PlayerRoundScore['role'];
+  readonly role: PlayerScoreResult['role'];
   readonly risk_type: RiskType;
   readonly is_risk_taker: boolean;
   readonly risk_modifier: number;
   readonly is_high_contract: boolean;
   readonly is_only_winner: boolean;
   readonly is_only_loser: boolean;
-  readonly status: PlayerRoundScore['status'];
+  readonly status: PlayerScoreResult['status'];
   readonly calculated_score: number;
   readonly applied_score: number;
   readonly notes: readonly string[];
@@ -142,7 +151,7 @@ export class OnlineBrowserShellService {
     this.gameService = new OnlineGameService(client, session);
   }
 
-  async getSessionHistory(): Promise<AppSessionHistoryResult> {
+  async getSessionHistory(): Promise<OnlineSessionHistoryResult> {
     const { data, error } = await this.client
       .from('games')
       .select('id, name, status, version, created_at, updated_at, game_players(seat_number, player_name_snapshot), rounds(count)')
@@ -154,7 +163,7 @@ export class OnlineBrowserShellService {
     if (error !== null) throw new Error(error.message);
 
     return {
-      sessions: (data ?? []).map((row) => {
+      sessions: (data ?? []).map((row): OnlineSessionHistoryItem => {
         this.versions.set(row.id, row.version);
         const players = [...(row.game_players ?? [])]
           .sort((left, right) => left.seat_number - right.seat_number)
@@ -319,19 +328,22 @@ export class OnlineBrowserShellService {
       })),
     };
     const calculatedGame = this.mvpService.calculateGame(gameInput);
-    const roundHistory = orderedRounds.map((round): UiRoundHistoryEntry => ({
-      roundNumber: round.round_number,
-      roundType: round.round_type,
-      valid: true,
-      errors: [],
-      bids: gameInput.rounds.find((input) => input.roundNumber === round.round_number)?.bids ?? [],
-      actualResults: gameInput.rounds.find((input) => input.roundNumber === round.round_number)?.actualResults ?? [],
-      playerScores: round.scores.map((score) => this.mapPlayerScore(score, score.applied_score)),
-      riskTypes: [...new Set(round.scores.map((score) => score.risk_type).filter((riskType) => riskType !== 'none'))],
-      ...(round.is_all_loser_round || round.carried_all_loser_multiplier > 1
-        ? { nextRoundMultiplier: round.carried_all_loser_multiplier }
-        : {}),
-    }));
+    const roundHistory = orderedRounds.map((round): UiRoundHistoryEntry => {
+      const input = gameInput.rounds.find((candidate) => candidate.roundNumber === round.round_number);
+      return {
+        roundNumber: round.round_number,
+        roundType: round.round_type,
+        valid: true,
+        errors: [],
+        bids: input?.bids ?? [],
+        actualResults: input?.actualResults ?? [],
+        playerScores: round.scores.map((score) => this.mapPlayerScore(score, score.applied_score)),
+        riskTypes: [...new Set(round.scores.map((score) => score.risk_type).filter((riskType) => riskType !== 'none'))],
+        ...(round.is_all_loser_round || round.carried_all_loser_multiplier > 1
+          ? { nextRoundMultiplier: round.carried_all_loser_multiplier }
+          : {}),
+      };
+    });
     const leaderboard = this.leaderboardService.aggregate(
       roundHistory.map((round) => ({ roundNumber: round.roundNumber, playerScores: round.playerScores })),
       { playerOrder },
@@ -365,7 +377,7 @@ export class OnlineBrowserShellService {
     return { valid: true, errors: [], scoreSheet, leaderboard, roundHistory };
   }
 
-  private mapPlayerScore(score: SnapshotScoreRow, appliedScore: number): PlayerRoundScore {
+  private mapPlayerScore(score: SnapshotScoreRow, appliedScore: number): PlayerScoreResult {
     return {
       playerId: score.player_id,
       bidTricks: score.bid_tricks,
