@@ -264,9 +264,8 @@ export function resolveRiskPlayerId(state: BiddingState): string | undefined {
   if (candidate === undefined) return undefined;
 
   const totalEstimates = sumEstimates(state);
-  const candidateEstimate = normalizedEstimate(state, candidate);
   const underRisk = totalEstimates <= 11;
-  const overRisk = totalEstimates >= 15 && candidateEstimate >= 2;
+  const overRisk = totalEstimates >= 15;
   return underRisk || overRisk ? candidate : undefined;
 }
 
