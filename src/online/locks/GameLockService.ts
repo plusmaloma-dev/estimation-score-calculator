@@ -27,13 +27,13 @@ export class GameLockService {
 
   async acquire(gameId: string): Promise<GameLockResult<GameLockState>> {
     const result = await this.call('acquire_game_lock', gameId);
-    if (!result.valid) return result;
+    if (!result.valid) return { valid: false, errors: result.errors };
     return this.mapLock(result.value);
   }
 
   async heartbeat(gameId: string): Promise<GameLockResult<GameLockState>> {
     const result = await this.call('heartbeat_game_lock', gameId);
-    if (!result.valid) return result;
+    if (!result.valid) return { valid: false, errors: result.errors };
     return this.mapLock(result.value);
   }
 
