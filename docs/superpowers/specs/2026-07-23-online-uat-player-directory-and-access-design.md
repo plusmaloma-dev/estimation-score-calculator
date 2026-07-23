@@ -1,15 +1,17 @@
-# Online UAT, Player Directory, and Role-Based Access Design
+# Online UAT, Player Directory, Role-Based Access, and Game Lifecycle Design
 
 ## Objective
 
-Prepare the Estimation Score Calculator for shared UAT by:
+Prepare the Estimation Score Calculator for shared online UAT by:
 
 - hiding the currently non-functional `+ New Round` button;
 - replacing plain player-name text fields with a searchable shared-player selector;
 - hosting the application online;
 - protecting access with invite-only Admin and Tester accounts;
 - moving the online source of truth from browser-local storage to a shared database;
-- preserving all existing scoring behavior, including the all-loser carry rule.
+- adding an explicit in-progress/completed game lifecycle;
+- showing an immutable game creation date and time on game cards;
+- preserving all existing scoring behavior, including the House Rules V1 all-loser carry rule.
 
 ## Scope
 
@@ -22,6 +24,16 @@ Prepare the Estimation Score Calculator for shared UAT by:
 - Allow selection of an existing active player.
 - Allow inline creation of a new unique player by Admins and Testers.
 - Prevent duplicate player names using normalized case-insensitive comparison.
+- Allow duplicate game names.
+- Show each game's immutable creation date and time on its card.
+- Display the internal `draft` status as **In progress**.
+- Display the internal `finalized` status as **Completed**.
+- Suggest finishing a game immediately after Round 18 is saved.
+- Require explicit confirmation before finalizing a game.
+- Allow continued play after Round 18 when the user declines the suggestion.
+- Allow both Admins and Testers to finalize and reopen games.
+- Reopen completed games after confirmation without requiring a written reason.
+- Audit finalization and reopening with actor and timestamp.
 - Allow Admins to rename, archive, and restore players.
 - Hide archived players from new-game selection while retaining all historical links.
 - Add invite-only email/password authentication.
@@ -44,6 +56,8 @@ Prepare the Estimation Score Calculator for shared UAT by:
 - Player performance dashboards beyond preserving granular data for a later release.
 - Visual redesign of the score table.
 - New all-loser visual indicators, dotted lines, or multiplier badges.
+- Automatic game finalization without user confirmation.
+- A mandatory written reason when reopening a completed game.
 
 ## User Roles
 
@@ -54,7 +68,9 @@ Admins can:
 - access all games and dashboards;
 - create games and rounds;
 - create players during game setup;
-- edit completed scores with a required audit reason;
+- finalize eligible in-progress games;
+- reopen completed games without entering a reason;
+- edit completed scores with a required audit reason after the game has been reopened or through the existing authorized override flow;
 - invite users;
 - assign Admin or Tester roles;
 - rename, archive, and restore players;
@@ -71,14 +87,16 @@ Testers can:
 - create games and rounds;
 - select existing active players;
 - create new players during game setup;
-- edit completed scores with a required audit reason;
+- finalize eligible in-progress games;
+- reopen completed games without entering a reason;
+- edit completed scores with a required audit reason after the game has been reopened or through the existing authorized override flow;
 - view player and game history.
 
-Testers cannot invite users, assign roles, rename/archive/restore players, or force-release locks.
+Testers cannot invite users, assign roles, rename/archive/restore players, review unrestricted administrative activity, or force-release locks.
 
 ## Shared Workspace Model
 
-The first online release uses one shared UAT workspace. Every invited user belongs to that workspace and can view all active games, completed games, shared players, round history, leaderboards, analytics, and score override history permitted by their role.
+The first online release uses one shared UAT workspace. Every invited user belongs to that workspace and can view all in-progress games, completed games, shared players, round history, leaderboards, analytics, and score override history permitted by their role.
 
 ## Player Directory
 
@@ -104,7 +122,7 @@ The user can:
 - search active players by name;
 - select one existing player;
 - type a new unique name and create it inline;
-- see a clear validation error for duplicate names;
+- see a clear validation error for duplicate player names;
 - not select the same player twice in one game.
 
 Archived players do not appear in the combobox.
@@ -121,6 +139,118 @@ Admins receive a Manage Players view containing:
 - usage/history reference count.
 
 Players are never hard-deleted.
+
+## Game Identity and Card Metadata
+
+### Game Names
+
+Game names are descriptive labels, not unique identifiers.
+
+- Duplicate game names are allowed.
+- Every game uses an immutable database-generated ID as its true identifier.
+- All navigation, edits, locks, audit records, and database relationships use the game ID rather than the displayed name.
+
+### Creation Date and Time
+
+Every game stores an immutable `created_at` timestamp when it is first created.
+
+The game card displays the timestamp in the viewer's local time using the selected format:
+
+> Created 23 Jul 2026, 1:42 PM
+
+The creation timestamp does not change when rounds are saved, the game is finalized, or the game is reopened. A separate `updated_at` timestamp continues to support sorting and synchronization but is not included in this card change.
+
+### User-Facing Status Labels
+
+The persisted status values remain compatible with the existing model:
+
+| Persisted value | User-facing label | Meaning |
+| --- | --- | --- |
+| `draft` | **In progress** | The game can accept rounds and authorized score changes. |
+| `finalized` | **Completed** | The game is read-only until an Admin or Tester reopens it. |
+
+The word **Draft** must not appear on game cards or normal game screens.
+
+## Game Lifecycle
+
+### Initial State
+
+- A new game starts with persisted status `draft`.
+- The UI displays **In progress**.
+- Authorized users may add and save rounds while they hold the active game-editing lock.
+
+### Round 18 Finish Suggestion
+
+Immediately after Round 18 is successfully calculated and persisted, the active editor sees a confirmation prompt:
+
+> **Round 18 completed**  
+> Would you like to finish this game?
+
+The prompt provides two actions:
+
+- **Finish Game**
+- **Continue Playing**
+
+Rules:
+
+- Saving Round 18 never finalizes the game automatically.
+- Finalization occurs only after the user selects **Finish Game** and confirms.
+- Selecting **Continue Playing** leaves the game **In progress** and allows Round 19 and later rounds.
+- The automatic suggestion is shown only as part of the successful Round 18 save transition.
+- The app does not interrupt the user after every later round.
+- Once Round 18 exists, a visible **Finish Game** action remains available in the game header while the game is in progress.
+- A game cannot be finalized before 18 saved rounds.
+
+### Finalization Authorization and Transition
+
+An Admin or Tester may finalize a game when:
+
+- the game has at least 18 successfully saved rounds;
+- the game is currently `draft`;
+- the user is authenticated in the same workspace;
+- the user holds the active edit lock for that game;
+- the user confirms the finalization action.
+
+Finalization performs one atomic transition:
+
+- status changes from `draft` to `finalized`;
+- `finalized_at` is recorded;
+- `finalized_by` records the authenticated user;
+- an audit event records the game ID, actor, timestamp, and `game.finalized` action;
+- the edit lock is released when possible.
+
+### Completed Game Behavior
+
+A completed game:
+
+- displays **Completed** on its card and game screen;
+- does not allow new rounds;
+- does not allow normal estimate, actual-trick, or score entry;
+- remains available for history, leaderboard, analytics, exports, and audit review;
+- may be opened by other users in read-only mode;
+- exposes a **Reopen Game** action to both Admins and Testers.
+
+### Reopening
+
+Both Admins and Testers may reopen a completed game.
+
+The flow is:
+
+1. The user selects **Reopen Game**.
+2. The app shows a confirmation dialog.
+3. The user confirms.
+4. The game status changes from `finalized` to `draft`.
+5. The UI displays **In progress**.
+6. The user must acquire the normal game-editing lock before changing or adding data.
+
+Reopening rules:
+
+- No written reason is required.
+- The action records `reopened_at` and `reopened_by` or equivalent audit metadata.
+- An audit event records the game ID, actor, timestamp, and `game.reopened` action.
+- Reopening does not delete or rewrite prior rounds, calculated scores, applied overrides, finalization history, or audit records.
+- The previous finalization audit event remains permanent.
+- After reopening, the game may be finalized again through the normal confirmation flow.
 
 ## Authentication and Invitations
 
@@ -139,9 +269,12 @@ Authorization is enforced in both the application layer and the database.
 
 - Unauthenticated users cannot read or modify UAT data.
 - Testers cannot perform Admin-only actions.
+- Admins and Testers can finalize and reopen games according to the lifecycle rules.
 - Database policies use the authenticated user and workspace membership.
 - All data rows are scoped to the shared workspace.
 - Service-role credentials are never exposed to the browser.
+- Finalization requires ownership of the active edit lock.
+- Reopening grants no implicit edit ownership; the normal lock must be acquired before subsequent writes.
 
 ## Online Architecture
 
@@ -182,10 +315,27 @@ Authorization is enforced in both the application layer and the database.
 - `round_actuals`
 - `round_scores`
 
+The `games` record includes or derives:
+
+- immutable game ID;
+- workspace ID;
+- non-unique display name;
+- status (`draft` or `finalized`);
+- immutable `created_at`;
+- mutable `updated_at`;
+- `created_by`;
+- nullable `finalized_at` and `finalized_by`;
+- latest reopen metadata when retained directly, while the full history remains in `audit_events`.
+
 ### Audit and Overrides
 
 - `score_overrides`
 - `audit_events`
+
+Lifecycle audit actions include:
+
+- `game.finalized`
+- `game.reopened`
 
 ### Concurrency
 
@@ -205,17 +355,19 @@ For each round and player, the database preserves:
 - Multiple WITH multiplier;
 - override linkage when applicable.
 
-Manual overrides never alter original classification or calculated score data.
+Manual overrides never alter original classification or calculated score data. Finalizing or reopening a game never recalculates or mutates prior round results by itself.
 
 ## Game Editing Lock
 
 A game may have only one active editor.
 
-- Opening a game attempts to acquire the lock.
+- Opening an in-progress game attempts to acquire the lock.
 - The active editor sends a heartbeat while interacting.
 - Other users can open the game in view-only mode.
 - A lock expires after 15 minutes without activity.
 - Leaving the game releases the lock when possible.
+- Finalizing releases the lock when possible.
+- Reopening does not bypass lock acquisition.
 - Admins can force-release a lock.
 - Lock acquisition and release are audited.
 
@@ -225,19 +377,45 @@ The online version does not import or overwrite existing browser-local score she
 
 The online repository implementation becomes the source of truth only when the application is configured for the UAT environment. Existing local data remains in the current browser and may still be used by the local development build unless the user explicitly clears it.
 
+The local version uses the same visible lifecycle labels and confirmation behavior where practical. Authenticated actor attribution applies only to the online version.
+
 ## User Interface Changes
+
+### Home and Game Cards
+
+Each card shows:
+
+- game name;
+- player count and saved round count;
+- player names;
+- **In progress** or **Completed** status;
+- creation date and time in the selected display format;
+- the context-appropriate action: continue/open game.
+
+Duplicate names are visually distinguished by creation date/time, players, and round count.
 
 ### Game Header
 
 - Remove the `+ New Round` button.
 - Retain the round/dealer card and History button.
+- Show **Finish Game** for in-progress games with at least 18 saved rounds.
+- Show **Reopen Game** for completed games to both Admins and Testers.
+- Hide or disable editing controls when the game is completed or another user holds the lock.
+
+### Round 18 Confirmation
+
+- Show the finish suggestion only after a successful Round 18 save.
+- Do not show it when Round 18 validation or persistence fails.
+- **Continue Playing** returns to the score sheet without changing status.
+- **Finish Game** performs a separate confirmed lifecycle write.
 
 ### New Game
 
 - Replace four text inputs with four searchable player comboboxes.
 - Show inline create-new-player option when the typed name is unique.
-- Prevent duplicate selections.
-- Keep game name and rule-set selection unchanged.
+- Prevent duplicate player selections.
+- Keep game name and rule-set selection.
+- Do not require game-name uniqueness.
 
 ### Authentication
 
@@ -251,7 +429,7 @@ The online repository implementation becomes the source of truth only when the a
 - Add Manage Players screen.
 - Add lock and audit controls where applicable.
 
-No score-table layout change is included.
+No score-table layout redesign is included.
 
 ## Error Handling
 
@@ -264,9 +442,13 @@ The application must show clear errors for:
 - duplicate player selection;
 - permission denial;
 - lock conflict;
+- finalization before Round 18;
+- finalization without the active edit lock;
+- reopening a game that is not completed;
+- concurrent lifecycle changes;
 - failed save or stale game data.
 
-No failed write may be silently treated as successful.
+No failed write may be silently treated as successful. A failed finalization or reopening operation leaves the previous status unchanged.
 
 ## Testing
 
@@ -275,7 +457,22 @@ Required coverage includes:
 - hidden New Round button;
 - searchable player selection;
 - inline unique player creation;
-- duplicate-name and duplicate-selection validation;
+- duplicate-player-name and duplicate-selection validation;
+- duplicate game names remain allowed and are stored under different IDs;
+- creation timestamp is immutable and appears on game cards in the selected format;
+- `draft` renders as **In progress**;
+- `finalized` renders as **Completed**;
+- Round 18 save triggers the finish suggestion only after a successful save;
+- Round 18 save does not automatically finalize;
+- Continue Playing permits Round 19 and does not create a finalization audit event;
+- Finish Game requires confirmation and at least 18 saved rounds;
+- Admin and Tester can finalize while holding the edit lock;
+- completed games reject normal round and score-entry writes;
+- completed games remain readable and exportable;
+- Admin and Tester can reopen after confirmation;
+- reopening requires no reason;
+- reopening records actor and timestamp;
+- reopening preserves all prior rounds, scores, overrides, and audit events;
 - archived-player filtering and restoration;
 - Admin and Tester authorization boundaries;
 - unauthenticated access rejection;
@@ -295,6 +492,6 @@ The UAT release is complete when:
 - one initial Admin account exists;
 - at least one Tester invitation flow is verified;
 - the Vercel deployment is reachable over HTTPS;
-- sign-in, player creation, game creation, round save, reopen, override, and role restrictions are smoke-tested;
+- sign-in, player creation, duplicate game creation, card metadata, Round 18 suggestion, finalization, reopening, round save, override, and role restrictions are smoke-tested;
 - the deployment URL and Admin invitation procedure are documented;
 - no merge to `main` occurs without explicit approval.
