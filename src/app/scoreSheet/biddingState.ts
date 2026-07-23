@@ -10,8 +10,6 @@ export interface BiddingState {
   readonly bidOwnerPlayerId?: string;
   readonly winningEstimate: number;
   readonly trumpSuit?: ContractSuit;
-  readonly pendingDecisionPlayerIds: readonly string[];
-  readonly previousWithEstimateByPlayerId: Readonly<Record<string, number | undefined>>;
   readonly confirmed: boolean;
 }
 
@@ -45,6 +43,34 @@ function firstEnteredHighestPlayerId(
   return estimateEntryOrder.find(isHighest) ?? playerOrder.find(isHighest);
 }
 
+function resolveNonOwnerStatus(
+  state: BiddingState,
+  playerId: string,
+  estimatesByPlayerId: Readonly<Record<string, number | undefined>>,
+  winningEstimate: number,
+): BiddingPlayerStatus {
+  const estimate = estimatesByPlayerId[playerId] ?? 0;
+  if (estimate <= 0) return 'normal';
+  if (state.statusByPlayerId[playerId] === 'hold') return 'hold';
+  return estimate === winningEstimate ? 'with' : 'normal';
+}
+
+function deriveStatusByPlayerId(
+  state: BiddingState,
+  estimatesByPlayerId: Readonly<Record<string, number | undefined>>,
+  ownerPlayerId: string | undefined,
+  winningEstimate: number,
+): Readonly<Record<string, BiddingPlayerStatus>> {
+  return Object.fromEntries(
+    state.playerOrder.map((playerId) => [
+      playerId,
+      playerId === ownerPlayerId
+        ? 'normal'
+        : resolveNonOwnerStatus(state, playerId, estimatesByPlayerId, winningEstimate),
+    ]),
+  ) as Record<string, BiddingPlayerStatus>;
+}
+
 function transferOwnership(
   state: BiddingState,
   estimatesByPlayerId: Readonly<Record<string, number | undefined>>,
@@ -52,14 +78,12 @@ function transferOwnership(
   newOwnerPlayerId: string,
 ): BiddingState {
   const winningEstimate = estimatesByPlayerId[newOwnerPlayerId] ?? 0;
-  const statusByPlayerId = Object.fromEntries(
-    state.playerOrder.map((playerId) => [
-      playerId,
-      playerId !== newOwnerPlayerId && (estimatesByPlayerId[playerId] ?? 0) === winningEstimate
-        ? 'with'
-        : 'normal',
-    ]),
-  ) as Record<string, BiddingPlayerStatus>;
+  const statusByPlayerId = deriveStatusByPlayerId(
+    state,
+    estimatesByPlayerId,
+    newOwnerPlayerId,
+    winningEstimate,
+  );
 
   return {
     ...state,
@@ -69,8 +93,6 @@ function transferOwnership(
     bidOwnerPlayerId: newOwnerPlayerId,
     winningEstimate,
     trumpSuit: undefined,
-    pendingDecisionPlayerIds: [],
-    previousWithEstimateByPlayerId: {},
   };
 }
 
@@ -81,8 +103,6 @@ export function createBiddingState(playerOrder: readonly string[]): BiddingState
     estimatesByPlayerId: Object.fromEntries(playerOrder.map((playerId) => [playerId, undefined])),
     statusByPlayerId: Object.fromEntries(playerOrder.map((playerId) => [playerId, 'normal'])),
     winningEstimate: 0,
-    pendingDecisionPlayerIds: [],
-    previousWithEstimateByPlayerId: {},
     confirmed: false,
   };
 }
@@ -124,6 +144,9 @@ export function setBiddingEstimate(
         estimateEntryOrder,
         estimatesByPlayerId,
         winningEstimate: 0,
+        statusByPlayerId: Object.fromEntries(
+          state.playerOrder.map((candidate) => [candidate, 'normal']),
+        ) as Record<string, BiddingPlayerStatus>,
       };
     }
     return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, owner);
@@ -134,22 +157,18 @@ export function setBiddingEstimate(
   }
 
   if (playerId === state.bidOwnerPlayerId && nextValue > state.winningEstimate) {
-    const activeWithPlayerIds = state.playerOrder.filter(
-      (candidate) => candidate !== playerId
-        && state.statusByPlayerId[candidate] === 'with'
-        && normalizedEstimate(state, candidate) === state.winningEstimate,
+    const statusByPlayerId = deriveStatusByPlayerId(
+      state,
+      estimatesByPlayerId,
+      state.bidOwnerPlayerId,
+      nextValue,
     );
-    const previousWithEstimateByPlayerId = {
-      ...state.previousWithEstimateByPlayerId,
-      ...Object.fromEntries(activeWithPlayerIds.map((candidate) => [candidate, normalizedEstimate(state, candidate)])),
-    };
     return {
       ...state,
       estimateEntryOrder,
       estimatesByPlayerId,
       winningEstimate: nextValue,
-      pendingDecisionPlayerIds: activeWithPlayerIds,
-      previousWithEstimateByPlayerId,
+      statusByPlayerId,
     };
   }
 
@@ -164,39 +183,38 @@ export function setBiddingEstimate(
         bidOwnerPlayerId: undefined,
         winningEstimate: 0,
         trumpSuit: undefined,
-        pendingDecisionPlayerIds: [],
-        previousWithEstimateByPlayerId: {},
       };
     }
     if (nextOwner !== state.bidOwnerPlayerId) {
       return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, nextOwner);
     }
+    const statusByPlayerId = deriveStatusByPlayerId(
+      state,
+      estimatesByPlayerId,
+      state.bidOwnerPlayerId,
+      nextValue,
+    );
     return {
       ...state,
       estimateEntryOrder,
       estimatesByPlayerId,
       winningEstimate: nextValue,
+      statusByPlayerId,
     };
   }
 
-  const statusByPlayerId = { ...state.statusByPlayerId };
-  if (playerId !== state.bidOwnerPlayerId) {
-    if (nextValue > 0 && nextValue === state.winningEstimate) {
-      statusByPlayerId[playerId] = 'with';
-    } else if (statusByPlayerId[playerId] === 'with') {
-      statusByPlayerId[playerId] = 'normal';
-    }
-  }
+  const statusByPlayerId = deriveStatusByPlayerId(
+    state,
+    estimatesByPlayerId,
+    state.bidOwnerPlayerId,
+    state.winningEstimate,
+  );
 
   return {
     ...state,
     estimateEntryOrder,
     estimatesByPlayerId,
     statusByPlayerId,
-    pendingDecisionPlayerIds: state.pendingDecisionPlayerIds.filter((candidate) => candidate !== playerId),
-    previousWithEstimateByPlayerId: Object.fromEntries(
-      Object.entries(state.previousWithEstimateByPlayerId).filter(([candidate]) => candidate !== playerId),
-    ),
   };
 }
 
@@ -205,32 +223,17 @@ export function setBiddingTrump(state: BiddingState, suit: ContractSuit): Biddin
   return { ...state, trumpSuit: suit };
 }
 
-export function resolveFollow(state: BiddingState, playerId: string): BiddingState {
+export function toggleBiddingHold(state: BiddingState, playerId: string): BiddingState {
   assertPlayer(state, playerId);
-  if (!state.pendingDecisionPlayerIds.includes(playerId) || state.confirmed) return state;
+  if (state.confirmed) return state;
+  const estimate = normalizedEstimate(state, playerId);
+  if (playerId === state.bidOwnerPlayerId || estimate <= 0) return state;
+  const nextStatus = state.statusByPlayerId[playerId] === 'hold'
+    ? estimate === state.winningEstimate ? 'with' : 'normal'
+    : 'hold';
   return {
     ...state,
-    estimatesByPlayerId: { ...state.estimatesByPlayerId, [playerId]: state.winningEstimate },
-    statusByPlayerId: { ...state.statusByPlayerId, [playerId]: 'with' },
-    pendingDecisionPlayerIds: state.pendingDecisionPlayerIds.filter((candidate) => candidate !== playerId),
-    previousWithEstimateByPlayerId: Object.fromEntries(
-      Object.entries(state.previousWithEstimateByPlayerId).filter(([candidate]) => candidate !== playerId),
-    ),
-  };
-}
-
-export function resolveHold(state: BiddingState, playerId: string): BiddingState {
-  assertPlayer(state, playerId);
-  if (!state.pendingDecisionPlayerIds.includes(playerId) || state.confirmed) return state;
-  const heldEstimate = state.previousWithEstimateByPlayerId[playerId] ?? state.estimatesByPlayerId[playerId] ?? 0;
-  return {
-    ...state,
-    estimatesByPlayerId: { ...state.estimatesByPlayerId, [playerId]: heldEstimate },
-    statusByPlayerId: { ...state.statusByPlayerId, [playerId]: 'hold' },
-    pendingDecisionPlayerIds: state.pendingDecisionPlayerIds.filter((candidate) => candidate !== playerId),
-    previousWithEstimateByPlayerId: Object.fromEntries(
-      Object.entries(state.previousWithEstimateByPlayerId).filter(([candidate]) => candidate !== playerId),
-    ),
+    statusByPlayerId: { ...state.statusByPlayerId, [playerId]: nextStatus },
   };
 }
 
@@ -272,9 +275,6 @@ export function resolveRiskPlayerId(state: BiddingState): string | undefined {
 export function confirmBidding(state: BiddingState): ConfirmBiddingResult {
   const errors: string[] = [];
   const estimates = state.playerOrder.map((playerId) => state.estimatesByPlayerId[playerId]);
-  if (state.pendingDecisionPlayerIds.length > 0) {
-    errors.push('Every With player must choose Follow or Hold.');
-  }
   if (estimates.some((value) => value !== undefined && (!Number.isInteger(value) || value < 0 || value > 12))) {
     errors.push('Each estimate must be between 0 and 12.');
   }

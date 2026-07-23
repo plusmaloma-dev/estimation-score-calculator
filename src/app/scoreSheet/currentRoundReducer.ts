@@ -3,12 +3,11 @@ import {
   confirmBidding,
   createBiddingState,
   resolveActiveWithPlayerIds,
-  resolveFollow,
-  resolveHold,
   resolveMultipleWithMultiplier,
   resolveRiskPlayerId,
   setBiddingEstimate,
   setBiddingTrump,
+  toggleBiddingHold,
   type BiddingState,
 } from './biddingState.js';
 
@@ -23,15 +22,13 @@ export interface CurrentRoundDraft {
   readonly overUnder: number;
   readonly phase: CurrentRoundPhase;
   readonly bidding: BiddingState;
-  readonly pendingWithDecisionPlayerIds: readonly string[];
 }
 
 export type CurrentRoundAction =
   | { readonly type: 'set-estimate'; readonly playerId: string; readonly value: number | undefined }
   | { readonly type: 'set-actual'; readonly playerId: string; readonly value: number | undefined }
   | { readonly type: 'set-trump'; readonly suit: ContractSuit }
-  | { readonly type: 'follow-with'; readonly playerId: string }
-  | { readonly type: 'hold-with'; readonly playerId: string }
+  | { readonly type: 'toggle-hold'; readonly playerId: string }
   | { readonly type: 'accept-estimates' }
   | { readonly type: 'reset' };
 
@@ -53,7 +50,6 @@ function withBidding(draft: CurrentRoundDraft, bidding: BiddingState): CurrentRo
     trumpSuit: bidding.trumpSuit,
     overUnder: sumValues(estimates) - 13,
     bidding,
-    pendingWithDecisionPlayerIds: bidding.pendingDecisionPlayerIds,
   };
 }
 
@@ -68,7 +64,6 @@ export function createCurrentRoundDraft(playerOrder: readonly string[]): Current
     overUnder: -13,
     phase: 'estimating',
     bidding,
-    pendingWithDecisionPlayerIds: [],
   };
 }
 
@@ -129,13 +124,9 @@ export function currentRoundReducer(draft: CurrentRoundDraft, action: CurrentRou
       return draft.phase === 'estimating'
         ? withBidding(draft, setBiddingTrump(draft.bidding, action.suit))
         : draft;
-    case 'follow-with':
+    case 'toggle-hold':
       return draft.phase === 'estimating'
-        ? withBidding(draft, resolveFollow(draft.bidding, action.playerId))
-        : draft;
-    case 'hold-with':
-      return draft.phase === 'estimating'
-        ? withBidding(draft, resolveHold(draft.bidding, action.playerId))
+        ? withBidding(draft, toggleBiddingHold(draft.bidding, action.playerId))
         : draft;
     case 'accept-estimates': {
       if (draft.phase !== 'estimating') return draft;

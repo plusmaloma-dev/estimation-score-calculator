@@ -69,26 +69,20 @@ describe('currentRoundReducer', () => {
     expect(validateAcceptedEstimates(draft)).toEqual([]);
   });
 
-  it('keeps trump with the owner while With players Follow or Hold an increase', () => {
+  it('toggles explicit Hold without changing the estimate and preserves it across owner changes', () => {
     let draft = createCurrentRoundDraft(['A', 'B', 'C', 'D']);
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 4 });
     draft = currentRoundReducer(draft, { type: 'set-trump', suit: 'hearts' });
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'C', value: 4 });
-    draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'D', value: 4 });
+
+    draft = currentRoundReducer(draft, { type: 'toggle-hold', playerId: 'C' });
     draft = currentRoundReducer(draft, { type: 'set-estimate', playerId: 'A', value: 5 });
+    draft = currentRoundReducer(draft, { type: 'set-trump', suit: 'spades' });
 
-    expect(draft.pendingWithDecisionPlayerIds).toEqual(['C', 'D']);
-    expect(validateAcceptedEstimates(draft)).toContain('Every With player must choose Follow or Hold.');
-
-    draft = currentRoundReducer(draft, { type: 'follow-with', playerId: 'C' });
-    draft = currentRoundReducer(draft, { type: 'hold-with', playerId: 'D' });
-
-    expect(resolveHighestEstimatePlayerId(draft)).toBe('A');
-    expect(resolveWithPlayerIds(draft)).toEqual(['C']);
-    expect(resolveHoldPlayerIds(draft)).toEqual(['D']);
-    expect(draft.estimates).toEqual({ A: 5, B: undefined, C: 5, D: 4 });
-    expect(draft.trumpSuit).toBe('hearts');
-    expect(resolveMultipleWithRoundMultiplier(draft)).toBe(1);
+    expect(resolveHoldPlayerIds(draft)).toEqual(['C']);
+    expect(resolveWithPlayerIds(draft)).toEqual([]);
+    expect(draft.estimates.C).toBe(4);
+    expect(validateAcceptedEstimates(draft)).toEqual([]);
   });
 
   it('derives the Risk taker from the trump caller rather than the dealer', () => {
