@@ -23,8 +23,8 @@ function createServices(): AppServices {
       saveRound: vi.fn(),
     },
     playerDirectory: {
-      listActivePlayers: () => [],
-      createPlayer: () => ({ valid: false, errors: ['not used'] }),
+      listActivePlayers: async () => [],
+      createPlayer: async () => ({ valid: false, errors: ['not used'] }),
     },
   };
 }
