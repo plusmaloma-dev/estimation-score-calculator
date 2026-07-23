@@ -123,9 +123,29 @@ export class EstimationMvpService {
 
   calculateGame(input: MvpGameInput): MvpGameResult {
     const ruleSet = resolveScoringRuleSetId(input.ruleSet);
-    const rounds = input.rounds.map((round) => this.calculateRound(
-      input.ruleSet === undefined ? round : { ...round, ruleSet },
-    ));
+    const rounds: MvpRoundResult[] = [];
+    let consecutiveAllLoserCount = 0;
+
+    for (const roundInput of input.rounds) {
+      const calculated = this.calculateRound(
+        input.ruleSet === undefined ? roundInput : { ...roundInput, ruleSet },
+      );
+
+      if (!calculated.valid || calculated.scoreResult === undefined) {
+        rounds.push(calculated);
+        continue;
+      }
+
+      const applied = this.applyAllLoserCarry(calculated, consecutiveAllLoserCount);
+      rounds.push(applied);
+
+      if (applied.isAllLoserRound) {
+        consecutiveAllLoserCount += 1;
+      } else {
+        consecutiveAllLoserCount = 0;
+      }
+    }
+
     const errors = rounds.flatMap((round, index) =>
       round.errors.map((error) => `Round ${input.rounds[index]?.roundNumber ?? index + 1}: ${error}`),
     );
@@ -148,6 +168,58 @@ export class EstimationMvpService {
       ruleSet,
       rounds,
       leaderboard,
+    };
+  }
+
+  private isAllLoserRound(round: MvpRoundResult): boolean {
+    return round.valid
+      && round.scoreResult !== undefined
+      && round.scoreResult.playerScores.length === 4
+      && round.scoreResult.playerScores.every((score) => score.status === 'failed');
+  }
+
+  private applyAllLoserCarry(
+    round: MvpRoundResult & { readonly scoreResult: RoundScoreResult },
+    consecutiveAllLoserCountBeforeRound: number,
+  ): MvpRoundResult {
+    if (this.isAllLoserRound(round)) {
+      return {
+        ...round,
+        isAllLoserRound: true,
+        consecutiveAllLoserCountBeforeRound,
+        carriedAllLoserMultiplier: 1,
+        carryConsumed: false,
+        scoreResult: {
+          ...round.scoreResult,
+          playerScores: round.scoreResult.playerScores.map((score) => ({
+            ...score,
+            score: 0,
+            notes: [...score.notes, 'All-loser round skipped: no score applied.'],
+          })),
+        },
+      };
+    }
+
+    const carriedAllLoserMultiplier = consecutiveAllLoserCountBeforeRound === 0
+      ? 1
+      : consecutiveAllLoserCountBeforeRound * 2;
+
+    return {
+      ...round,
+      isAllLoserRound: false,
+      consecutiveAllLoserCountBeforeRound,
+      carriedAllLoserMultiplier,
+      carryConsumed: carriedAllLoserMultiplier > 1,
+      scoreResult: {
+        ...round.scoreResult,
+        playerScores: round.scoreResult.playerScores.map((score) => ({
+          ...score,
+          score: score.score * carriedAllLoserMultiplier,
+          notes: carriedAllLoserMultiplier > 1
+            ? [...score.notes, `All-loser carry multiplier applied: x${carriedAllLoserMultiplier}.`]
+            : score.notes,
+        })),
+      },
     };
   }
 
