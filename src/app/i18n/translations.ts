@@ -4,6 +4,7 @@ export const translations = {
     startNewGame: 'Start a new game',
     recentGames: 'Recent games',
     continueGame: 'Continue game',
+    openGame: 'Open game',
     noRecentGames: 'No saved games yet.',
     gameName: 'Game name',
     player: 'Player',
@@ -14,12 +15,15 @@ export const translations = {
     backHome: 'Back to home',
     scoreSheet: 'Score sheet',
     rounds: 'rounds',
+    inProgress: 'In progress',
+    completed: 'Completed',
   },
   ar: {
     appName: 'إستيميشن',
     startNewGame: 'ابدأ لعبة جديدة',
     recentGames: 'الألعاب الأخيرة',
     continueGame: 'متابعة اللعبة',
+    openGame: 'فتح اللعبة',
     noRecentGames: 'لا توجد ألعاب محفوظة بعد.',
     gameName: 'اسم اللعبة',
     player: 'اللاعب',
@@ -30,6 +34,8 @@ export const translations = {
     backHome: 'العودة للرئيسية',
     scoreSheet: 'جدول النقاط',
     rounds: 'جولات',
+    inProgress: 'قيد التقدم',
+    completed: 'مكتملة',
   },
 } as const;
 
