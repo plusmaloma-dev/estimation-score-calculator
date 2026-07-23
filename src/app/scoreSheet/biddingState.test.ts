@@ -130,4 +130,15 @@ describe('biddingState', () => {
 
     expect(resolveRiskPlayerId(state)).toBeUndefined();
   });
+
+  it('assigns Risk to the last caller when an Over-by-two round ends with a one-trick estimate', () => {
+    let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
+    state = setBiddingEstimate(state, 'P1', 8);
+    state = setBiddingTrump(state, 'spades');
+    state = setBiddingEstimate(state, 'P2', 5);
+    state = setBiddingEstimate(state, 'P3', 1);
+    state = setBiddingEstimate(state, 'P4', 1);
+
+    expect(resolveRiskPlayerId(state)).toBe('P4');
+  });
 });
