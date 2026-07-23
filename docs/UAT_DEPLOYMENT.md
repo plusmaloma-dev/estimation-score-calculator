@@ -195,4 +195,15 @@ Use separate browser profiles for an Admin and a Tester:
 9. As Admin, force-release the other editor's lock and verify editing transfers after refresh.
 10. Leave through **History**, reopen, and verify the released/expired lock can be acquired normally.
 
+- Enter a positive non-owner estimate and verify `H` starts unselected.
+- Select `H`, change the owner estimate and trump, and verify `H` remains selected.
+- Verify Risk moves past the selected Hold player.
+- Save the round, reload the game, and verify the history retains `H`.
+- Emulate a coarse-pointer phone in portrait and verify only the active score sheet shows the landscape gate.
+- Rotate the emulated phone to landscape and verify the same score-sheet draft remains.
+- Verify estimate entry opens a centered `0`–`12` picker without a numeric input.
+- Verify actual-trick entry opens a centered `0`–`13` picker.
+- Select, clear, and cancel values; confirm the picker closes after each action.
+- Save a picker-entered round, reload it, and verify `get_game_snapshot` restores the round.
+
 Record the deployment URL, commit SHA, account roles, UTC time, and pass/fail evidence without recording passwords, tokens, keys, or database credentials.

@@ -94,7 +94,7 @@ describe('OnlineBrowserShellService', () => {
         bids: [
           { player_id: 'p1', bid_type: 'normal', tricks: 5, trump_suit: 'spades', with_target_player_id: null },
           { player_id: 'p2', bid_type: 'normal', tricks: 4, trump_suit: null, with_target_player_id: null },
-          { player_id: 'p3', bid_type: 'normal', tricks: 3, trump_suit: null, with_target_player_id: null },
+          { player_id: 'p3', bid_type: 'hold', tricks: 3, trump_suit: null, with_target_player_id: null },
           { player_id: 'p4', bid_type: 'dash', tricks: 0, trump_suit: null, with_target_player_id: null },
         ],
         actuals: [
@@ -119,6 +119,11 @@ describe('OnlineBrowserShellService', () => {
 
     expect(opened.valid).toBe(true);
     expect(opened.scoreSheet?.roundCount).toBe(1);
+    expect(opened.scoreSheet?.gameInput.rounds[0]?.bids[2]).toEqual(expect.objectContaining({
+      playerId: 'p3',
+      bidType: 'hold',
+      tricks: 3,
+    }));
     expect(opened.roundHistory?.[0]?.playerScores[0]?.score).toBe(30);
     expect(opened.leaderboard?.[0]).toEqual(expect.objectContaining({ playerId: 'p1', totalScore: 30 }));
   });
