@@ -25,11 +25,11 @@ export interface AppSessionHistoryResult {
 
 export interface BrowserShellPort {
   getSessionHistory(): Awaitable<AppSessionHistoryResult>;
-  createScoreSheet(input: UiCreateScoreSheetInput): Awaitable<UiCreateScoreSheetResult>;
-  openSession(scoreSheetId: string): Awaitable<UiOpenSessionResult>;
-  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): Awaitable<UiSaveRoundResult>;
-  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
-  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  createScoreSheet(input: UiCreateScoreSheetInput): UiCreateScoreSheetResult;
+  openSession(scoreSheetId: string): UiOpenSessionResult;
+  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
+  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
+  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
 }
 
 export interface AppServices {
