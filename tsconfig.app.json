@@ -12,7 +12,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
-    "composite": true
+    "composite": true,
+    "types": ["vite/client"]
   },
   "include": ["src/app/**/*.ts", "src/app/**/*.tsx", "src/**/*.ts"],
   "exclude": ["tests/**/*"]
