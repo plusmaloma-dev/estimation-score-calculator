@@ -93,6 +93,10 @@ export class ScoreCalculationService {
         playerScores: input.bids.map((bid) => {
           const actualResult = actualResultsByPlayer.get(bid.playerId);
           const evaluation = evaluationsByPlayer.get(bid.playerId);
+          const score = evaluation === undefined ? 0 : this.resolveAllLoserAppliedScore(evaluation);
+          const notes = score === 0
+            ? [`All players lost: base scores are zero and the next round should receive the x${nextRoundMultiplier} multiplier.`]
+            : [`All players lost: base score is zero, Risk penalty retained at ${score}, and the next round should receive the x${nextRoundMultiplier} multiplier.`];
 
           return {
             playerId: bid.playerId,
@@ -108,8 +112,8 @@ export class ScoreCalculationService {
             isOnlyWinner: false,
             isOnlyLoser: false,
             status: 'failed',
-            score: 0,
-            notes: [`All players lost: current round scores are zero and the next round should receive the x${nextRoundMultiplier} multiplier.`],
+            score,
+            notes,
           };
         }),
       };
@@ -204,6 +208,14 @@ export class ScoreCalculationService {
     }
 
     return 0;
+  }
+
+  private resolveAllLoserAppliedScore(evaluation: PlayerRoundEvaluation): number {
+    if (!evaluation.isRiskTaker || evaluation.riskModifier === 0) {
+      return 0;
+    }
+
+    return -evaluation.riskModifier;
   }
 
   private resolveNextAllLoserMultiplier(currentRoundMultiplier: number | undefined): number {
