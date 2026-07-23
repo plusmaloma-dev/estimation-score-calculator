@@ -171,6 +171,12 @@ export function setBiddingEstimate(
     if (nextOwner !== state.bidOwnerPlayerId) {
       return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, nextOwner);
     }
+    return {
+      ...state,
+      estimateEntryOrder,
+      estimatesByPlayerId,
+      winningEstimate: nextValue,
+    };
   }
 
   const statusByPlayerId = { ...state.statusByPlayerId };
