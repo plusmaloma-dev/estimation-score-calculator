@@ -8,6 +8,7 @@ import type {
   UiSaveRoundResult,
   UiSessionHistoryItem,
 } from '../index.js';
+import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
 import { createBrowserServices } from './services/createBrowserServices.js';
@@ -32,9 +33,16 @@ export interface BrowserShellPort {
   reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
 }
 
+export interface AuthPort {
+  getSession(): Promise<AuthResult<AuthSessionState | undefined>>;
+  signIn(email: string, password: string): Promise<AuthResult<AuthSessionState>>;
+  signOut(): Promise<AuthResult<void>>;
+}
+
 export interface AppServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
+  readonly auth?: AuthPort;
 }
 
 interface AppContextValue extends AppState {
