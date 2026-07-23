@@ -12,11 +12,13 @@
     "typecheck": "npm run typecheck:engine && npm run typecheck:app",
     "test:engine": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/*.test.js",
     "test:ui": "vitest run",
+    "test:app": "vitest",
     "test": "npm run test:engine && npm run test:ui",
     "build": "vite build",
     "ci": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
