@@ -17,6 +17,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         score = this.applyRisk(score, context, notes);
         score = this.applyOnlyWinnerLoser(score, context, notes);
         score = this.applyRoundMultiplier(score, context, notes);
+        score = this.applyMultipleWithMultiplier(score, context, notes);
 
         return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
       }
@@ -68,6 +69,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -94,7 +96,8 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
 
       score = this.applyRisk(score, context, notes);
       score = this.applyOnlyWinnerLoser(score, context, notes);
-      // x2 deliberately not applied to high contracts.
+      // The carried all-loser round multiplier remains excluded for high contracts.
+      score = this.applyMultipleWithMultiplier(score, context, notes);
       return this.result(context, score, 'success', notes);
     }
 
@@ -119,7 +122,8 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     notes.push(`Difference from bid: ${evaluation.delta}.`);
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
-    // x2 deliberately not applied to high contracts.
+    // The carried all-loser round multiplier remains excluded for high contracts.
+    score = this.applyMultipleWithMultiplier(score, context, notes);
     return this.result(context, score, 'failed', notes);
   }
 
@@ -140,6 +144,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -161,6 +166,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -201,6 +207,16 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     }
 
     notes.push(`Round multiplier applied: x${multiplier}.`);
+    return score * multiplier;
+  }
+
+  private applyMultipleWithMultiplier(score: number, context: ScoreContext, notes: string[]): number {
+    const multiplier = context.multipleWithMultiplier ?? 1;
+    if (multiplier === 1) {
+      return score;
+    }
+
+    notes.push('Multiple With multiplier applied: x2.');
     return score * multiplier;
   }
 

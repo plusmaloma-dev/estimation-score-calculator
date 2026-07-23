@@ -134,6 +134,7 @@ export class ScoreCalculationService {
           roundType: input.roundType,
           roundRiskLevel,
           roundMultiplier: input.roundMultiplier,
+          multipleWithMultiplier: input.multipleWithMultiplier,
           winningContractNumber: input.winningContractNumber,
           bidOwnerPlayerId: input.bidOwnerPlayerId,
           ownerOutcome,
@@ -171,6 +172,8 @@ export class ScoreCalculationService {
       roundRiskLevel > 0;
     const isSequenceRiskTaker = input.riskPlayerId === bid.playerId && roundRiskLevel > 0;
     const isRiskTaker = isDashUnderRisk || isSequenceRiskTaker;
+    const baseRole = this.resolveRole(bid, input.bidOwnerPlayerId);
+    const role = isRiskTaker && baseRole === 'other-player' ? 'risk-taker' : baseRole;
 
     return {
       playerId: bid.playerId,
@@ -178,7 +181,7 @@ export class ScoreCalculationService {
       actualTricks: actualResult.actualTricks,
       delta,
       didMatchBid,
-      role: isRiskTaker ? 'risk-taker' : this.resolveRole(bid, input.bidOwnerPlayerId),
+      role,
       riskType: isRiskTaker ? 'round-risk' : this.resolveRiskType(bid, highContractThreshold),
       isRiskTaker,
       riskModifier: this.resolveRiskModifier(roundRiskLevel),
