@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AuthSessionState } from '../online/auth/types.js';
 import { AppProvider, useApp, type AppServices } from './AppContext.js';
 import { UserSessionMenu } from './components/UserSessionMenu.js';
@@ -59,6 +59,14 @@ function AuthenticatedApp() {
   const [session, setSession] = useState<AuthSessionState | undefined>();
   const [loading, setLoading] = useState(auth !== undefined);
   const [errors, setErrors] = useState<readonly string[]>([]);
+  const sessionServices = useMemo<AppServices>(() => {
+    if (session === undefined || services.onlineSessionFactory === undefined) return services;
+    return {
+      ...services,
+      ...services.onlineSessionFactory(session),
+      onlineSessionFactory: undefined,
+    };
+  }, [services, session]);
 
   useEffect(() => {
     let active = true;
@@ -96,14 +104,18 @@ function AuthenticatedApp() {
     }} />;
   }
 
-  return <AppContent session={session} onSignOut={async () => {
-    const result = await auth.signOut();
-    if (!result.valid) {
-      setErrors(result.errors);
-      return;
-    }
-    setSession(undefined);
-  }} />;
+  return (
+    <AppProvider services={sessionServices}>
+      <AppContent session={session} onSignOut={async () => {
+        const result = await auth.signOut();
+        if (!result.valid) {
+          setErrors(result.errors);
+          return;
+        }
+        setSession(undefined);
+      }} />
+    </AppProvider>
+  );
 }
 
 export function App({ services }: { readonly services?: AppServices } = {}) {
