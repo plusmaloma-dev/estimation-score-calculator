@@ -1,19 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthSessionState } from '../auth/types.js';
-import { OnlineGameService } from './OnlineGameService.js';
+import { OnlineGameService, type OnlineGameDatabase } from './OnlineGameService.js';
 
 const session: AuthSessionState = {
   user: { id: 'user-1', email: 'tester@example.com' },
   membership: { workspaceId: 'workspace-1', workspaceSlug: 'estimation-uat', role: 'tester' },
 };
 
-function rpcClient(responses: Readonly<Record<string, readonly unknown[]>>) {
+type RpcResponse = Awaited<ReturnType<OnlineGameDatabase['rpc']>>;
+
+function rpcClient(responses: Readonly<Record<string, readonly RpcResponse[]>>): OnlineGameDatabase & { rpc: ReturnType<typeof vi.fn> } {
   const calls = new Map<string, number>();
-  const rpc = vi.fn(async (name: string, args: unknown) => {
+  const rpc = vi.fn(async (name: string, _args: Readonly<Record<string, unknown>>): Promise<RpcResponse> => {
     const index = calls.get(name) ?? 0;
     calls.set(name, index + 1);
-    const response = responses[name]?.[index] ?? responses[name]?.[0];
-    return response ?? { data: null, error: { message: `No fake response for ${name}` } };
+    return responses[name]?.[index]
+      ?? responses[name]?.[0]
+      ?? { data: null, error: { message: `No fake response for ${name}` } };
   });
   return { rpc };
 }
