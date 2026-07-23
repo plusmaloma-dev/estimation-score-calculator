@@ -42,7 +42,6 @@ export function CurrentRoundRow({
   const winnerPlayerId = resolveHighestEstimatePlayerId(draft);
   const withPlayerIds = new Set(resolveWithPlayerIds(draft));
   const holdPlayerIds = new Set(resolveHoldPlayerIds(draft));
-  const pendingPlayerIds = new Set(draft.pendingWithDecisionPlayerIds);
   const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
   const multipleWithMultiplier = resolveMultipleWithRoundMultiplier(draft);
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
@@ -60,10 +59,9 @@ export function CurrentRoundRow({
         </th>
         {players.flatMap((player) => {
           const isWinner = winnerPlayerId === player.id;
-          const isPending = pendingPlayerIds.has(player.id);
-          const heldEstimate = draft.bidding.previousWithEstimateByPlayerId[player.id]
-            ?? draft.estimates[player.id]
-            ?? 0;
+          const estimate = draft.estimates[player.id] ?? 0;
+          const isHold = holdPlayerIds.has(player.id);
+          const canToggleHold = isEstimating && !isWinner && estimate > 0;
           const annotations = [
             ...(withPlayerIds.has(player.id) ? ['W'] : []),
             ...(holdPlayerIds.has(player.id) ? ['H'] : []),
@@ -79,10 +77,21 @@ export function CurrentRoundRow({
                   min="0"
                   max="12"
                   inputMode="numeric"
-                  disabled={!isEstimating || isPending}
+                  disabled={!isEstimating}
                   value={draft.estimates[player.id] ?? ''}
                   onChange={(event) => dispatch({ type: 'set-estimate', playerId: player.id, value: numberValue(event.target.value) })}
                 />
+                {canToggleHold && (
+                  <button
+                    type="button"
+                    className={isHold ? 'hold-toggle hold-toggle--selected' : 'hold-toggle'}
+                    aria-label={`${player.name} Hold`}
+                    aria-pressed={isHold}
+                    onClick={() => dispatch({ type: 'toggle-hold', playerId: player.id })}
+                  >
+                    H
+                  </button>
+                )}
                 {isWinner && (
                   <select
                     className="trump-select"
@@ -100,26 +109,6 @@ export function CurrentRoundRow({
                   </select>
                 )}
               </div>
-              {isPending && (
-                <div className="with-decision-controls" aria-label={`${player.name} Follow or Hold decision`}>
-                  <button
-                    type="button"
-                    className="with-decision-button"
-                    aria-label={`${player.name} follow ${draft.bidding.winningEstimate}`}
-                    onClick={() => dispatch({ type: 'follow-with', playerId: player.id })}
-                  >
-                    Follow {draft.bidding.winningEstimate}
-                  </button>
-                  <button
-                    type="button"
-                    className="with-decision-button with-decision-button--hold"
-                    aria-label={`${player.name} hold ${heldEstimate}`}
-                    onClick={() => dispatch({ type: 'hold-with', playerId: player.id })}
-                  >
-                    Hold {heldEstimate}
-                  </button>
-                </div>
-              )}
               {annotations.length > 0 && (
                 <span className="estimate-annotations" aria-label={`${player.name} estimate annotations`}>
                   {annotations.join(' ')}

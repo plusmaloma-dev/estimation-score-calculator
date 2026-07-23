@@ -93,54 +93,57 @@ describe('CurrentRoundRow', () => {
     expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeEnabled();
   });
 
-  it('keeps trump with the bid owner while matching players choose Follow or Hold', async () => {
+  it('shows an unselected Hold toggle for every positive non-owner and never infers Hold', async () => {
     const user = userEvent.setup();
     renderRow();
 
     await user.type(screen.getByLabelText('Ahmed estimate'), '4');
     await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
     await user.type(screen.getByLabelText('Rami estimate'), '4');
-    await user.type(screen.getByLabelText('Dina estimate'), '4');
+
+    expect(screen.queryByRole('button', { name: 'Ahmed Hold' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rami Hold' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('W');
 
     await user.clear(screen.getByLabelText('Ahmed estimate'));
     await user.type(screen.getByLabelText('Ahmed estimate'), '5');
 
-    expect(screen.getByLabelText('Ahmed trump')).toHaveValue('hearts');
-    expect(screen.queryByLabelText('Rami trump')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rami follow 5' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Rami hold 4' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Dina follow 5' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Dina hold 4' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Accept estimates' })).toBeDisabled();
-
-    await user.click(screen.getByRole('button', { name: 'Rami follow 5' }));
-    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
-
-    expect(screen.getByLabelText('Rami estimate')).toHaveValue(5);
-    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('W');
-    expect(screen.getByLabelText('Dina estimate')).toHaveValue(4);
-    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('H');
-    expect(screen.getByLabelText('Ahmed trump')).toHaveValue('hearts');
-    expect(screen.queryByText('Multiple WITH: ×2')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rami follow 5' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rami Hold' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('skips all Hold players and marks the remaining eligible player Risk at the threshold', async () => {
+  it('keeps a selected Hold through owner estimate and trump changes and allows removal', async () => {
     const user = userEvent.setup();
     renderRow();
 
     await user.type(screen.getByLabelText('Ahmed estimate'), '4');
-    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
-    await user.type(screen.getByLabelText('Mona estimate'), '2');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'hearts');
     await user.type(screen.getByLabelText('Rami estimate'), '4');
-    await user.type(screen.getByLabelText('Dina estimate'), '4');
+    await user.click(screen.getByRole('button', { name: 'Rami Hold' }));
+
+    expect(screen.getByRole('button', { name: 'Rami Hold' })).toHaveAttribute('aria-pressed', 'true');
+
     await user.clear(screen.getByLabelText('Ahmed estimate'));
     await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
 
-    await user.click(screen.getByRole('button', { name: 'Rami hold 4' }));
-    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
+    expect(screen.getByRole('button', { name: 'Rami Hold' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Rami Hold' }));
+    expect(screen.getByRole('button', { name: 'Rami Hold' })).toHaveAttribute('aria-pressed', 'false');
+  });
 
-    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('H');
-    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('H');
-    expect(screen.getByLabelText('Mona estimate annotations')).toHaveTextContent('R');
+  it('moves Risk when the last caller is explicitly marked Hold', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'clubs');
+    await user.type(screen.getByLabelText('Mona estimate'), '2');
+    await user.type(screen.getByLabelText('Rami estimate'), '5');
+    await user.type(screen.getByLabelText('Dina estimate'), '5');
+    expect(screen.getByLabelText('Dina estimate annotations')).toHaveTextContent('R');
+
+    await user.click(screen.getByRole('button', { name: 'Dina Hold' }));
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('R');
   });
 });

@@ -141,15 +141,13 @@ describe('ScoreSheetScreen', () => {
     const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
     render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
 
-    await user.type(screen.getByLabelText('Ahmed estimate'), '4');
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
     await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'clubs');
     await user.type(screen.getByLabelText('Mona estimate'), '2');
     await user.type(screen.getByLabelText('Rami estimate'), '4');
     await user.type(screen.getByLabelText('Dina estimate'), '4');
-    await user.clear(screen.getByLabelText('Ahmed estimate'));
-    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
-    await user.click(screen.getByRole('button', { name: 'Rami hold 4' }));
-    await user.click(screen.getByRole('button', { name: 'Dina hold 4' }));
+    await user.click(screen.getByRole('button', { name: 'Rami Hold' }));
+    await user.click(screen.getByRole('button', { name: 'Dina Hold' }));
     await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
 
     for (const [name, actual] of [['Ahmed', '5'], ['Mona', '2'], ['Rami', '4'], ['Dina', '2']] as const) {
