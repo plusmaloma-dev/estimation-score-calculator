@@ -37,3 +37,4 @@ export * from './richExport/ScoreSheetMarkdownExportService.js';
 export * from './richExport/ScoreSheetCsvExportService.js';
 export * from './export/RichScoreSheetExportService.js';
 export * from './ui/BrowserUiShellService.js';
+export * from './ui/LifecycleBrowserUiShellService.js';
