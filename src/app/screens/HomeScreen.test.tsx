@@ -32,7 +32,7 @@ function createServices(status: 'draft' | 'finalized' = 'draft'): AppServices {
 }
 
 describe('HomeScreen', () => {
-  it('shows approved in-progress status and immutable creation timestamp', () => {
+  it('shows approved in-progress status and immutable creation timestamp', async () => {
     render(
       <I18nProvider>
         <AppProvider services={createServices()}>
@@ -42,7 +42,7 @@ describe('HomeScreen', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Recent games' })).toBeInTheDocument();
-    expect(screen.getByText('Thursday Table')).toBeInTheDocument();
+    expect(await screen.findByText('Thursday Table')).toBeInTheDocument();
     for (const player of ['Ahmed', 'Mona', 'Rami', 'Dina']) {
       expect(screen.getByText(player)).toBeInTheDocument();
     }
@@ -52,7 +52,7 @@ describe('HomeScreen', () => {
     expect(screen.getByRole('button', { name: 'Continue game' })).toBeInTheDocument();
   });
 
-  it('shows completed games with the approved status label', () => {
+  it('shows completed games with the approved status label', async () => {
     render(
       <I18nProvider>
         <AppProvider services={createServices('finalized')}>
@@ -61,7 +61,8 @@ describe('HomeScreen', () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(await screen.findByText('Completed')).toBeInTheDocument();
     expect(screen.queryByText('finalized')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open game' })).toBeInTheDocument();
   });
 });
