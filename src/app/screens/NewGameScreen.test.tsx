@@ -18,10 +18,10 @@ function createServices(): AppServices {
       saveRound: vi.fn(),
     },
     playerDirectory: {
-      listActivePlayers: (query = '') => players.filter((player) =>
+      listActivePlayers: async (query = '') => players.filter((player) =>
         player.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
       ),
-      createPlayer: (name) => {
+      createPlayer: async (name) => {
         const player = { id: `directory-player-${players.length + 1}`, name: name.trim(), archived: false };
         players.push(player);
         return { valid: true, errors: [], value: player };
@@ -46,7 +46,7 @@ describe('NewGameScreen', () => {
     await user.type(screen.getByLabelText('Game name'), 'Thursday Table');
     for (const [index, name] of ['Ahmed', 'Mona', 'Rami', 'Dina'].entries()) {
       await user.type(screen.getByLabelText(`Player ${index + 1}`), name);
-      await user.click(screen.getByRole('option', { name: `Create player “${name}”` }));
+      await user.click(await screen.findByRole('option', { name: `Create player “${name}”` }));
     }
     await user.click(screen.getByLabelText('Federation 2026'));
     await user.click(screen.getByRole('button', { name: 'Create game' }));
