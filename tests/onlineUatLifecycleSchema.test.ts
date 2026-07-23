@@ -13,12 +13,19 @@ test('games persist the approved draft/finalized lifecycle and actor metadata', 
   assert.doesNotMatch(schema, /status in \([^)]*'completed'/i);
 });
 
-test('transactional RPC migration defines game, round, lifecycle, override, and lock operations', () => {
+test('transactional RPC migration defines game, snapshot, round, lifecycle, override, and lock operations', () => {
   for (const functionName of [
-    'create_game', 'save_game_round', 'override_round_scores', 'finalize_game', 'reopen_game',
+    'create_game', 'get_game_snapshot', 'save_game_round', 'override_round_scores', 'finalize_game', 'reopen_game',
     'acquire_game_lock', 'heartbeat_game_lock', 'release_game_lock', 'force_release_game_lock',
   ]) {
     assert.match(rpc, new RegExp(`function public\\.${functionName}\\b`, 'i'), `Missing RPC ${functionName}`);
+  }
+});
+
+test('the game snapshot returns game, seats, rounds, bids, actuals, scores, and override history', () => {
+  assert.match(rpc, /function public\.get_game_snapshot[\s\S]*jsonb_build_object\([\s\S]*'game'/i);
+  for (const key of ['players', 'rounds', 'bids', 'actuals', 'scores', 'overrides']) {
+    assert.match(rpc, new RegExp(`'${key}'`, 'i'), `Snapshot is missing ${key}`);
   }
 });
 
