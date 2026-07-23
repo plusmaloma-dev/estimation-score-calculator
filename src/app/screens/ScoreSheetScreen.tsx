@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import {
   FEDERATION_2026,
   houseRulesV1ScoringProfile,
@@ -21,6 +21,8 @@ import {
 } from '../scoreSheet/currentRoundReducer.js';
 import { buildScoreSheetViewModel } from '../scoreSheet/scoreSheetViewModel.js';
 
+type Awaitable<T> = T | Promise<T>;
+
 const federationProfile: ScoringProfile = {
   id: 'federation-2026',
   name: 'Federation 2026',
@@ -30,11 +32,18 @@ const federationProfile: ScoringProfile = {
 };
 
 export interface ScoreSheetShellPort {
-  openSession(scoreSheetId: string): UiOpenSessionResult;
-  saveRound?(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
-  overrideRoundScores?(scoreSheetId: string, input: UiOverrideRoundScoresInput): UiOverrideRoundScoresResult;
-  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
-  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
+  openSession(scoreSheetId: string): Awaitable<UiOpenSessionResult>;
+  saveRound?(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): Awaitable<UiSaveRoundResult>;
+  overrideRoundScores?(
+    scoreSheetId: string,
+    input: UiOverrideRoundScoresInput,
+  ): Awaitable<UiOverrideRoundScoresResult>;
+  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+}
+
+function isPromiseLike<T>(value: Awaitable<T>): value is Promise<T> {
+  return typeof (value as Promise<T>)?.then === 'function';
 }
 
 export function ScoreSheetScreen({
@@ -48,11 +57,50 @@ export function ScoreSheetScreen({
   readonly onHistory?: () => void;
   readonly actorId?: string;
 }) {
-  const [, refresh] = useReducer((value: number) => value + 1, 0);
+  const [refreshVersion, refresh] = useReducer((value: number) => value + 1, 0);
   const [saveErrors, setSaveErrors] = useState<readonly string[]>([]);
   const [editingRoundNumber, setEditingRoundNumber] = useState<number | undefined>();
   const [lifecycleDialog, setLifecycleDialog] = useState<GameLifecycleDialogMode | undefined>();
-  const opened = shell.openSession(scoreSheetId);
+  const [asyncOpened, setAsyncOpened] = useState<UiOpenSessionResult | undefined>();
+  const openedRequest = useMemo(
+    () => shell.openSession(scoreSheetId),
+    [refreshVersion, scoreSheetId, shell],
+  );
+
+  useEffect(() => {
+    let active = true;
+    if (!isPromiseLike(openedRequest)) {
+      setAsyncOpened(undefined);
+      return () => {
+        active = false;
+      };
+    }
+
+    setAsyncOpened(undefined);
+    openedRequest
+      .then((result) => {
+        if (active) setAsyncOpened(result);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setAsyncOpened({
+          valid: false,
+          errors: [reason instanceof Error ? reason.message : 'Game could not be loaded.'],
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [openedRequest]);
+
+  const opened = isPromiseLike(openedRequest) ? asyncOpened : openedRequest;
+  if (opened === undefined) {
+    return (
+      <section className="screen-stack" aria-live="polite">
+        <h2>Loading game…</h2>
+      </section>
+    );
+  }
   if (!opened.valid || opened.scoreSheet === undefined) {
     return (
       <section className="screen-stack">
@@ -78,7 +126,7 @@ export function ScoreSheetScreen({
 
   const saveCurrentRound = isCompleted || shell.saveRound === undefined
     ? undefined
-    : (draft: CurrentRoundDraft) => {
+    : async (draft: CurrentRoundDraft) => {
       const bidOwnerPlayerId = draft.bidding.bidOwnerPlayerId;
       if (!draft.bidding.confirmed || bidOwnerPlayerId === undefined || draft.trumpSuit === undefined) {
         setSaveErrors(['The accepted estimates must have a confirmed bid owner and selected trump.']);
@@ -110,55 +158,70 @@ export function ScoreSheetScreen({
         })),
       };
 
-      const result = shell.saveRound?.(scoreSheetId, input);
-      if (result === undefined || !result.valid) {
-        setSaveErrors(result?.errors ?? ['Round could not be saved.']);
-        return;
+      try {
+        const result = await Promise.resolve(shell.saveRound?.(scoreSheetId, input));
+        if (result === undefined || !result.valid) {
+          setSaveErrors(result?.errors ?? ['Round could not be saved.']);
+          return;
+        }
+        setSaveErrors([]);
+        if (currentRoundNumber === 18) setLifecycleDialog('round-18');
+        refresh();
+      } catch (reason: unknown) {
+        setSaveErrors([reason instanceof Error ? reason.message : 'Round could not be saved.']);
       }
-
-      setSaveErrors([]);
-      if (currentRoundNumber === 18) setLifecycleDialog('round-18');
-      refresh();
     };
 
   const submitScoreOverrides = isCompleted || editingRound === undefined || shell.overrideRoundScores === undefined
     ? undefined
-    : (overridesByPlayerId: Readonly<Record<string, number>>, reason: string) => {
-      const result = shell.overrideRoundScores?.(scoreSheetId, {
-        roundNumber: editingRound.roundNumber,
-        overridesByPlayerId,
-        reason,
-      });
-      if (result === undefined || !result.valid) {
-        setSaveErrors(result?.errors ?? ['Score overrides could not be saved.']);
-        return;
+    : async (overridesByPlayerId: Readonly<Record<string, number>>, reason: string) => {
+      try {
+        const result = await Promise.resolve(shell.overrideRoundScores?.(scoreSheetId, {
+          roundNumber: editingRound.roundNumber,
+          overridesByPlayerId,
+          reason,
+          actorId,
+        }));
+        if (result === undefined || !result.valid) {
+          setSaveErrors(result?.errors ?? ['Score overrides could not be saved.']);
+          return;
+        }
+        setSaveErrors([]);
+        setEditingRoundNumber(undefined);
+        refresh();
+      } catch (failure: unknown) {
+        setSaveErrors([failure instanceof Error ? failure.message : 'Score overrides could not be saved.']);
       }
-
-      setSaveErrors([]);
-      setEditingRoundNumber(undefined);
-      refresh();
     };
 
-  function confirmFinish() {
-    const result = shell.finalizeGame?.(scoreSheetId, actorId);
-    if (result === undefined || !result.valid) {
-      setSaveErrors(result?.errors ?? ['Game could not be completed.']);
-      return;
+  async function confirmFinish() {
+    try {
+      const result = await Promise.resolve(shell.finalizeGame?.(scoreSheetId, actorId));
+      if (result === undefined || !result.valid) {
+        setSaveErrors(result?.errors ?? ['Game could not be completed.']);
+        return;
+      }
+      setSaveErrors([]);
+      setLifecycleDialog(undefined);
+      refresh();
+    } catch (reason: unknown) {
+      setSaveErrors([reason instanceof Error ? reason.message : 'Game could not be completed.']);
     }
-    setSaveErrors([]);
-    setLifecycleDialog(undefined);
-    refresh();
   }
 
-  function confirmReopen() {
-    const result = shell.reopenGame?.(scoreSheetId, actorId);
-    if (result === undefined || !result.valid) {
-      setSaveErrors(result?.errors ?? ['Game could not be reopened.']);
-      return;
+  async function confirmReopen() {
+    try {
+      const result = await Promise.resolve(shell.reopenGame?.(scoreSheetId, actorId));
+      if (result === undefined || !result.valid) {
+        setSaveErrors(result?.errors ?? ['Game could not be reopened.']);
+        return;
+      }
+      setSaveErrors([]);
+      setLifecycleDialog(undefined);
+      refresh();
+    } catch (reason: unknown) {
+      setSaveErrors([reason instanceof Error ? reason.message : 'Game could not be reopened.']);
     }
-    setSaveErrors([]);
-    setLifecycleDialog(undefined);
-    refresh();
   }
 
   return (
