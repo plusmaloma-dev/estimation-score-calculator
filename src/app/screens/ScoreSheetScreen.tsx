@@ -37,12 +37,10 @@ export function ScoreSheetScreen({
   scoreSheetId,
   shell,
   onHistory,
-  onNewRound,
 }: {
   readonly scoreSheetId: string;
   readonly shell: ScoreSheetShellPort;
   readonly onHistory?: () => void;
-  readonly onNewRound?: () => void;
 }) {
   const [, refresh] = useReducer((value: number) => value + 1, 0);
   const [saveErrors, setSaveErrors] = useState<readonly string[]>([]);
@@ -149,9 +147,6 @@ export function ScoreSheetScreen({
           </div>
           <button className="secondary-button game-action-button" type="button" onClick={onHistory}>
             <span aria-hidden="true">◴</span> History
-          </button>
-          <button className="primary-button game-action-button" type="button" onClick={onNewRound}>
-            <span aria-hidden="true">＋</span> New Round
           </button>
         </div>
       </header>
