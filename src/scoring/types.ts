@@ -129,10 +129,10 @@ export interface RoundScoreResult {
 }
 
 export interface AllLoserCarryMetadata {
-  readonly isAllLoserRound: boolean;
-  readonly consecutiveAllLoserCountBeforeRound: number;
-  readonly carriedAllLoserMultiplier: number;
-  readonly carryConsumed: boolean;
+  readonly isAllLoserRound?: boolean;
+  readonly consecutiveAllLoserCountBeforeRound?: number;
+  readonly carriedAllLoserMultiplier?: number;
+  readonly carryConsumed?: boolean;
 }
 
 export interface ScoringStrategy {
