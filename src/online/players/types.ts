@@ -11,8 +11,8 @@ export interface PlayerDirectoryResult<T> {
 }
 
 export interface PlayerDirectoryPort {
-  listActivePlayers(query?: string): readonly DirectoryPlayer[];
-  createPlayer(name: string): PlayerDirectoryResult<DirectoryPlayer>;
+  listActivePlayers(query?: string): Promise<readonly DirectoryPlayer[]>;
+  createPlayer(name: string): Promise<PlayerDirectoryResult<DirectoryPlayer>>;
 }
 
 export function normalizePlayerName(name: string): string {
