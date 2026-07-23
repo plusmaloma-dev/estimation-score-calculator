@@ -4,6 +4,8 @@ import type {
   UiCreateScoreSheetResult,
   UiGameLifecycleResult,
   UiOpenSessionResult,
+  UiOverrideRoundScoresInput,
+  UiOverrideRoundScoresResult,
   UiRoundEntryInput,
   UiSaveRoundResult,
   UiSessionHistoryItem,
@@ -26,11 +28,15 @@ export interface AppSessionHistoryResult {
 
 export interface BrowserShellPort {
   getSessionHistory(): Awaitable<AppSessionHistoryResult>;
-  createScoreSheet(input: UiCreateScoreSheetInput): UiCreateScoreSheetResult;
-  openSession(scoreSheetId: string): UiOpenSessionResult;
-  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): UiSaveRoundResult;
-  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
-  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): UiGameLifecycleResult;
+  createScoreSheet(input: UiCreateScoreSheetInput): Awaitable<UiCreateScoreSheetResult>;
+  openSession(scoreSheetId: string): Awaitable<UiOpenSessionResult>;
+  saveRound(scoreSheetId: string, input: UiRoundEntryInput, nowIso?: string): Awaitable<UiSaveRoundResult>;
+  overrideRoundScores?(
+    scoreSheetId: string,
+    input: UiOverrideRoundScoresInput,
+  ): Awaitable<UiOverrideRoundScoresResult>;
+  finalizeGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
+  reopenGame?(scoreSheetId: string, actorId: string, nowIso?: string): Awaitable<UiGameLifecycleResult>;
 }
 
 export interface AuthPort {
@@ -39,10 +45,14 @@ export interface AuthPort {
   signOut(): Promise<AuthResult<void>>;
 }
 
-export interface AppServices {
+export interface SessionApplicationServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
+}
+
+export interface AppServices extends SessionApplicationServices {
   readonly auth?: AuthPort;
+  readonly onlineSessionFactory?: (session: AuthSessionState) => SessionApplicationServices;
 }
 
 interface AppContextValue extends AppState {
