@@ -1,5 +1,10 @@
 import type { BidValidationMode, EstimationBid, RoundBidValidationResult } from '../domain/bid.js';
-import type { PlayerRoundActualResult, RoundScoreResult, ScoringProfile } from '../scoring/types.js';
+import type {
+  AllLoserCarryMetadata,
+  PlayerRoundActualResult,
+  RoundScoreResult,
+  ScoringProfile,
+} from '../scoring/types.js';
 import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
 import { FEDERATION_2026, HOUSE_RULES_V1, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
 import { houseRulesV1ScoringProfile } from '../scoring/houseRulesV1Profile.js';
@@ -21,7 +26,7 @@ export interface MvpRoundInput {
   readonly bidOwnerPlayerId?: string;
 }
 
-export interface MvpRoundResult {
+export interface MvpRoundResult extends AllLoserCarryMetadata {
   readonly roundNumber: number;
   readonly valid: boolean;
   readonly errors: readonly string[];
@@ -42,6 +47,13 @@ export interface MvpGameResult {
   readonly rounds: readonly MvpRoundResult[];
   readonly leaderboard: readonly LeaderboardEntry[];
 }
+
+const defaultCarryMetadata: AllLoserCarryMetadata = {
+  isAllLoserRound: false,
+  consecutiveAllLoserCountBeforeRound: 0,
+  carriedAllLoserMultiplier: 1,
+  carryConsumed: false,
+};
 
 export class EstimationMvpService {
   constructor(
@@ -75,6 +87,7 @@ export class EstimationMvpService {
         valid: false,
         errors: bidValidation.errors,
         bidValidation,
+        ...defaultCarryMetadata,
       };
     }
 
@@ -104,6 +117,7 @@ export class EstimationMvpService {
       errors: scoreResult.errors,
       bidValidation,
       scoreResult,
+      ...defaultCarryMetadata,
     };
   }
 
