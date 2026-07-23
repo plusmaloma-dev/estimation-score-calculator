@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BrowserUiShellService,
+  LifecycleBrowserUiShellService,
   InMemoryScoreSheetRepository,
   type ScoringProfile,
   type UiRoundEntryInput,
@@ -57,7 +57,7 @@ function round(roundNumber: number): UiRoundEntryInput {
 }
 
 function createGameWithRounds(roundCount: number) {
-  const shell = new BrowserUiShellService(new InMemoryScoreSheetRepository());
+  const shell = new LifecycleBrowserUiShellService(new InMemoryScoreSheetRepository());
   const created = shell.createScoreSheet({
     name: 'Lifecycle Game',
     players,
