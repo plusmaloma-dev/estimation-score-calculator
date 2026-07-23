@@ -55,4 +55,34 @@ describe('App', () => {
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible();
   });
+
+  it('switches to Supabase-backed services after the authenticated session is resolved', async () => {
+    const base = createServices({
+      getSession: vi.fn(async () => ({ valid: true, errors: [], value: session })),
+      signIn: vi.fn(),
+      signOut: vi.fn(async () => ({ valid: true, errors: [], value: undefined })),
+    });
+    const onlineServices: Pick<AppServices, 'shell' | 'playerDirectory'> = {
+      shell: {
+        getSessionHistory: async () => ({
+          sessions: [{
+            id: 'online-game-1', name: 'Online UAT Game', status: 'draft', players: [], roundCount: 0,
+            createdAtIso: '2026-07-23T10:00:00.000Z', createdAtLabel: 'Created 23 Jul 2026, 1:00 PM',
+            updatedAtIso: '2026-07-23T10:00:00.000Z', updatedAtLabel: '23 Jul 2026',
+          }],
+        }),
+        createScoreSheet: vi.fn(), openSession: vi.fn(), saveRound: vi.fn(),
+      },
+      playerDirectory: {
+        listActivePlayers: async () => [],
+        createPlayer: async () => ({ valid: false, errors: ['not used'] }),
+      },
+    };
+    const onlineSessionFactory = vi.fn(() => onlineServices);
+
+    render(<App services={{ ...base, onlineSessionFactory }} />);
+
+    expect(await screen.findByText('Online UAT Game')).toBeVisible();
+    expect(onlineSessionFactory).toHaveBeenCalledWith(session);
+  });
 });
