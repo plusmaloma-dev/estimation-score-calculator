@@ -33,6 +33,8 @@ export * from './gameplay/bot/HandStrengthEvaluator.js';
 export * from './gameplay/bot/StandardBidPolicy.js';
 export * from './gameplay/bot/StandardBotPolicy.js';
 export * from './gameplay/bot/BotSimulationService.js';
+export * from './gameplay/table/types.js';
+export * from './gameplay/table/GameplayTableEngine.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
