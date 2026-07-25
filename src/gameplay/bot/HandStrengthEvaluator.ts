@@ -73,9 +73,12 @@ export class HandStrengthEvaluator {
   }
 
   private cardsBySuit(hand: readonly Card[]): Record<CardSuit, readonly Card[]> {
-    return Object.fromEntries(
-      CARD_SUITS.map((suit) => [suit, hand.filter((card) => card.suit === suit)]),
-    ) as Record<CardSuit, readonly Card[]>;
+    return {
+      spades: hand.filter((card) => card.suit === 'spades'),
+      hearts: hand.filter((card) => card.suit === 'hearts'),
+      diamonds: hand.filter((card) => card.suit === 'diamonds'),
+      clubs: hand.filter((card) => card.suit === 'clubs'),
+    };
   }
 
   private noTrumpStopperValue(
