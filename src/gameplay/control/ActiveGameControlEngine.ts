@@ -1,3 +1,4 @@
+import type { SeatIndex } from '../types.js';
 import type { GameplayTableState } from '../table/types.js';
 import type {
   ActiveControlEvent,
@@ -5,6 +6,7 @@ import type {
   ActiveGameControlState,
   ActiveSeatControl,
   ActiveTurnClock,
+  StartTurnInput,
 } from './types.js';
 
 export class ActiveGameControlEngine {
@@ -171,6 +173,231 @@ export class ActiveGameControlEngine {
     );
   }
 
+  disconnect(
+    state: ActiveGameControlState,
+    userId: string,
+    occurredAt: string,
+  ): ActiveControlTransition {
+    if (state.lifecycle === 'terminated') {
+      return this.rejected(state, 'Terminated games are read-only.');
+    }
+    const seat = this.humanSeat(state, userId);
+    if (seat === undefined) {
+      return this.rejected(state, `Human user ${userId} is not seated.`);
+    }
+    if (seat.connection === 'disconnected') {
+      return this.rejected(state, `User ${userId} is already disconnected.`);
+    }
+
+    const now = this.timestamp(occurredAt, 'Disconnect time');
+    const {
+      connectedAt: _connectedAt,
+      disconnectedAt: _disconnectedAt,
+      graceDeadlineAt: _graceDeadlineAt,
+      graceRemainingMs: _graceRemainingMs,
+      ...rest
+    } = seat;
+    const graceMs = state.disconnectGraceSeconds * 1_000;
+    const disconnectedSeat: ActiveSeatControl = {
+      ...rest,
+      connection: 'disconnected',
+      disconnectedAt: occurredAt,
+      reclaimPending: false,
+      ...(seat.controlOwner === 'human'
+        ? state.lifecycle === 'paused'
+          ? { graceRemainingMs: graceMs }
+          : { graceDeadlineAt: new Date(now + graceMs).toISOString() }
+        : {}),
+    };
+    let seats = this.replaceSeat(state.seats, disconnectedSeat);
+    const events: ActiveControlEvent[] = [
+      { type: 'seat.disconnected', occurredAt, userId, seat: seat.seat },
+    ];
+    let hostUserId = state.hostUserId;
+
+    if (state.hostUserId === userId) {
+      const nextHost = seats
+        .filter((candidate) =>
+          candidate.seatKind === 'human'
+          && candidate.connection === 'connected'
+          && candidate.humanUserId !== undefined)
+        .sort((left, right) => this.compareConnectedHumans(left, right))[0];
+      if (nextHost?.humanUserId !== undefined) {
+        hostUserId = nextHost.humanUserId;
+        events.push({
+          type: 'host.transferred',
+          occurredAt,
+          userId: nextHost.humanUserId,
+          seat: nextHost.seat,
+          details: { previousHostUserId: userId, hostUserId: nextHost.humanUserId },
+        });
+      }
+    }
+
+    return this.accepted({ ...state, hostUserId, seats }, events);
+  }
+
+  reconnect(
+    state: ActiveGameControlState,
+    userId: string,
+    occurredAt: string,
+  ): ActiveControlTransition {
+    if (state.lifecycle === 'terminated') {
+      return this.rejected(state, 'Terminated games are read-only.');
+    }
+    const seat = this.humanSeat(state, userId);
+    if (seat === undefined) {
+      return this.rejected(state, `Human user ${userId} is not seated.`);
+    }
+    if (seat.connection === 'connected') {
+      return this.rejected(state, `User ${userId} is already connected.`);
+    }
+    this.timestamp(occurredAt, 'Reconnect time');
+
+    const {
+      connectedAt: _connectedAt,
+      disconnectedAt: _disconnectedAt,
+      graceDeadlineAt: _graceDeadlineAt,
+      graceRemainingMs: _graceRemainingMs,
+      ...rest
+    } = seat;
+    const reconnectedSeat: ActiveSeatControl = {
+      ...rest,
+      connection: 'connected',
+      connectedAt: occurredAt,
+      reclaimPending: seat.controlOwner === 'temporary-bot',
+    };
+    const seats = this.replaceSeat(state.seats, reconnectedSeat);
+
+    return this.accepted(
+      { ...state, seats },
+      [{ type: 'seat.reconnected', occurredAt, userId, seat: seat.seat }],
+    );
+  }
+
+  evaluateGrace(
+    state: ActiveGameControlState,
+    occurredAt: string,
+  ): ActiveControlTransition {
+    if (state.lifecycle === 'terminated') {
+      return this.rejected(state, 'Terminated games are read-only.');
+    }
+    if (state.lifecycle === 'paused') return this.accepted(state, []);
+    const now = this.timestamp(occurredAt, 'Grace evaluation time');
+    const events: ActiveControlEvent[] = [];
+    const mapped = state.seats.map((seat): ActiveSeatControl => {
+      if (
+        seat.seatKind !== 'human'
+        || seat.connection !== 'disconnected'
+        || seat.controlOwner !== 'human'
+        || seat.graceDeadlineAt === undefined
+        || this.timestamp(seat.graceDeadlineAt, 'Disconnect grace deadline') > now
+      ) return seat;
+
+      const {
+        graceDeadlineAt: _graceDeadlineAt,
+        graceRemainingMs: _graceRemainingMs,
+        ...rest
+      } = seat;
+      events.push({
+        type: 'seat.takeover',
+        occurredAt,
+        userId: seat.humanUserId,
+        seat: seat.seat,
+      });
+      return {
+        ...rest,
+        controlOwner: 'temporary-bot',
+        reclaimPending: false,
+      };
+    });
+    if (events.length === 0) return this.accepted(state, []);
+    return this.accepted({ ...state, seats: this.fourSeats(mapped) }, events);
+  }
+
+  beginBotAction(
+    state: ActiveGameControlState,
+    seat: SeatIndex,
+    turnId: string,
+    occurredAt: string,
+  ): ActiveControlTransition {
+    if (state.lifecycle !== 'active') {
+      return this.rejected(state, 'Bot actions can begin only while the game is active.');
+    }
+    this.timestamp(occurredAt, 'Bot action start time');
+    if (state.turn === undefined || state.turn.turnId !== turnId || state.turn.seat !== seat) {
+      return this.rejected(state, 'Bot action does not match the authoritative turn.');
+    }
+    if (state.turn.status === 'bot-processing') {
+      return this.rejected(state, 'The bot action is already processing.');
+    }
+    const seatControl = state.seats[seat];
+    if (seatControl.controlOwner === 'human' && state.turn.status !== 'assistant-pending') {
+      return this.rejected(state, 'The active seat is currently controlled by its human.');
+    }
+
+    return this.accepted(
+      { ...state, turn: { ...state.turn, status: 'bot-processing' } },
+      [{ type: 'turn.bot-processing', occurredAt, seat }],
+    );
+  }
+
+  completeActionBoundary(
+    state: ActiveGameControlState,
+    nextTurn: StartTurnInput | undefined,
+    occurredAt: string,
+  ): ActiveControlTransition {
+    if (state.lifecycle !== 'active') {
+      return this.rejected(state, 'Action boundaries can advance only while the game is active.');
+    }
+    this.timestamp(occurredAt, 'Action boundary time');
+    const events: ActiveControlEvent[] = [];
+    if (state.turn !== undefined) {
+      events.push({
+        type: 'turn.completed',
+        occurredAt,
+        seat: state.turn.seat,
+        details: { turnId: state.turn.turnId },
+      });
+    }
+
+    let seats = state.seats;
+    if (nextTurn !== undefined) {
+      const nextSeat = seats[nextTurn.seat];
+      if (
+        nextSeat.seatKind === 'human'
+        && nextSeat.connection === 'connected'
+        && nextSeat.controlOwner === 'temporary-bot'
+        && nextSeat.reclaimPending
+      ) {
+        seats = this.replaceSeat(seats, {
+          ...nextSeat,
+          controlOwner: 'human',
+          reclaimPending: false,
+        });
+        events.push({
+          type: 'seat.reclaimed',
+          occurredAt,
+          userId: nextSeat.humanUserId,
+          seat: nextSeat.seat,
+        });
+      }
+    }
+
+    const { turn: _turn, ...withoutTurn } = state;
+    if (nextTurn === undefined) {
+      return this.accepted({ ...withoutTurn, seats }, events);
+    }
+    const turn = this.createTurnClock(state, nextTurn);
+    events.push({
+      type: 'turn.started',
+      occurredAt: nextTurn.occurredAt,
+      seat: nextTurn.seat,
+      details: { turnId: nextTurn.turnId, actionKind: nextTurn.actionKind },
+    });
+    return this.accepted({ ...withoutTurn, seats, turn }, events);
+  }
+
   private hostLifecycleGuard(
     state: ActiveGameControlState,
     actorUserId: string,
@@ -190,6 +417,53 @@ export class ActiveGameControlEngine {
       );
     }
     return undefined;
+  }
+
+  private createTurnClock(
+    state: ActiveGameControlState,
+    input: StartTurnInput,
+  ): ActiveTurnClock {
+    if (!input.turnId.trim()) throw new Error('Turn ID is required.');
+    const started = this.timestamp(input.occurredAt, 'Turn start');
+    return {
+      turnId: input.turnId,
+      seat: input.seat,
+      actionKind: input.actionKind,
+      startedAt: input.occurredAt,
+      deadlineAt: new Date(started + state.turnTimerSeconds * 1_000).toISOString(),
+      status: 'running',
+    };
+  }
+
+  private humanSeat(
+    state: ActiveGameControlState,
+    userId: string,
+  ): ActiveSeatControl | undefined {
+    return state.seats.find(
+      (seat) => seat.seatKind === 'human' && seat.humanUserId === userId,
+    );
+  }
+
+  private compareConnectedHumans(
+    left: ActiveSeatControl,
+    right: ActiveSeatControl,
+  ): number {
+    const leftConnected = this.timestamp(left.connectedAt ?? left.joinedAt, 'Connected time');
+    const rightConnected = this.timestamp(right.connectedAt ?? right.joinedAt, 'Connected time');
+    if (leftConnected !== rightConnected) return leftConnected - rightConnected;
+    const leftJoined = this.timestamp(left.joinedAt, 'Join time');
+    const rightJoined = this.timestamp(right.joinedAt, 'Join time');
+    if (leftJoined !== rightJoined) return leftJoined - rightJoined;
+    return left.seat - right.seat;
+  }
+
+  private replaceSeat(
+    seats: ActiveGameControlState['seats'],
+    replacement: ActiveSeatControl,
+  ): ActiveGameControlState['seats'] {
+    return this.fourSeats(
+      seats.map((seat) => seat.seat === replacement.seat ? replacement : seat),
+    );
   }
 
   private freezeTurn(turn: ActiveTurnClock, now: number): ActiveTurnClock {
