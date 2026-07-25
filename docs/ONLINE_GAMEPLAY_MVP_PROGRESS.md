@@ -29,6 +29,7 @@
 - Deterministic Acquire, Control, Dump, Recovery, and Endgame card modes.
 - Normalized 0–13 trick probabilities and House Rules V1 bid expected utility.
 - Audited hard-deadline/error fallback for all bot decisions.
+- Public/private table clients use typed RPC adapters and allow-listed projections rather than direct row writes or object spreading.
 - Failed CI runs retain a downloadable `ci-output.log` artifact.
 
 ## Completed milestones
@@ -45,8 +46,14 @@
 | Bot Task 3 RED/GREEN — House Rules bid expected utility | Complete | #709 / #712 |
 | Bot Task 4 RED/GREEN — audited timeout/error fallback | Complete | #713 / #716 |
 | Bot Task 5 RED/GREEN — seeded four-bot full-round simulation | Complete | #717 / #720 |
+| Table Task 1 RED/GREEN — lifecycle, settings, open joining, host succession, bot filling | Complete | #735 / #738 |
+| Table Task 2 RED/GREEN — approval-required requests and host decisions | Complete | #739 / #741 |
+| Table Task 3 RED/GREEN — versioned/idempotent table commands | Complete | #742 / #745 |
+| Table Task 4 RED/GREEN — Supabase schema, RLS, RPCs, safe snapshots | Complete | #746 / #750 |
+| Table Task 5 RED/GREEN — typed online gameplay table service | Complete | #751 / #753 |
+| Table Task 6 RED/GREEN — allow-listed lobby/member/host projections | Complete | #754 / #755 |
 
-## Delivered gameplay and bot APIs
+## Delivered gameplay, bot, and table APIs
 
 - `FairDealService.deal(input)` / `verify(record)`
 - `LegalCardPlayService.legalCards(...)` / `validate(...)`
@@ -60,6 +67,15 @@
 - `StandardBidPolicy.decide(...)`
 - `StandardBotPolicy.decideBid(...)` / `decideCard(...)`
 - `BotSimulationService.simulateRound(...)`
+- `GameplayTableEngine.create(...)` / `updateSettings(...)` / `joinOpenTable(...)`
+- `GameplayTableEngine.requestJoin(...)` / `respondToJoinRequest(...)`
+- `GameplayTableEngine.leaveLobby(...)` / `start(...)`
+- `GameplayTableCommandProcessor.process(...)`
+- `OnlineGameplayTableService.createTable(...)` / `listLobby(...)` / `openTable(...)`
+- `OnlineGameplayTableService.updateSettings(...)` / `joinTable(...)` / `requestJoin(...)`
+- `OnlineGameplayTableService.respondJoinRequest(...)` / `leaveTable(...)` / `startTable(...)`
+- `GameplayTableSnapshotProjector.projectLobbyCard(...)`
+- `GameplayTableSnapshotProjector.projectMemberSnapshot(...)`
 
 ## Current progress
 
@@ -68,21 +84,28 @@
 | Research and approved design | 100% |
 | Gameplay engine core | 100% |
 | Standard bot policy and simulation | 100% |
-| Online table/lobby implementation plan | 100% |
-| Online table/lobby domain | 0% |
-| Supabase persistence, RLS, RPCs, and Realtime | 0% |
-| React gameplay screens | 0% |
-| Timers, disconnect takeover, and reclaim | 0% |
+| Online table/lobby domain and commands | 100% |
+| Supabase gameplay schema, RLS, and RPC definitions | 100% |
+| Typed table service and privacy-safe projections | 100% |
+| Live Supabase migration/RLS/RPC integration verification | 0% |
+| Supabase Realtime subscriptions and reconnect synchronization | 0% |
+| Active-game timers, disconnect takeover, and reclaim | 0% |
+| React gameplay lobby and table screens | 0% |
 | End-to-end gameplay UAT | 0% |
-| **Overall gameplay MVP implementation** | **45%** |
+| **Overall gameplay MVP implementation** | **60%** |
+
+## Verification note
+
+The gameplay-table SQL migrations are statically validated and included in deterministic deployment ordering. They have not yet been applied to a local or hosted Supabase PostgreSQL instance. PostgreSQL compilation, transaction behavior, RLS behavior, and multi-session integration remain release gates.
 
 ## Active next milestone
 
-Implementation follows `docs/superpowers/plans/2026-07-25-online-table-lobby.md`:
+Active-game control and continuity:
 
-1. Immutable public/private table lifecycle and settings.
-2. Open join and approval-required requests.
-3. Host succession and Start filling vacant seats with permanent bots.
-4. Versioned table commands.
-5. Supabase schema, RLS, transactional RPCs, and typed service adapter.
-6. Realtime-safe lobby/member/host projections.
+1. Pause, resume, and confirmed termination.
+2. Active-game host succession when the host disconnects.
+3. Turn deadlines and one-action bot assistance for connected-player timeouts.
+4. Disconnect grace countdown and temporary bot takeover.
+5. Safe human reclaim at the next uncommitted action boundary.
+6. Versioned control commands, audit events, and deterministic timer evaluation.
+7. Supabase persistence/RPC extensions and Realtime reconnect synchronization.
