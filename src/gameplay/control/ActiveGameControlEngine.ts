@@ -82,8 +82,9 @@ export class ActiveGameControlEngine {
     const turn = state.turn === undefined
       ? undefined
       : this.freezeTurn(state.turn, now);
-    const seats = state.seats.map((seat) => this.freezeSeatGrace(seat, now))
-      as ActiveGameControlState['seats'];
+    const seats = state.seats.map(
+      (seat) => this.freezeSeatGrace(seat, now),
+    ) as ActiveGameControlState['seats'];
 
     return this.accepted(
       {
@@ -114,8 +115,9 @@ export class ActiveGameControlEngine {
     const turn = state.turn === undefined
       ? undefined
       : this.resumeTurn(state.turn, now);
-    const seats = state.seats.map((seat) => this.resumeSeatGrace(seat, now))
-      as ActiveGameControlState['seats'];
+    const seats = state.seats.map(
+      (seat) => this.resumeSeatGrace(seat, now),
+    ) as ActiveGameControlState['seats'];
     const { pausedAt: _pausedAt, ...withoutPause } = state;
 
     return this.accepted(
@@ -146,8 +148,9 @@ export class ActiveGameControlEngine {
     }
     this.timestamp(occurredAt, 'Termination time');
 
-    const seats = state.seats.map((seat) => this.stopSeatGrace(seat))
-      as ActiveGameControlState['seats'];
+    const seats = state.seats.map(
+      (seat) => this.stopSeatGrace(seat),
+    ) as ActiveGameControlState['seats'];
     const {
       turn: _turn,
       pausedAt: _pausedAt,
