@@ -39,6 +39,8 @@ export * from './gameplay/table/GameplayTableCommandProcessor.js';
 export * from './gameplay/control/types.js';
 export * from './gameplay/control/ActiveGameControlEngineWithTurns.js';
 export * from './gameplay/control/ActiveGameDeadlineService.js';
+export * from './gameplay/control/ActiveControlCommandProcessor.js';
+export * from './gameplay/control/ActiveControlReplayService.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
