@@ -30,6 +30,9 @@
 - Normalized 0–13 trick probabilities and House Rules V1 bid expected utility.
 - Audited hard-deadline/error fallback for all bot decisions.
 - Public/private table clients use typed RPC adapters and allow-listed projections rather than direct row writes or object spreading.
+- Active timers use supplied ISO timestamps; domain services never call `Date.now()`.
+- Pause/resume stores exact remaining durations rather than recomputing elapsed time heuristically.
+- Bot-action directives are deterministic invalidation/work instructions and never contain hidden cards or policy observations.
 - Failed CI runs retain a downloadable `ci-output.log` artifact.
 
 ## Completed milestones
@@ -52,8 +55,11 @@
 | Table Task 4 RED/GREEN — Supabase schema, RLS, RPCs, safe snapshots | Complete | #746 / #750 |
 | Table Task 5 RED/GREEN — typed online gameplay table service | Complete | #751 / #753 |
 | Table Task 6 RED/GREEN — allow-listed lobby/member/host projections | Complete | #754 / #755 |
+| Control Task 1 RED/GREEN — lifecycle, timer freeze/resume, confirmed termination | Complete | #760 / #766 |
+| Control Task 2 RED/GREEN — disconnect, active host transfer, takeover, reclaim | Complete | #767 / #769 |
+| Control Task 3 RED/GREEN — deterministic turn deadlines and bot directives | Complete | #770 / #774 |
 
-## Delivered gameplay, bot, and table APIs
+## Delivered gameplay, bot, table, and control APIs
 
 - `FairDealService.deal(input)` / `verify(record)`
 - `LegalCardPlayService.legalCards(...)` / `validate(...)`
@@ -76,6 +82,11 @@
 - `OnlineGameplayTableService.respondJoinRequest(...)` / `leaveTable(...)` / `startTable(...)`
 - `GameplayTableSnapshotProjector.projectLobbyCard(...)`
 - `GameplayTableSnapshotProjector.projectMemberSnapshot(...)`
+- `ActiveGameControlEngine.createFromStartedTable(...)`
+- `ActiveGameControlEngine.pause(...)` / `resume(...)` / `terminate(...)`
+- `ActiveGameControlEngine.disconnect(...)` / `reconnect(...)` / `evaluateGrace(...)`
+- `ActiveGameControlEngine.startTurn(...)` / `beginBotAction(...)` / `completeActionBoundary(...)`
+- `ActiveGameDeadlineService.evaluate(...)`
 
 ## Current progress
 
@@ -87,12 +98,13 @@
 | Online table/lobby domain and commands | 100% |
 | Supabase gameplay schema, RLS, and RPC definitions | 100% |
 | Typed table service and privacy-safe projections | 100% |
+| Active-game lifecycle, connection continuity, and deadlines | 60% |
+| Active-control command/replay layer | 0% |
+| Active-control Supabase/Realtime integration | 0% |
 | Live Supabase migration/RLS/RPC integration verification | 0% |
-| Supabase Realtime subscriptions and reconnect synchronization | 0% |
-| Active-game timers, disconnect takeover, and reclaim | 0% |
 | React gameplay lobby and table screens | 0% |
 | End-to-end gameplay UAT | 0% |
-| **Overall gameplay MVP implementation** | **60%** |
+| **Overall gameplay MVP implementation** | **67%** |
 
 ## Verification note
 
@@ -100,12 +112,10 @@ The gameplay-table SQL migrations are statically validated and included in deter
 
 ## Active next milestone
 
-Active-game control and continuity:
+Continue `docs/superpowers/plans/2026-07-25-active-game-control-continuity.md`:
 
-1. Pause, resume, and confirmed termination.
-2. Active-game host succession when the host disconnects.
-3. Turn deadlines and one-action bot assistance for connected-player timeouts.
-4. Disconnect grace countdown and temporary bot takeover.
-5. Safe human reclaim at the next uncommitted action boundary.
-6. Versioned control commands, audit events, and deterministic timer evaluation.
-7. Supabase persistence/RPC extensions and Realtime reconnect synchronization.
+1. Versioned/idempotent active-control commands.
+2. Deterministic control replay and tamper detection.
+3. Supabase active-control persistence and RPC extensions.
+4. Typed online control service.
+5. Realtime authoritative snapshot reload and reconnect synchronization.
