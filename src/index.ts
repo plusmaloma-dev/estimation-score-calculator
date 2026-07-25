@@ -21,6 +21,8 @@ export * from './gameplay/types.js';
 export * from './gameplay/CanonicalDeck.js';
 export * from './gameplay/DeterministicRandomSource.js';
 export * from './gameplay/FairDealService.js';
+export * from './gameplay/LegalCardPlayService.js';
+export * from './gameplay/TrickResolutionService.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
