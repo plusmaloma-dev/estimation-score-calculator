@@ -2,8 +2,11 @@ import type { EstimationBid } from '../../domain/bid.js';
 import type { Card, ContractSuit } from '../../domain/card.js';
 import type {
   CompletedGameplayTrick,
+  GameplayCommandRecord,
   GameplayTrickEntry,
+  HouseRulesRoundState,
   SeatIndex,
+  SeatOrder,
 } from '../types.js';
 
 export const STANDARD_BOT_POLICY_VERSION = 'STANDARD_V1' as const;
@@ -94,4 +97,34 @@ export interface StandardBotCardResult {
 export interface StandardBotBidResult {
   readonly decision: BotBidDecision;
   readonly audit: BotDecisionAudit;
+}
+
+export interface BotSimulationInput {
+  readonly gameId: string;
+  readonly dealId: string;
+  readonly nonce: string;
+  readonly seedHex: string;
+  readonly firstSeat: SeatIndex;
+  readonly roundNumber: number;
+  readonly bidOrder: SeatOrder;
+  readonly playOrder: SeatOrder;
+  readonly bidOwnerSeat: SeatIndex;
+  readonly firstLeadSeat: SeatIndex;
+}
+
+export interface BotSimulationMetrics {
+  readonly exactMatchRate: number;
+  readonly meanAbsoluteEstimateError: number;
+  readonly averageScore: number;
+}
+
+export interface BotSimulationResult {
+  readonly finalState: HouseRulesRoundState;
+  readonly version: number;
+  readonly records: readonly GameplayCommandRecord[];
+  readonly decisionAudits: readonly BotDecisionAudit[];
+  readonly reasonCounts: Readonly<Record<string, number>>;
+  readonly metrics: BotSimulationMetrics;
+  readonly rejectedCommandCount: number;
+  readonly replayVerified: boolean;
 }
