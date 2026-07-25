@@ -103,10 +103,13 @@ LOBBY
   -> ROUND_SCORING
   -> NEXT_ROUND or COMPLETED
 
+NEXT_ROUND -> DEALING
 Any active state may become PAUSED.
 LOBBY may become CLOSED.
 Any active game may become TERMINATED.
 ```
+
+Dealer rotation, play direction, bidding order, and round progression follow the accepted House Rules V1 baseline. This design introduces no alternative dealing or turn-order rule.
 
 Every command includes an idempotency key and expected game version. A successful command increments the version. Duplicate commands return the original result. Stale or out-of-turn commands are rejected without partial mutation.
 
@@ -142,7 +145,7 @@ The server uses deterministic Fisher-Yates driven by a cryptographic random stre
 
 ### 6.4 Distribution
 
-Cards are distributed face down, one card at a time in configured seat order, cycling through all four seats until each seat has exactly thirteen cards. The dealing algorithm is identical for human and bot seats.
+Cards are distributed face down, one card at a time in the House Rules V1 seat direction, beginning with the seat required by the accepted dealer rule and cycling through all four seats until each seat has exactly thirteen cards. The dealing algorithm is identical for human and bot seats.
 
 ### 6.5 Privacy
 
@@ -162,9 +165,11 @@ The seed and nonce are revealed automatically after the game is **Completed** or
 
 The reveal is retained with the permanent game audit record.
 
-## 7. Real-time synchronization
+## 7. Real-time synchronization and command placement
 
-Supabase remains the persistence and authentication platform. Authoritative gameplay commands execute server-side through authenticated Edge Functions or transactional RPC boundaries; clients do not write game-state tables directly.
+Supabase remains the persistence and authentication platform. Every gameplay command enters an authenticated Supabase Edge Function. The Edge Function loads the authorized observation, applies the TypeScript gameplay/legal-action engine, invokes the Standard bot when required, and calls a narrow transactional PostgreSQL RPC to commit the accepted command, expected version, event records, and resulting snapshot atomically.
+
+Clients cannot write authoritative gameplay tables directly. PostgreSQL RPCs do not decide strategy; they enforce transaction integrity, idempotency, expected-version checks, and append-only event persistence.
 
 Committed public state changes are distributed through Supabase Realtime. Private hand state is fetched through seat-scoped, row-level-secured queries. Reconnect uses the latest authoritative snapshot plus events after the snapshot version.
 
@@ -218,14 +223,18 @@ The policy operates in one of these modes:
 
 V1 combines deterministic heuristics, card counting, known-void tracking, and shallow bounded search. It does not use an LLM or external paid inference API.
 
-### 8.4 Explainability and versioning
+### 8.4 Decision-time budget
+
+A Standard bot decision must complete within **2 seconds at the 95th percentile** and **5 seconds at the absolute maximum** in the UAT load profile. If the primary policy has not selected an action by 5 seconds, the server executes a deterministic fallback policy that chooses a legal action within an additional 250 milliseconds. The fallback prioritizes mandatory follow-suit, exact-target preservation, and then minimum expected damage.
+
+### 8.5 Explainability and versioning
 
 Every bot action records:
 
 - bot policy version;
 - legal actions considered;
 - selected action;
-- short reason code, such as `ACQUIRE_REQUIRED_TRICK`, `AVOID_OVERTRICK`, `FOLLOW_SUIT_ONLY_ACTION`, or `MINIMIZE_DAMAGE`;
+- short reason code, such as `ACQUIRE_REQUIRED_TRICK`, `AVOID_OVERTRICK`, `FOLLOW_SUIT_ONLY_ACTION`, `POLICY_TIMEOUT_FALLBACK`, or `MINIMIZE_DAMAGE`;
 - decision duration;
 - whether it acted as a permanent bot, disconnect substitute, or one-turn timeout assistant.
 
@@ -311,12 +320,14 @@ The persistence model must represent at least:
 
 - tables, visibility, join policy, settings, host, and lifecycle;
 - seats, human users, permanent bots, temporary bot control, and join timestamps;
-- deals, commitment, encrypted/secured private hands, revealed seed, and verification state;
+- deals, commitment, seat-scoped private-hand rows, revealed seed, and verification state;
 - rounds, bids, trump, Risk/WITH/Hold metadata, tricks, played cards, and trick winners;
 - game commands with idempotency key, actor, expected version, outcome, and timestamp;
 - bot decisions with policy version and reason code;
 - connection, timeout, takeover, reclaim, host-transfer, pause, resume, completion, and termination events;
 - score-engine input/output snapshots.
+
+Private-hand rows rely on Supabase encryption at rest plus strict seat-scoped row-level security. The application does not introduce custom reversible card encryption in the MVP.
 
 The action log is append-only. Derived snapshots may be rebuilt from the deal plus accepted events.
 
@@ -356,7 +367,7 @@ On ambiguous network failure, the client reloads the authoritative snapshot befo
 - Every seat receives exactly 13 cards.
 - The same seed and configuration reproduce the same deck and hands.
 - The commitment fails verification when seed, nonce, deck, or hands are altered.
-- Large simulations detect no meaningful seat, suit, or rank bias.
+- A deterministic statistical test corpus of at least **100,000 distinct seeds** keeps each card's frequency in each seat within **±2% of the expected 25% frequency**.
 
 ### 16.2 Gameplay
 
@@ -374,7 +385,7 @@ On ambiguous network failure, the client reloads the authoritative snapshot befo
 - The bot can acquire needed tricks and deliberately avoid overtricks after reaching its estimate.
 - Deterministic fixtures cover exact-target, unavoidable overtrick, Risk, WITH, Hold, high-contract, and all-loser cases.
 - Bot-versus-bot simulations complete without deadlock and produce replayable games.
-- Decision latency stays within a defined server budget and never exceeds the turn timer.
+- UAT measurements satisfy the 2-second p95 and 5-second hard decision-time limits; forced policy timeouts select a legal fallback within 250 milliseconds.
 
 ### 16.4 Online behavior
 
