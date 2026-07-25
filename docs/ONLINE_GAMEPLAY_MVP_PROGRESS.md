@@ -15,37 +15,21 @@
 - Connected-player timeout produces one bot action only.
 - Disconnected-player grace expiry produces temporary bot takeover.
 - Returning human reclaims at the next safe uncommitted action boundary.
-- Private and public tables.
-- Public tables support open join or host approval.
+- Private and public tables with open or host-approved public joining.
 - Secure, deterministic, verifiable thirteen-card dealing.
 - Exact-estimate bot objective.
 - Existing House Rules V1 scoring engine remains authoritative.
 
-## Implementation decisions
+## Core implementation decisions
 
-### Portable cryptography
-
-The production implementation uses Web Crypto HMAC/SHA-256, rejection sampling, and async fair-deal APIs. It contains no `Math.random()`, random sorting, modulo-biased sampling, Node-only crypto import, or `Buffer` dependency.
-
-### Explicit seat orders and immutable transitions
-
-The gameplay engine receives explicit bidding/play orders and never mutates supplied state. This preserves House Rules configuration flexibility and supports expected-version checks, replay, database transactions, and React projection.
-
-### Command idempotency
-
-Every command records its ID, expected/resulting versions, payload, accepted/rejected outcome, errors, and transition. Accepted actions increment once; rejected/stale actions do not. Same-ID retries return the original outcome; changed payload under the same ID is an integrity conflict.
-
-### Privacy-safe exact-target bot
-
-The Standard bot receives only its own hand, legal actions, and public round state. It uses Acquire, Control, Dump, Recovery, and Endgame modes, normalized 0–13 trick probabilities, and House Rules V1 expected utility. It never receives opponent hands, deck order, seed, or database access.
-
-### Bot limits and audit
-
-The orchestrator records policy version, source, reason, legal actions, selected action, duration, and fallback use. Policy errors or hard-deadline overruns receive deterministic legal fallback actions.
-
-### CI diagnostics
-
-Failed validation runs upload `ci-output.log`; successful runs skip the artifact.
+- Web Crypto HMAC/SHA-256 with rejection sampling; no `Math.random()`, random sorting, modulo bias, Node-only crypto, or `Buffer`.
+- Explicit bidding/play seat orders and immutable transitions.
+- Versioned, idempotent commands with recorded accepted/rejected outcomes.
+- Privacy-safe bot observations containing only own hand, legal actions, and public state.
+- Deterministic Acquire, Control, Dump, Recovery, and Endgame card modes.
+- Normalized 0–13 trick probabilities and House Rules V1 bid expected utility.
+- Audited hard-deadline/error fallback for all bot decisions.
+- Failed CI runs retain a downloadable `ci-output.log` artifact.
 
 ## Completed milestones
 
