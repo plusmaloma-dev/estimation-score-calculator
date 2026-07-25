@@ -135,3 +135,10 @@ export interface GameplayCommandProcessResult {
   readonly records: readonly GameplayCommandRecord[];
   readonly record?: GameplayCommandRecord;
 }
+
+export interface GameplayReplayResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly state: HouseRulesRoundState;
+  readonly version: number;
+}
