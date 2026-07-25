@@ -17,8 +17,8 @@ const players = [
   { seat: 3, playerId: 'p3' },
 ] as const;
 
-function fixture(): CreateHouseRulesRoundInput {
-  const deal = new FairDealService().deal({
+async function fixture(): Promise<CreateHouseRulesRoundInput> {
+  const deal = await new FairDealService().deal({
     gameId: 'game-round-engine',
     dealId: 'deal-round-engine',
     ruleSet: 'HOUSE_RULES_V1',
@@ -72,8 +72,8 @@ function completeValidBidding(
   return state;
 }
 
-test('round starts with the first seat in the explicit bidding order', () => {
-  const state = new HouseRulesRoundEngine().create(fixture());
+test('round starts with the first seat in the explicit bidding order', async () => {
+  const state = new HouseRulesRoundEngine().create(await fixture());
 
   assert.equal(state.phase, 'bidding');
   assert.equal(state.bidOrder[state.currentBidIndex], 2);
@@ -81,9 +81,9 @@ test('round starts with the first seat in the explicit bidding order', () => {
   assert.equal(state.currentTurnSeat, undefined);
 });
 
-test('out-of-turn estimate is rejected without changing state', () => {
+test('out-of-turn estimate is rejected without changing state', async () => {
   const engine = new HouseRulesRoundEngine();
-  const state = engine.create(fixture());
+  const state = engine.create(await fixture());
 
   const result = engine.submitBid(state, 1, bidFor('p1', 2));
 
@@ -92,9 +92,9 @@ test('out-of-turn estimate is rejected without changing state', () => {
   assert.ok(result.errors.includes('Seat 2 must submit the next estimate.'));
 });
 
-test('fourth estimate that makes total thirteen is rejected without committing it', () => {
+test('fourth estimate that makes total thirteen is rejected without committing it', async () => {
   const engine = new HouseRulesRoundEngine();
-  let state = engine.create(fixture());
+  let state = engine.create(await fixture());
   state = accepted(engine.submitBid(state, 2, ownerBid('p2', 5)));
   state = accepted(engine.submitBid(state, 3, bidFor('p3', 3)));
   state = accepted(engine.submitBid(state, 0, bidFor('p0', 2)));
@@ -107,18 +107,18 @@ test('fourth estimate that makes total thirteen is rejected without committing i
   assert.ok(result.errors.includes('Total estimates cannot equal 13. The round must be Over or Under.'));
 });
 
-test('valid fourth estimate moves the round to card play', () => {
+test('valid fourth estimate moves the round to card play', async () => {
   const engine = new HouseRulesRoundEngine();
-  const state = completeValidBidding(engine, engine.create(fixture()));
+  const state = completeValidBidding(engine, engine.create(await fixture()));
 
   assert.equal(state.phase, 'playing');
   assert.equal(state.currentTurnSeat, 0);
   assert.equal(state.bids.length, 4);
 });
 
-test('only the current play seat can act and accepted play does not mutate prior state', () => {
+test('only the current play seat can act and accepted play does not mutate prior state', async () => {
   const engine = new HouseRulesRoundEngine();
-  const playing = completeValidBidding(engine, engine.create(fixture()));
+  const playing = completeValidBidding(engine, engine.create(await fixture()));
   const originalFirstHand = playing.hands[0].cards;
 
   const wrongSeatResult = engine.playCard(
@@ -141,9 +141,9 @@ test('only the current play seat can act and accepted play does not mutate prior
   assert.equal(result.state.currentTrick.length, 1);
 });
 
-test('completed trick increments winner count and winner leads the next trick', () => {
+test('completed trick increments winner count and winner leads the next trick', async () => {
   const engine = new HouseRulesRoundEngine();
-  let state = completeValidBidding(engine, engine.create(fixture()));
+  let state = completeValidBidding(engine, engine.create(await fixture()));
 
   for (let index = 0; index < 4; index += 1) {
     const seat = state.currentTurnSeat!;
@@ -158,9 +158,9 @@ test('completed trick increments winner count and winner leads the next trick', 
   assert.equal(completed.entries.length, 4);
 });
 
-test('thirteen completed tricks hand actual results to House Rules scoring', () => {
+test('thirteen completed tricks hand actual results to House Rules scoring', async () => {
   const engine = new HouseRulesRoundEngine();
-  let state = completeValidBidding(engine, engine.create(fixture()));
+  let state = completeValidBidding(engine, engine.create(await fixture()));
   let actions = 0;
 
   while (state.phase !== 'scored') {
