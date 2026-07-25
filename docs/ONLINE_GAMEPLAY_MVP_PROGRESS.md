@@ -61,7 +61,7 @@ The orchestrator records policy version, action source, reason code, legal actio
 
 ### CI diagnostics
 
-Failed validation runs upload `ci-output.log` as a failure-only artifact. This was added because connector-rendered job logs can truncate before the actual compiler or test error. Successful runs skip the artifact.
+Failed validation runs upload `ci-output.log` as a failure-only artifact. Successful runs skip the artifact.
 
 ## Completed milestones
 
