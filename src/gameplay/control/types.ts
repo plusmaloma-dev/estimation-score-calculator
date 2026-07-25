@@ -10,6 +10,13 @@ export type SeatControlOwner = 'human' | 'temporary-bot' | 'permanent-bot';
 export type ActiveTurnActionKind = 'bid' | 'card';
 export type ActiveTurnStatus = 'running' | 'assistant-pending' | 'bot-processing';
 
+export interface StartTurnInput {
+  readonly turnId: string;
+  readonly seat: SeatIndex;
+  readonly actionKind: ActiveTurnActionKind;
+  readonly occurredAt: string;
+}
+
 export interface ActiveSeatControl {
   readonly seat: SeatIndex;
   readonly seatKind: 'human' | 'bot';
