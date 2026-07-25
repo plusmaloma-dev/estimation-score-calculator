@@ -29,7 +29,7 @@ export class ActiveGameControlEngine {
       throw new Error('Active control requires exactly one seat at each index from 0 through 3.');
     }
 
-    const seats = ordered.map((seat): ActiveSeatControl => {
+    const seats = this.fourSeats(ordered.map((seat): ActiveSeatControl => {
       if (seat.kind === 'human') {
         if (seat.userId === undefined) {
           throw new Error(`Human seat ${seat.seat} is missing its user ID.`);
@@ -58,7 +58,7 @@ export class ActiveGameControlEngine {
         controlOwner: 'permanent-bot',
         reclaimPending: false,
       };
-    }) as ActiveGameControlState['seats'];
+    }));
 
     return {
       tableId: table.tableId,
@@ -82,9 +82,9 @@ export class ActiveGameControlEngine {
     const turn = state.turn === undefined
       ? undefined
       : this.freezeTurn(state.turn, now);
-    const seats = state.seats.map(
-      (seat) => this.freezeSeatGrace(seat, now),
-    ) as ActiveGameControlState['seats'];
+    const seats = this.fourSeats(
+      state.seats.map((seat) => this.freezeSeatGrace(seat, now)),
+    );
 
     return this.accepted(
       {
@@ -115,9 +115,9 @@ export class ActiveGameControlEngine {
     const turn = state.turn === undefined
       ? undefined
       : this.resumeTurn(state.turn, now);
-    const seats = state.seats.map(
-      (seat) => this.resumeSeatGrace(seat, now),
-    ) as ActiveGameControlState['seats'];
+    const seats = this.fourSeats(
+      state.seats.map((seat) => this.resumeSeatGrace(seat, now)),
+    );
     const { pausedAt: _pausedAt, ...withoutPause } = state;
 
     return this.accepted(
@@ -148,9 +148,9 @@ export class ActiveGameControlEngine {
     }
     this.timestamp(occurredAt, 'Termination time');
 
-    const seats = state.seats.map(
-      (seat) => this.stopSeatGrace(seat),
-    ) as ActiveGameControlState['seats'];
+    const seats = this.fourSeats(
+      state.seats.map((seat) => this.stopSeatGrace(seat)),
+    );
     const {
       turn: _turn,
       pausedAt: _pausedAt,
@@ -249,6 +249,15 @@ export class ActiveGameControlEngine {
       ...rest
     } = seat;
     return rest;
+  }
+
+  private fourSeats(
+    seats: readonly ActiveSeatControl[],
+  ): ActiveGameControlState['seats'] {
+    if (seats.length !== 4) {
+      throw new Error('Active control requires exactly four seat controls.');
+    }
+    return [seats[0]!, seats[1]!, seats[2]!, seats[3]!];
   }
 
   private timestamp(value: string, label: string): number {
