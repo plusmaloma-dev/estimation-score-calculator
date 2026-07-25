@@ -107,3 +107,62 @@ export interface ActiveDeadlineEvaluation {
   readonly directives: readonly BotActionDirective[];
   readonly events: readonly ActiveControlEvent[];
 }
+
+export type ActiveControlCommand =
+  | { readonly type: 'PAUSE' }
+  | { readonly type: 'RESUME' }
+  | { readonly type: 'TERMINATE'; readonly confirmed: boolean }
+  | { readonly type: 'DISCONNECT'; readonly userId: string }
+  | { readonly type: 'RECONNECT'; readonly userId: string }
+  | { readonly type: 'EVALUATE_GRACE' }
+  | { readonly type: 'EVALUATE_DEADLINE' }
+  | {
+      readonly type: 'START_TURN';
+      readonly turnId: string;
+      readonly seat: SeatIndex;
+      readonly actionKind: ActiveTurnActionKind;
+    }
+  | {
+      readonly type: 'BEGIN_BOT_ACTION';
+      readonly seat: SeatIndex;
+      readonly turnId: string;
+    }
+  | {
+      readonly type: 'COMPLETE_ACTION_BOUNDARY';
+      readonly nextTurn?: Omit<StartTurnInput, 'occurredAt'>;
+    };
+
+export interface ActiveControlCommandEnvelope {
+  readonly commandId: string;
+  readonly expectedVersion: number;
+  readonly actorUserId: string;
+  readonly occurredAt: string;
+  readonly command: ActiveControlCommand;
+}
+
+export interface ActiveControlCommandRecord extends ActiveControlCommandEnvelope {
+  readonly accepted: boolean;
+  readonly resultingVersion: number;
+  readonly errors: readonly string[];
+  readonly transition: ActiveControlTransition;
+  readonly events: readonly ActiveControlEvent[];
+  readonly directives: readonly BotActionDirective[];
+}
+
+export interface ActiveControlCommandProcessResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly duplicate: boolean;
+  readonly state: ActiveGameControlState;
+  readonly version: number;
+  readonly records: readonly ActiveControlCommandRecord[];
+  readonly record?: ActiveControlCommandRecord;
+}
+
+export interface ActiveControlReplayResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly state: ActiveGameControlState;
+  readonly version: number;
+  readonly recordsReplayed: number;
+}
