@@ -78,3 +78,12 @@ test('seed must contain exactly 256 bits encoded as hexadecimal', () => {
     /Seed must be exactly 32 bytes encoded as 64 hexadecimal characters\./,
   );
 });
+
+test('first seat must be one of the four table seats', () => {
+  const service = new FairDealService();
+
+  assert.throws(
+    () => service.deal({ ...input, firstSeat: 4 as 0 }),
+    /First seat must be 0, 1, 2, or 3\./,
+  );
+});
