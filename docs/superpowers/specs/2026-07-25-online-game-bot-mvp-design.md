@@ -1,7 +1,7 @@
 # Online Estimation Game and Computer-Player MVP Design
 
 **Date:** 25 July 2026  
-**Status:** Approved design baseline, pending written-spec review  
+**Status:** Approved for implementation  
 **Rule set:** House Rules V1 only  
 **Parent delivery:** Online UAT score calculator and shared player directory
 
@@ -425,4 +425,4 @@ The MVP is not complete until:
 9. Pause, resume, completion, termination, and replay.
 10. Security, load, simulation, and end-to-end UAT validation.
 
-Implementation starts only after the current written specification is reviewed and an implementation plan is approved. Gameplay work must remain isolated from the current online-UAT stabilization branch until its integration points are explicitly ready.
+Implementation proceeds under the user's standing approval. Gameplay work remains isolated from the current online-UAT stabilization branch until its integration points are explicitly ready.
