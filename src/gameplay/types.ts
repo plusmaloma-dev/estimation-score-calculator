@@ -100,3 +100,38 @@ export interface GameplayStateTransition {
   readonly errors: readonly string[];
   readonly state: HouseRulesRoundState;
 }
+
+export type GameplayCommand =
+  | {
+      readonly type: 'SUBMIT_BID';
+      readonly seat: SeatIndex;
+      readonly bid: EstimationBid;
+    }
+  | {
+      readonly type: 'PLAY_CARD';
+      readonly seat: SeatIndex;
+      readonly card: Card;
+    };
+
+export interface GameplayCommandEnvelope {
+  readonly commandId: string;
+  readonly expectedVersion: number;
+  readonly command: GameplayCommand;
+}
+
+export interface GameplayCommandRecord extends GameplayCommandEnvelope {
+  readonly accepted: boolean;
+  readonly resultingVersion: number;
+  readonly errors: readonly string[];
+  readonly transition: GameplayStateTransition;
+}
+
+export interface GameplayCommandProcessResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly duplicate: boolean;
+  readonly state: HouseRulesRoundState;
+  readonly version: number;
+  readonly records: readonly GameplayCommandRecord[];
+  readonly record?: GameplayCommandRecord;
+}
