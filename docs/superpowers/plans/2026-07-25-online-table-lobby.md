@@ -24,7 +24,7 @@
 - Clients propose commands with command ID and expected version; only server-authoritative code commits state.
 - Direct authenticated writes to gameplay tables are not granted.
 - Every accepted/rejected command and host transfer is auditable.
-- Do not modify existing score-calculator `games` semantics; gameplay tables use separate persistence objects.
+- Existing score-calculator `games` semantics remain unchanged; gameplay tables use separate persistence objects.
 - `npm run ci` must pass after every TypeScript task.
 
 ---
@@ -100,7 +100,7 @@ leaveLobby(state, actorUserId, occurredAt): GameplayTableTransition;
 start(state, actorUserId, occurredAt): GameplayTableTransition;
 ```
 
-Tests first must prove:
+Tests first prove:
 
 1. Host creation seats one human and applies default timers.
 2. Duplicate users and occupied requested seats are rejected without mutation.
@@ -150,7 +150,7 @@ Acceptance command: `npm run ci`.
 - Create: `src/gameplay/table/GameplayTableCommandProcessor.ts`
 - Test: `tests/gameplayTableCommandProcessor.test.ts`
 
-Commands cover create-independent mutations: update settings, open join, request join, respond request, leave, and start. Every envelope has `commandId`, `expectedVersion`, actor, occurrence timestamp, and payload. Accepted commands increment once; rejected/stale commands retain version; same ID/same payload returns original outcome; same ID/different payload is an integrity conflict.
+Commands cover update settings, open join, request join, respond request, leave, and start. Every envelope has `commandId`, `expectedVersion`, actor, occurrence timestamp, and payload. Accepted commands increment once; rejected/stale commands retain version; same ID/same payload returns original outcome; same ID/different payload is an integrity conflict.
 
 Acceptance command: `npm run ci`.
 
@@ -194,7 +194,7 @@ RPCs:
 
 Each RPC asserts `auth.uid() = p_actor_user_id`, workspace membership, expected version/idempotency, table lifecycle, host authority where required, and commits command/event/snapshot changes atomically.
 
-Static schema tests must assert security-definer fixed search paths, revoked public access, authenticated execute grants, constraints, and required JSON snapshot sections.
+Static schema tests assert security-definer fixed search paths, revoked public access, authenticated execute grants, constraints, and required JSON snapshot sections.
 
 ---
 
