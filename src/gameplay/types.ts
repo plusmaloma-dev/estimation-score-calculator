@@ -10,6 +10,11 @@ export interface SeatHand {
 
 export type SeatHands = readonly [SeatHand, SeatHand, SeatHand, SeatHand];
 
+export interface GameplayTrickEntry {
+  readonly seat: SeatIndex;
+  readonly card: Card;
+}
+
 export interface FairDealInput {
   readonly gameId: string;
   readonly dealId: string;
