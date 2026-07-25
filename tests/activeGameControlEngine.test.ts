@@ -38,6 +38,15 @@ function stateWithRunningTimers(): ActiveGameControlState {
     startedTable(),
     '2026-07-25T20:02:00.000Z',
   );
+  const mapped = state.seats.map((seat) => seat.seat === 2
+    ? {
+        ...seat,
+        connection: 'disconnected' as const,
+        disconnectedAt: '2026-07-25T20:01:50.000Z',
+        graceDeadlineAt: '2026-07-25T20:02:50.000Z',
+      }
+    : seat);
+
   return {
     ...state,
     turn: {
@@ -48,14 +57,7 @@ function stateWithRunningTimers(): ActiveGameControlState {
       deadlineAt: '2026-07-25T20:02:45.000Z',
       status: 'running',
     },
-    seats: state.seats.map((seat) => seat.seat === 2
-      ? {
-          ...seat,
-          connection: 'disconnected' as const,
-          disconnectedAt: '2026-07-25T20:01:50.000Z',
-          graceDeadlineAt: '2026-07-25T20:02:50.000Z',
-        }
-      : seat) as ActiveGameControlState['seats'],
+    seats: [mapped[0]!, mapped[1]!, mapped[2]!, mapped[3]!],
   };
 }
 
