@@ -3,10 +3,13 @@ import {
   DISCONNECT_GRACE_VALUES,
   TURN_TIMER_VALUES,
   type CreateGameplayTableInput,
+  type GameplayJoinRequest,
+  type GameplayJoinRequestDecision,
   type GameplayTableSeat,
   type GameplayTableState,
   type GameplayTableTransition,
   type JoinOpenGameplayTableInput,
+  type RequestGameplayTableJoinInput,
   type UpdateGameplayTableSettingsPatch,
 } from './types.js';
 
@@ -129,17 +132,139 @@ export class GameplayTableEngine {
       return this.rejected(state, `Seat ${seat} is already occupied.`);
     }
 
-    const joinedSeat: GameplayTableSeat = {
-      seat,
-      kind: 'human',
+    return this.accepted({
+      ...state,
+      seats: this.withSeat(state.seats, {
+        seat,
+        kind: 'human',
+        userId: input.userId,
+        displayName,
+        joinedAt: input.joinedAt,
+      }),
+    });
+  }
+
+  requestJoin(
+    state: GameplayTableState,
+    input: RequestGameplayTableJoinInput,
+  ): GameplayTableTransition {
+    if (state.lifecycle !== 'lobby' || state.settingsLocked) {
+      return this.rejected(state, 'Join requests are accepted only while the table is in the lobby.');
+    }
+    if (state.visibility !== 'public') {
+      return this.rejected(state, 'Join requests are available only for public tables.');
+    }
+    if (state.joinPolicy !== 'approval-required') {
+      return this.rejected(state, 'This table does not use approval-required joining.');
+    }
+    if (state.seats.some((seat) => seat.kind === 'human' && seat.userId === input.userId)) {
+      return this.rejected(state, `User ${input.userId} is already seated at this table.`);
+    }
+    if (
+      state.joinRequests.some(
+        (request) => request.userId === input.userId && request.status === 'pending',
+      )
+    ) {
+      return this.rejected(state, `User ${input.userId} already has a pending join request.`);
+    }
+    if (state.joinRequests.some((request) => request.requestId === input.requestId)) {
+      return this.rejected(state, `Join request id ${input.requestId} already exists.`);
+    }
+    if (state.seats.length >= 4) {
+      return this.rejected(state, 'Table has no vacant seats.');
+    }
+    if (
+      input.requestedSeat !== undefined
+      && state.seats.some((seat) => seat.seat === input.requestedSeat)
+    ) {
+      return this.rejected(state, `Seat ${input.requestedSeat} is already occupied.`);
+    }
+
+    const displayName = input.displayName.trim();
+    if (displayName.length === 0) {
+      return this.rejected(state, 'Player display name is required.');
+    }
+
+    const request: GameplayJoinRequest = {
+      requestId: input.requestId,
       userId: input.userId,
       displayName,
-      joinedAt: input.joinedAt,
+      requestedAt: input.requestedAt,
+      status: 'pending',
+      ...(input.requestedSeat === undefined ? {} : { requestedSeat: input.requestedSeat }),
     };
 
     return this.accepted({
       ...state,
-      seats: [...state.seats, joinedSeat].sort((left, right) => left.seat - right.seat),
+      joinRequests: [...state.joinRequests, request],
+    });
+  }
+
+  respondToJoinRequest(
+    state: GameplayTableState,
+    actorUserId: string,
+    requestId: string,
+    decision: GameplayJoinRequestDecision,
+    occurredAt: string,
+  ): GameplayTableTransition {
+    if (state.lifecycle !== 'lobby' || state.settingsLocked) {
+      return this.rejected(state, 'Join requests can be resolved only while the table is in the lobby.');
+    }
+    if (state.hostUserId !== actorUserId) {
+      return this.rejected(state, 'Only the current host can respond to join requests.');
+    }
+
+    const request = state.joinRequests.find((candidate) => candidate.requestId === requestId);
+    if (request === undefined) {
+      return this.rejected(state, `Join request ${requestId} was not found.`);
+    }
+    if (request.status !== 'pending') {
+      return this.rejected(state, `Join request ${requestId} has already been resolved.`);
+    }
+
+    if (decision === 'reject') {
+      return this.accepted({
+        ...state,
+        joinRequests: this.resolveRequest(
+          state.joinRequests,
+          requestId,
+          'rejected',
+          occurredAt,
+          actorUserId,
+        ),
+      });
+    }
+
+    if (state.seats.some((seat) => seat.kind === 'human' && seat.userId === request.userId)) {
+      return this.rejected(state, `User ${request.userId} is already seated at this table.`);
+    }
+    if (state.seats.length >= 4) {
+      return this.rejected(state, 'Table has no vacant seats.');
+    }
+    if (
+      request.requestedSeat !== undefined
+      && state.seats.some((seat) => seat.seat === request.requestedSeat)
+    ) {
+      return this.rejected(state, `Requested seat ${request.requestedSeat} is no longer available.`);
+    }
+
+    const seat = request.requestedSeat ?? this.firstVacantSeat(state);
+    return this.accepted({
+      ...state,
+      seats: this.withSeat(state.seats, {
+        seat,
+        kind: 'human',
+        userId: request.userId,
+        displayName: request.displayName,
+        joinedAt: occurredAt,
+      }),
+      joinRequests: this.resolveRequest(
+        state.joinRequests,
+        requestId,
+        'accepted',
+        occurredAt,
+        actorUserId,
+      ),
     });
   }
 
@@ -201,6 +326,9 @@ export class GameplayTableEngine {
     if (state.hostUserId !== actorUserId) {
       return this.rejected(state, 'Only the current host can start the table.');
     }
+    if (state.joinRequests.some((request) => request.status === 'pending')) {
+      return this.rejected(state, 'All pending join requests must be resolved before Start.');
+    }
     if (!state.seats.some((seat) => seat.kind === 'human')) {
       return this.rejected(state, 'At least one connected human is required to start.');
     }
@@ -226,6 +354,25 @@ export class GameplayTableEngine {
       settingsLocked: true,
       seats,
     });
+  }
+
+  private withSeat(
+    seats: readonly GameplayTableSeat[],
+    newSeat: GameplayTableSeat,
+  ): readonly GameplayTableSeat[] {
+    return [...seats, newSeat].sort((left, right) => left.seat - right.seat);
+  }
+
+  private resolveRequest(
+    requests: readonly GameplayJoinRequest[],
+    requestId: string,
+    status: 'accepted' | 'rejected',
+    resolvedAt: string,
+    resolvedBy: string,
+  ): readonly GameplayJoinRequest[] {
+    return requests.map((request) => request.requestId === requestId
+      ? { ...request, status, resolvedAt, resolvedBy }
+      : request);
   }
 
   private firstVacantSeat(state: GameplayTableState): SeatIndex {
