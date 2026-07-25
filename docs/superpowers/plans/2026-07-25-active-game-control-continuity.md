@@ -2,6 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** In progress. Tasks 1–3 are complete; Tasks 4–6 remain.  
+**Checkpoint report:** `docs/superpowers/reports/2026-07-25-active-game-control-checkpoint.md`
+
 **Goal:** Add deterministic active-game host controls, turn deadlines, connected-player timeout assistance, disconnect grace, temporary bot takeover, and safe human reclaim without weakening the authoritative gameplay or hidden-information boundaries.
 
 **Architecture:** A pure immutable `ActiveGameControlEngine` owns lifecycle, seat connectivity/control, pause/resume, termination, deadline freezing, host succession, and safe reclaim. A separate deadline evaluator emits auditable bot-action directives but never plays a card or bid itself. Versioned command processing and Supabase RPCs persist the same transitions; a typed Realtime synchronizer reloads authoritative snapshots after reconnects or ambiguous command outcomes.
@@ -33,233 +36,46 @@
 
 ---
 
-### Task 1: Active lifecycle, pause/resume, termination, and host succession
+### Task 1: Active lifecycle, pause/resume, termination, and host succession — Complete
 
-**Files:**
-- Create: `src/gameplay/control/types.ts`
-- Create: `src/gameplay/control/ActiveGameControlEngine.ts`
-- Modify: `src/index.ts`
-- Test: `tests/activeGameControlEngine.test.ts`
+**Delivered:**
+- `src/gameplay/control/types.ts`
+- `src/gameplay/control/ActiveGameControlEngine.ts`
+- `src/index.ts`
+- `tests/activeGameControlEngine.test.ts`
 
-**Interfaces:**
+**Verified:** started-table validation, permanent bot controls, host-only administration, exact pause/resume timer freezing, confirmed termination, read-only terminated state.
 
-```ts
-export type ActiveControlLifecycle = 'active' | 'paused' | 'terminated';
-export type SeatConnectionState = 'connected' | 'disconnected';
-export type SeatControlOwner = 'human' | 'temporary-bot' | 'permanent-bot';
-
-export interface ActiveSeatControl {
-  readonly seat: SeatIndex;
-  readonly seatKind: 'human' | 'bot';
-  readonly humanUserId?: string;
-  readonly botId?: string;
-  readonly joinedAt: string;
-  readonly connectedAt?: string;
-  readonly connection: SeatConnectionState;
-  readonly controlOwner: SeatControlOwner;
-  readonly disconnectedAt?: string;
-  readonly graceDeadlineAt?: string;
-  readonly graceRemainingMs?: number;
-  readonly reclaimPending: boolean;
-}
-
-export interface ActiveTurnClock {
-  readonly turnId: string;
-  readonly seat: SeatIndex;
-  readonly actionKind: 'bid' | 'card';
-  readonly startedAt: string;
-  readonly deadlineAt: string;
-  readonly remainingMs?: number;
-  readonly status: 'running' | 'assistant-pending' | 'bot-processing';
-}
-
-export interface ActiveGameControlState {
-  readonly tableId: string;
-  readonly lifecycle: ActiveControlLifecycle;
-  readonly hostUserId: string;
-  readonly turnTimerSeconds: TurnTimerSeconds;
-  readonly disconnectGraceSeconds: DisconnectGraceSeconds;
-  readonly seats: readonly [ActiveSeatControl, ActiveSeatControl, ActiveSeatControl, ActiveSeatControl];
-  readonly turn?: ActiveTurnClock;
-  readonly pausedAt?: string;
-  readonly terminatedAt?: string;
-  readonly terminatedBy?: string;
-}
-
-export interface ActiveControlTransition {
-  readonly valid: boolean;
-  readonly errors: readonly string[];
-  readonly state: ActiveGameControlState;
-  readonly events: readonly ActiveControlEvent[];
-}
-```
-
-`ActiveGameControlEngine` methods:
-
-```ts
-createFromStartedTable(table: GameplayTableState, occurredAt: string): ActiveGameControlState;
-pause(state, actorUserId, occurredAt): ActiveControlTransition;
-resume(state, actorUserId, occurredAt): ActiveControlTransition;
-terminate(state, actorUserId, confirmed, occurredAt): ActiveControlTransition;
-```
-
-- [ ] **Step 1: Write failing lifecycle tests**
-
-Tests must prove:
-- creation rejects a non-active, unlocked, or non-four-seat table;
-- permanent bot seats begin with `permanent-bot` control and cannot be human-controlled;
-- only the current host can pause, resume, or terminate;
-- pause stores exact remaining turn/grace milliseconds and clears running deadlines;
-- resume rebuilds deadlines from stored remaining durations;
-- termination requires `confirmed: true`, records actor/time, clears the turn, and rejects pause/resume afterward.
-
-- [ ] **Step 2: Run RED verification**
-
-Run: `npm run ci`  
-Expected: FAIL because `ActiveGameControlEngine` and control types do not exist.
-
-- [ ] **Step 3: Implement the minimum immutable lifecycle engine**
-
-Use supplied ISO timestamps only. Convert with `Date.parse`; reject invalid or backwards timestamps. Never call `Date.now()` inside the engine.
-
-- [ ] **Step 4: Run GREEN verification**
-
-Run: `npm run ci`  
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/gameplay/control src/index.ts tests/activeGameControlEngine.test.ts
-git commit -m "feat: add active game lifecycle controls"
-```
+**TDD evidence:** RED #760 / GREEN #766.
 
 ---
 
-### Task 2: Disconnect grace, immediate active-host succession, and safe reclaim
+### Task 2: Disconnect grace, immediate active-host succession, and safe reclaim — Complete
 
-**Files:**
-- Extend: `src/gameplay/control/types.ts`
-- Modify: `src/gameplay/control/ActiveGameControlEngine.ts`
-- Test: `tests/activeGameConnectionControl.test.ts`
+**Delivered:**
+- Extended `src/gameplay/control/types.ts`
+- Extended `src/gameplay/control/ActiveGameControlEngine.ts`
+- `tests/activeGameConnectionControl.test.ts`
 
-**Interfaces:**
+**Verified:** disconnect grace, duplicate protection, immediate host transfer, last-human handling, temporary takeover, reconnect during grace, reconnect after takeover, non-interruption of processing bot action, safe boundary reclaim, permanent bot protection.
 
-```ts
-disconnect(state, userId, occurredAt): ActiveControlTransition;
-reconnect(state, userId, occurredAt): ActiveControlTransition;
-evaluateGrace(state, occurredAt): ActiveControlTransition;
-beginBotAction(state, seat, turnId, occurredAt): ActiveControlTransition;
-completeActionBoundary(state, nextTurn, occurredAt): ActiveControlTransition;
-```
-
-- [ ] **Step 1: Write failing connection-control tests**
-
-Tests must prove:
-- disconnect starts the configured grace countdown once;
-- duplicate disconnect is idempotently rejected without changing state;
-- host disconnect immediately transfers host to the connected human with the earliest `connectedAt`, then `joinedAt`, then seat number;
-- no connected human leaves host unchanged only when the disconnected host is the last human, while seat grace still starts;
-- grace expiry changes a human seat from `human` to `temporary-bot` control and emits `seat.takeover`;
-- reconnect during grace cancels the deadline and retains human control;
-- reconnect after takeover sets `reclaimPending` but does not interrupt `bot-processing`;
-- `completeActionBoundary` reclaims before the seat's next uncommitted turn and emits `seat.reclaimed`;
-- permanent bots reject disconnect/reconnect/reclaim operations.
-
-- [ ] **Step 2: Run RED verification**
-
-Run: `npm run ci`  
-Expected: FAIL because connection-control APIs are absent.
-
-- [ ] **Step 3: Implement minimum connection transitions**
-
-Host selection uses connected human seats only. Reconnection never restores host privileges automatically.
-
-- [ ] **Step 4: Run GREEN verification**
-
-Run: `npm run ci`  
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/gameplay/control tests/activeGameConnectionControl.test.ts
-git commit -m "feat: add disconnect takeover and reclaim"
-```
+**TDD evidence:** RED #767 / GREEN #769.
 
 ---
 
-### Task 3: Deterministic turn deadlines and one-action bot directives
+### Task 3: Deterministic turn deadlines and one-action bot directives — Complete
 
-**Files:**
-- Extend: `src/gameplay/control/types.ts`
-- Create: `src/gameplay/control/ActiveGameDeadlineService.ts`
-- Modify: `src/gameplay/control/ActiveGameControlEngine.ts`
-- Test: `tests/activeGameDeadlines.test.ts`
+**Delivered:**
+- Extended `src/gameplay/control/types.ts`
+- `src/gameplay/control/ActiveGameControlEngineWithTurns.ts`
+- `src/gameplay/control/ActiveGameDeadlineService.ts`
+- `tests/activeGameDeadlines.test.ts`
 
-**Interfaces:**
+**Verified:** configured turn deadlines, no early directive, exactly-once connected timeout assistance, grace-period timeout assistance, immediate permanent/temporary bot directives, pause/termination suppression, deterministic directive IDs, and one-action-only ownership behavior.
 
-```ts
-export interface BotActionDirective {
-  readonly directiveId: string;
-  readonly tableId: string;
-  readonly turnId: string;
-  readonly seat: SeatIndex;
-  readonly actionKind: 'bid' | 'card';
-  readonly source: 'timeout-assistant' | 'disconnect-substitute' | 'permanent-bot';
-  readonly issuedAt: string;
-}
+**TDD evidence:** RED #770 / GREEN #774.
 
-startTurn(state, input: {
-  turnId: string;
-  seat: SeatIndex;
-  actionKind: 'bid' | 'card';
-  occurredAt: string;
-}): ActiveControlTransition;
-
-ActiveGameDeadlineService.evaluate(
-  state: ActiveGameControlState,
-  occurredAt: string,
-): {
-  readonly state: ActiveGameControlState;
-  readonly directives: readonly BotActionDirective[];
-  readonly events: readonly ActiveControlEvent[];
-};
-```
-
-- [ ] **Step 1: Write failing deadline tests**
-
-Tests must prove:
-- starting a turn creates the configured deadline;
-- evaluating before deadline emits nothing;
-- connected human expiry emits exactly one `timeout-assistant` directive and marks `assistant-pending`;
-- re-evaluation of the same expired turn emits no duplicate directive;
-- disconnected human during grace also receives one `timeout-assistant` directive;
-- temporary and permanent bot turns emit their corresponding source immediately;
-- paused and terminated games emit no directives;
-- a new turn restores normal human ownership after a one-turn timeout assistant;
-- deterministic directive ID is `bot-action:<tableId>:<turnId>:<seat>`.
-
-- [ ] **Step 2: Run RED verification**
-
-Run: `npm run ci`  
-Expected: FAIL because deadline APIs are absent.
-
-- [ ] **Step 3: Implement minimum deterministic evaluation**
-
-The service emits directives only; `StandardBotPolicy` and authoritative gameplay commands select/commit the legal bid or card later.
-
-- [ ] **Step 4: Run GREEN verification**
-
-Run: `npm run ci`  
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/gameplay/control tests/activeGameDeadlines.test.ts
-git commit -m "feat: add deterministic active turn deadlines"
-```
+**Refactor note:** the public turn-capable engine currently extends the verified lifecycle/connection engine. Consolidate the classes after command/replay and persistence contracts stabilize.
 
 ---
 
@@ -422,6 +238,6 @@ git commit -m "feat: synchronize active game control state"
 ## Self-review record
 
 - Spec coverage: turn timer, repeated one-action assistance, disconnect grace, takeover, safe reclaim, active host succession, pause/resume freeze, termination, auditing, server authority, and Realtime reload are each assigned to a task.
-- Type consistency: `ActiveGameControlState`, `ActiveControlTransition`, `StartTurnInput`, and command names are defined before later use.
+- Type consistency: control state, transitions, turn input, directives, and command names are defined before later use.
 - Privacy coverage: control state intentionally contains no cards, hands, deal seed, or bot policy observation.
 - Deployment limitation: static SQL validation is not treated as live Supabase verification.
