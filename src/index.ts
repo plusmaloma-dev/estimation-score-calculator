@@ -30,6 +30,7 @@ export * from './gameplay/bot/types.js';
 export * from './gameplay/bot/BotObservationService.js';
 export * from './gameplay/bot/StandardCardPolicy.js';
 export * from './gameplay/bot/HandStrengthEvaluator.js';
+export * from './gameplay/bot/StandardBidPolicy.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
