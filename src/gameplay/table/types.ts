@@ -95,3 +95,61 @@ export interface RequestGameplayTableJoinInput {
   readonly requestedAt: string;
   readonly requestedSeat?: SeatIndex;
 }
+
+export type GameplayTableCommand =
+  | {
+      readonly type: 'UPDATE_SETTINGS';
+      readonly patch: UpdateGameplayTableSettingsPatch;
+    }
+  | {
+      readonly type: 'JOIN_OPEN';
+      readonly input: {
+        readonly displayName: string;
+        readonly requestedSeat?: SeatIndex;
+        readonly privateAccessGranted?: boolean;
+      };
+    }
+  | {
+      readonly type: 'REQUEST_JOIN';
+      readonly input: {
+        readonly requestId: string;
+        readonly displayName: string;
+        readonly requestedSeat?: SeatIndex;
+      };
+    }
+  | {
+      readonly type: 'RESPOND_JOIN_REQUEST';
+      readonly requestId: string;
+      readonly decision: GameplayJoinRequestDecision;
+    }
+  | {
+      readonly type: 'LEAVE_LOBBY';
+    }
+  | {
+      readonly type: 'START';
+    };
+
+export interface GameplayTableCommandEnvelope {
+  readonly commandId: string;
+  readonly expectedVersion: number;
+  readonly actorUserId: string;
+  readonly occurredAt: string;
+  readonly command: GameplayTableCommand;
+}
+
+export interface GameplayTableCommandRecord extends GameplayTableCommandEnvelope {
+  readonly accepted: boolean;
+  readonly resultingVersion: number;
+  readonly errors: readonly string[];
+  readonly transition: GameplayTableTransition;
+}
+
+export interface GameplayTableCommandProcessResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+  readonly duplicate: boolean;
+  readonly state: GameplayTableState;
+  readonly version: number;
+  readonly records: readonly GameplayTableCommandRecord[];
+  readonly record?: GameplayTableCommandRecord;
+}
