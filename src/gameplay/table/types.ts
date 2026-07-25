@@ -12,6 +12,7 @@ export type GameplayTableLifecycle =
 export type GameplaySeatKind = 'human' | 'bot';
 export type TurnTimerSeconds = 20 | 30 | 45 | 60 | 90;
 export type DisconnectGraceSeconds = 30 | 60 | 90 | 120;
+export type GameplayJoinRequestDecision = 'accept' | 'reject';
 
 export const TURN_TIMER_VALUES: readonly TurnTimerSeconds[] = [20, 30, 45, 60, 90];
 export const DISCONNECT_GRACE_VALUES: readonly DisconnectGraceSeconds[] = [30, 60, 90, 120];
@@ -85,4 +86,12 @@ export interface JoinOpenGameplayTableInput {
   readonly joinedAt: string;
   readonly requestedSeat?: SeatIndex;
   readonly privateAccessGranted?: boolean;
+}
+
+export interface RequestGameplayTableJoinInput {
+  readonly requestId: string;
+  readonly userId: string;
+  readonly displayName: string;
+  readonly requestedAt: string;
+  readonly requestedSeat?: SeatIndex;
 }
