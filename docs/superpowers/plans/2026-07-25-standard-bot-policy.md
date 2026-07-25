@@ -24,135 +24,38 @@
 
 ### Task 1: Allow-listed card observation and deterministic legal fallback
 
-**Files:**
-- Create: `src/gameplay/bot/types.ts`
-- Create: `src/gameplay/bot/BotObservationService.ts`
-- Create: `src/gameplay/bot/StandardCardPolicy.ts`
-- Modify: `src/index.ts`
-- Test: `tests/standardBotCardPolicy.test.ts`
+**Status:** Completed. RED CI #699; GREEN CI #703.
 
-**Interfaces:**
-
-```ts
-export type BotCardMode = 'acquire' | 'control' | 'dump' | 'recovery' | 'endgame';
-export type BotReasonCode =
-  | 'FOLLOW_SUIT_ONLY_ACTION'
-  | 'ACQUIRE_REQUIRED_TRICK'
-  | 'CONTROL_EXACT_TARGET'
-  | 'AVOID_OVERTRICK'
-  | 'MINIMIZE_DAMAGE'
-  | 'ENDGAME_EXACT_SEARCH';
-
-export interface BotCardObservation {
-  readonly policyVersion: 'STANDARD_V1';
-  readonly seat: SeatIndex;
-  readonly hand: readonly Card[];
-  readonly legalCards: readonly Card[];
-  readonly bids: readonly EstimationBid[];
-  readonly contractSuit: ContractSuit;
-  readonly currentTrick: readonly GameplayTrickEntry[];
-  readonly completedTricks: readonly CompletedGameplayTrick[];
-  readonly estimate: number;
-  readonly tricksWon: number;
-  readonly cardsRemaining: number;
-}
-
-export interface BotCardDecision {
-  readonly policyVersion: 'STANDARD_V1';
-  readonly mode: BotCardMode;
-  readonly reasonCode: BotReasonCode;
-  readonly card: Card;
-  readonly legalCardIds: readonly string[];
-}
-```
-
-`BotObservationService.createCardObservation(state, seat)` must require the playing phase and active turn. Its returned own-property keys must exactly match the interface fields listed above.
-
-`StandardCardPolicy.decide(observation)` rules:
-
-1. One legal card: select it with `FOLLOW_SUIT_ONLY_ACTION`.
-2. `needed = estimate - tricksWon`.
-3. `needed <= 0`: `dump`, choose the lowest legal rank, `AVOID_OVERTRICK`.
-4. `needed > cardsRemaining`: `recovery`, choose the lowest legal rank, `MINIMIZE_DAMAGE`.
-5. `cardsRemaining <= 3`: `endgame`; choose highest legal rank when `needed > 0`, otherwise lowest; `ENDGAME_EXACT_SEARCH`.
-6. `needed === cardsRemaining`: `acquire`, choose highest legal rank, `ACQUIRE_REQUIRED_TRICK`.
-7. Otherwise: `control`; choose highest legal rank when `needed * 2 >= cardsRemaining`, otherwise lowest; `CONTROL_EXACT_TARGET`.
-
-Ties use canonical card ID ascending order after rank comparison so results remain deterministic.
-
-Tests must prove exact observation keys, no hidden-hand/deal fields in serialized observation, mode/reason behavior, deterministic output, and a complete four-bot round with zero rejected card commands.
+**Delivered:** `BotObservationService`, `StandardCardPolicy`, privacy-contract tests, and a complete four-bot card-play round with zero illegal actions.
 
 ---
 
 ### Task 2: Hand-strength evaluator and exact-trick probability distribution
 
-**Files:**
-- Create: `src/gameplay/bot/HandStrengthEvaluator.ts`
-- Test: `tests/standardBotHandStrength.test.ts`
+**Status:** Completed. RED CI #704; GREEN CI #708.
 
-**Interfaces:**
-
-```ts
-export interface TrickProbability {
-  readonly tricks: number;
-  readonly probability: number;
-}
-
-evaluate(hand: readonly Card[], contractSuit: ContractSuit): readonly TrickProbability[];
-```
-
-The evaluator calculates a deterministic expected-trick centre from honours, suit length, trump length/quality, voids, singletons, and No Trump stoppers. It converts the centre to a normalized distribution over integers 0–13 using fixed distance weights. Tests require 14 entries, total probability within `1e-9` of 1, no negative values, stronger hands shifting expected tricks upward, and deterministic output.
+**Delivered:** `HandStrengthEvaluator` with a normalized deterministic 0–13 probability distribution based on honours, suit structure, trump strength, ruffing potential, and No Trump stoppers.
 
 ---
 
 ### Task 3: Legal bid expected-utility policy
 
-**Files:**
-- Create: `src/gameplay/bot/StandardBidPolicy.ts`
-- Test: `tests/standardBotBidPolicy.test.ts`
+**Status:** Completed. RED CI #709; GREEN CI #712.
 
-**Interfaces:**
-
-```ts
-export interface BotBidObservation {
-  readonly policyVersion: 'STANDARD_V1';
-  readonly playerId: string;
-  readonly hand: readonly Card[];
-  readonly legalBids: readonly EstimationBid[];
-  readonly priorBids: readonly EstimationBid[];
-  readonly bidOwnerPlayerId: string;
-  readonly isLastBidder: boolean;
-  readonly currentScores: Readonly<Record<string, number>>;
-}
-
-export interface BotBidDecision {
-  readonly policyVersion: 'STANDARD_V1';
-  readonly bid: EstimationBid;
-  readonly expectedUtility: number;
-  readonly evaluatedLegalBids: number;
-}
-```
-
-For each legal bid, use `HandStrengthEvaluator` and House Rules V1 round scoring over actual outcomes 0–13. Select maximum expected score; tie-break by higher exact-match probability, lower absolute estimate, then stable serialized bid order. Tests must prove the total-13-excluded action is never selected because it is absent from legal bids, and stronger hands select higher estimates than weak hands in fixed fixtures.
+**Delivered:** `StandardBidPolicy`, evaluating only supplied legal bids through the existing House Rules V1 scoring strategy for every actual-trick outcome.
 
 ---
 
 ### Task 4: Time-bounded Standard bot orchestrator and fallback audit metadata
 
-**Files:**
-- Create: `src/gameplay/bot/StandardBotPolicy.ts`
-- Test: `tests/standardBotPolicy.test.ts`
+**Status:** Completed. RED CI #713; GREEN CI #716.
 
-The orchestrator exposes card and bid decisions, measures elapsed milliseconds through an injected clock, supports an injected deadline signal, and uses Task 1 deterministic fallback if the primary evaluator exceeds the deadline or throws. Audit metadata records policy version, action source (`permanent-bot`, `disconnect-substitute`, `timeout-assistant`), reason code, legal actions, selected action, duration, and whether fallback was used.
-
-Tests must force primary failure/deadline and prove a legal fallback is produced deterministically.
+**Delivered:** `StandardBotPolicy` with legal-output validation, policy/source/reason auditing, hard-limit detection, and deterministic card/bid fallback.
 
 ---
 
 ### Task 5: Bot simulation and baseline metrics
 
-**Files:**
-- Create: `src/gameplay/bot/BotSimulationService.ts`
-- Test: `tests/standardBotSimulation.test.ts`
+**Status:** Completed. RED CI #717; GREEN CI #720.
 
-Run deterministic seeded bot-vs-bot rounds through `GameplayCommandProcessor`. Produce completed games, exact-match rate, mean absolute estimate error, average score, rejected-command count, and decision counts by reason. Tests require zero rejected card commands, deterministic metrics for fixed seeds, all 52 cards consumed, and replay verification of every simulated round.
+**Delivered:** `BotSimulationService`, seeded four-bot bidding and 52-card play, House Rules V1 scoring, exact-match/mean-error/average-score metrics, reason counts, and deterministic replay verification.
