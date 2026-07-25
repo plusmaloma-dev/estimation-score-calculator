@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import { cardId, type Card } from '../domain/card.js';
 import { createCanonicalDeck } from './CanonicalDeck.js';
 import { DeterministicRandomSource } from './DeterministicRandomSource.js';
@@ -16,11 +14,11 @@ import {
 const SEED_HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
 
 export class FairDealService {
-  deal(input: FairDealInput): FairDealResult {
+  async deal(input: FairDealInput): Promise<FairDealResult> {
     this.validateInput(input);
 
     const normalizedSeedHex = input.seedHex.toLowerCase();
-    const shuffledDeck = this.shuffle(Buffer.from(normalizedSeedHex, 'hex'));
+    const shuffledDeck = await this.shuffle(this.hexToBytes(normalizedSeedHex));
     const hands = this.distribute(shuffledDeck, input.firstSeat);
     const normalizedInput: FairDealInput = {
       ...input,
@@ -29,18 +27,18 @@ export class FairDealService {
 
     return {
       ...normalizedInput,
-      commitment: this.commitment(normalizedInput),
+      commitment: await this.commitment(normalizedInput),
       shuffledDeck,
       hands,
     };
   }
 
-  verify(record: FairDealVerificationInput): DealVerificationResult {
+  async verify(record: FairDealVerificationInput): Promise<DealVerificationResult> {
     const errors: string[] = [];
     let expected: FairDealResult;
 
     try {
-      expected = this.deal({
+      expected = await this.deal({
         gameId: record.gameId,
         dealId: record.dealId,
         ruleSet: record.ruleSet,
@@ -97,7 +95,11 @@ export class FairDealService {
     }
   }
 
-  private commitment(input: FairDealInput): string {
+  private async commitment(input: FairDealInput): Promise<string> {
+    if (globalThis.crypto?.subtle === undefined) {
+      throw new Error('Web Crypto is required for deal commitments.');
+    }
+
     const payload = [
       input.seedHex,
       input.dealId,
@@ -105,16 +107,20 @@ export class FairDealService {
       input.ruleSet,
       input.nonce,
     ].join('|');
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(payload),
+    );
 
-    return createHash('sha256').update(payload, 'utf8').digest('hex');
+    return this.bytesToHex(new Uint8Array(digest));
   }
 
-  private shuffle(seed: Uint8Array): readonly Card[] {
+  private async shuffle(seed: Uint8Array): Promise<readonly Card[]> {
     const deck = [...createCanonicalDeck()];
     const random = new DeterministicRandomSource(seed);
 
     for (let index = deck.length - 1; index > 0; index -= 1) {
-      const swapIndex = random.nextInt(index + 1);
+      const swapIndex = await random.nextInt(index + 1);
       [deck[index], deck[swapIndex]] = [deck[swapIndex]!, deck[index]!];
     }
 
@@ -133,6 +139,18 @@ export class FairDealService {
       seat,
       cards: cardsBySeat[seat],
     })) as unknown as SeatHands;
+  }
+
+  private hexToBytes(value: string): Uint8Array {
+    const bytes = new Uint8Array(value.length / 2);
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Number.parseInt(value.slice(index * 2, (index * 2) + 2), 16);
+    }
+    return bytes;
+  }
+
+  private bytesToHex(value: Uint8Array): string {
+    return Array.from(value, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   private sameCardSequence(left: readonly Card[], right: readonly Card[]): boolean {
