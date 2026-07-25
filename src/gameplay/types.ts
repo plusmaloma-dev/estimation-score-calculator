@@ -19,9 +19,13 @@ export interface FairDealInput {
   readonly firstSeat: SeatIndex;
 }
 
-export interface FairDealResult extends FairDealInput {
+export interface FairDealVerificationInput extends FairDealInput {
   readonly commitment: string;
   readonly shuffledDeck: readonly Card[];
+  readonly hands: readonly SeatHand[];
+}
+
+export interface FairDealResult extends FairDealVerificationInput {
   readonly hands: SeatHands;
 }
 
