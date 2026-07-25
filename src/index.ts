@@ -24,6 +24,7 @@ export * from './gameplay/FairDealService.js';
 export * from './gameplay/LegalCardPlayService.js';
 export * from './gameplay/TrickResolutionService.js';
 export * from './gameplay/HouseRulesRoundEngine.js';
+export * from './gameplay/GameplayCommandProcessor.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
