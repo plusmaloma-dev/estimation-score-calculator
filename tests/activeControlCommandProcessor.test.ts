@@ -221,24 +221,28 @@ test('processor routes connection, grace, bot-processing, boundary, resume, and 
     occurredAt: '2026-07-25T23:03:00.000Z', command: { type: 'EVALUATE_GRACE' },
   });
   run({
-    commandId: 'reconnect', expectedVersion: 2, actorUserId: 'guest-user',
+    commandId: 'start-turn', expectedVersion: 2, actorUserId: 'host-user',
     occurredAt: '2026-07-25T23:03:01.000Z',
-    command: { type: 'RECONNECT', userId: 'guest-user' },
-  });
-  run({
-    commandId: 'start-turn', expectedVersion: 3, actorUserId: 'host-user',
-    occurredAt: '2026-07-25T23:03:02.000Z',
     command: { type: 'START_TURN', turnId: 'turn-guest', seat: 2, actionKind: 'card' },
   });
   run({
-    commandId: 'evaluate-bot', expectedVersion: 4, actorUserId: 'host-user',
-    occurredAt: '2026-07-25T23:03:02.000Z', command: { type: 'EVALUATE_DEADLINE' },
+    commandId: 'evaluate-bot', expectedVersion: 3, actorUserId: 'host-user',
+    occurredAt: '2026-07-25T23:03:01.000Z', command: { type: 'EVALUATE_DEADLINE' },
   });
   run({
-    commandId: 'begin-bot', expectedVersion: 5, actorUserId: 'host-user',
-    occurredAt: '2026-07-25T23:03:03.000Z',
+    commandId: 'begin-bot', expectedVersion: 4, actorUserId: 'host-user',
+    occurredAt: '2026-07-25T23:03:02.000Z',
     command: { type: 'BEGIN_BOT_ACTION', seat: 2, turnId: 'turn-guest' },
   });
+  run({
+    commandId: 'reconnect', expectedVersion: 5, actorUserId: 'guest-user',
+    occurredAt: '2026-07-25T23:03:03.000Z',
+    command: { type: 'RECONNECT', userId: 'guest-user' },
+  });
+  assert.equal(state.seats[2].controlOwner, 'temporary-bot');
+  assert.equal(state.seats[2].reclaimPending, true);
+  assert.equal(state.turn?.status, 'bot-processing');
+
   run({
     commandId: 'boundary', expectedVersion: 6, actorUserId: 'host-user',
     occurredAt: '2026-07-25T23:03:04.000Z',
