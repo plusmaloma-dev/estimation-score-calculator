@@ -36,6 +36,8 @@ export * from './gameplay/bot/BotSimulationService.js';
 export * from './gameplay/table/types.js';
 export * from './gameplay/table/GameplayTableEngine.js';
 export * from './gameplay/table/GameplayTableCommandProcessor.js';
+export * from './gameplay/control/types.js';
+export * from './gameplay/control/ActiveGameControlEngine.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
