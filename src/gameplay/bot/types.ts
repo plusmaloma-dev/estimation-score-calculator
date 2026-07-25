@@ -40,3 +40,8 @@ export interface BotCardDecision {
   readonly card: Card;
   readonly legalCardIds: readonly string[];
 }
+
+export interface TrickProbability {
+  readonly tricks: number;
+  readonly probability: number;
+}
