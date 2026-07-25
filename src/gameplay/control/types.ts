@@ -1,3 +1,4 @@
+import type { BotActionSource } from '../bot/types.js';
 import type { SeatIndex } from '../types.js';
 import type {
   DisconnectGraceSeconds,
@@ -71,6 +72,7 @@ export type ActiveControlEventType =
   | 'host.transferred'
   | 'turn.started'
   | 'turn.timeout-assistance'
+  | 'turn.bot-directed'
   | 'turn.bot-processing'
   | 'turn.completed';
 
@@ -87,5 +89,21 @@ export interface ActiveControlTransition {
   readonly valid: boolean;
   readonly errors: readonly string[];
   readonly state: ActiveGameControlState;
+  readonly events: readonly ActiveControlEvent[];
+}
+
+export interface BotActionDirective {
+  readonly directiveId: string;
+  readonly tableId: string;
+  readonly turnId: string;
+  readonly seat: SeatIndex;
+  readonly actionKind: ActiveTurnActionKind;
+  readonly source: BotActionSource;
+  readonly issuedAt: string;
+}
+
+export interface ActiveDeadlineEvaluation {
+  readonly state: ActiveGameControlState;
+  readonly directives: readonly BotActionDirective[];
   readonly events: readonly ActiveControlEvent[];
 }
