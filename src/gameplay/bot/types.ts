@@ -45,3 +45,22 @@ export interface TrickProbability {
   readonly tricks: number;
   readonly probability: number;
 }
+
+export interface BotBidObservation {
+  readonly policyVersion: StandardBotPolicyVersion;
+  readonly playerId: string;
+  readonly hand: readonly Card[];
+  readonly legalBids: readonly EstimationBid[];
+  readonly priorBids: readonly EstimationBid[];
+  readonly bidOwnerPlayerId: string;
+  readonly isLastBidder: boolean;
+  readonly currentScores: Readonly<Record<string, number>>;
+}
+
+export interface BotBidDecision {
+  readonly policyVersion: StandardBotPolicyVersion;
+  readonly bid: EstimationBid;
+  readonly expectedUtility: number;
+  readonly exactMatchProbability: number;
+  readonly evaluatedLegalBids: number;
+}
