@@ -1,10 +1,13 @@
 # Online Gameplay Table and Lobby Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
+
+**Status:** Complete on `feature/online-game-bot-mvp` as of 25 July 2026.  
+**Delivery report:** `docs/superpowers/reports/2026-07-25-online-table-lobby-delivery.md`
 
 **Goal:** Deliver the authoritative pre-game table/lobby subsystem for public and private four-seat gameplay tables, including joining, approval requests, host succession, settings, bot seat filling, Supabase persistence, RLS, and snapshot access.
 
-**Architecture:** First implement a pure immutable TypeScript table engine that owns lifecycle rules without database dependencies. Add versioned table commands around it. Then persist the same command boundaries through security-definer Supabase RPCs and expose them through a typed online service. Realtime and React consume authoritative snapshots later; clients never write table rows directly.
+**Architecture:** A pure immutable TypeScript table engine owns lifecycle rules without database dependencies. Versioned table commands wrap the engine. Security-definer Supabase RPCs persist the same command boundaries. Typed online services and allow-listed projections expose authoritative snapshots; clients never write table rows directly.
 
 **Tech Stack:** TypeScript 5.5+, Node test runner, Supabase PostgreSQL/RLS/RPC, Supabase JS client abstractions, GitHub Actions.
 
@@ -29,215 +32,120 @@
 
 ---
 
-### Task 1: Immutable table lifecycle, settings, and open joining
+### Task 1: Immutable table lifecycle, settings, and open joining — Complete
 
-**Files:**
-- Create: `src/gameplay/table/types.ts`
-- Create: `src/gameplay/table/GameplayTableEngine.ts`
-- Modify: `src/index.ts`
-- Test: `tests/gameplayTableEngine.test.ts`
+**Delivered files:**
+- `src/gameplay/table/types.ts`
+- `src/gameplay/table/GameplayTableEngine.ts`
+- `src/index.ts`
+- `tests/gameplayTableEngine.test.ts`
 
-**Interfaces:**
+**Verified behavior:**
+- Host creation seats one human and applies default timers.
+- Duplicate users and occupied requested seats are rejected without mutation.
+- Private tables require explicit access before joining.
+- Public approval-required tables reject direct open join.
+- Only the host can change lobby settings; invalid timers are rejected.
+- Start fills vacant seats with deterministic Standard bot IDs.
+- Start locks settings and blocks later joining.
+- Host leave transfers to the earliest joined remaining human; no humans closes the table.
 
-```ts
-export type GameplayTableVisibility = 'private' | 'public';
-export type GameplayTableJoinPolicy = 'open' | 'approval-required';
-export type GameplayTableLifecycle = 'lobby' | 'active' | 'paused' | 'completed' | 'terminated' | 'closed';
-export type GameplaySeatKind = 'human' | 'bot';
-export type TurnTimerSeconds = 20 | 30 | 45 | 60 | 90;
-export type DisconnectGraceSeconds = 30 | 60 | 90 | 120;
-
-export interface GameplayTableSeat {
-  readonly seat: SeatIndex;
-  readonly kind: GameplaySeatKind;
-  readonly userId?: string;
-  readonly botId?: string;
-  readonly displayName: string;
-  readonly joinedAt: string;
-}
-
-export interface GameplayJoinRequest {
-  readonly requestId: string;
-  readonly userId: string;
-  readonly displayName: string;
-  readonly requestedSeat?: SeatIndex;
-  readonly requestedAt: string;
-  readonly status: 'pending' | 'accepted' | 'rejected';
-  readonly resolvedAt?: string;
-  readonly resolvedBy?: string;
-}
-
-export interface GameplayTableState {
-  readonly tableId: string;
-  readonly workspaceId: string;
-  readonly name: string;
-  readonly lifecycle: GameplayTableLifecycle;
-  readonly visibility: GameplayTableVisibility;
-  readonly joinPolicy: GameplayTableJoinPolicy;
-  readonly hostUserId?: string;
-  readonly turnTimerSeconds: TurnTimerSeconds;
-  readonly disconnectGraceSeconds: DisconnectGraceSeconds;
-  readonly settingsLocked: boolean;
-  readonly seats: readonly GameplayTableSeat[];
-  readonly joinRequests: readonly GameplayJoinRequest[];
-  readonly createdAt: string;
-}
-
-export interface GameplayTableTransition {
-  readonly valid: boolean;
-  readonly errors: readonly string[];
-  readonly state: GameplayTableState;
-}
-```
-
-`GameplayTableEngine` methods:
-
-```ts
-create(input: CreateGameplayTableInput): GameplayTableState;
-updateSettings(state, actorUserId, patch): GameplayTableTransition;
-joinOpenTable(state, input): GameplayTableTransition;
-leaveLobby(state, actorUserId, occurredAt): GameplayTableTransition;
-start(state, actorUserId, occurredAt): GameplayTableTransition;
-```
-
-Tests first prove:
-
-1. Host creation seats one human and applies default timers.
-2. Duplicate users and occupied requested seats are rejected without mutation.
-3. Private tables require `privateAccessGranted: true` before joining.
-4. Public approval-required tables reject direct open join.
-5. Only host can change lobby settings; settings reject invalid timer values.
-6. Start fills all vacant seats with deterministic IDs `standard-bot:<tableId>:<seat>`.
-7. Start locks settings and blocks later joining.
-8. Host leave transfers to earliest joined remaining human; no humans closes the table.
-
-Acceptance command: `npm run ci`.
+**TDD evidence:** RED #735 / GREEN #738.
 
 ---
 
-### Task 2: Approval-required join requests and host decisions
+### Task 2: Approval-required join requests and host decisions — Complete
 
-**Files:**
-- Extend: `src/gameplay/table/types.ts`
-- Modify: `src/gameplay/table/GameplayTableEngine.ts`
-- Test: `tests/gameplayTableJoinRequests.test.ts`
+**Delivered files:**
+- `src/gameplay/table/types.ts`
+- `src/gameplay/table/GameplayTableEngine.ts`
+- `tests/gameplayTableJoinRequests.test.ts`
 
-Methods:
-
-```ts
-requestJoin(state, input): GameplayTableTransition;
-respondToJoinRequest(state, actorUserId, requestId, decision, occurredAt): GameplayTableTransition;
-```
-
-Rules:
-
-- Only public `approval-required` lobby tables accept requests.
+**Verified behavior:**
+- Only public approval-required lobby tables accept requests.
 - One pending request per user.
-- Only the current host may accept/reject.
+- Only the current host may accept or reject.
 - Acceptance atomically claims the requested vacant seat or first vacant seat.
-- A request whose requested seat became occupied is rejected without a partial seat mutation.
-- Accepted/rejected requests remain in history.
-- Start rejects while pending requests exist; the host must resolve or reject them first.
+- Occupied requested seats reject without partial mutation.
+- Resolved requests remain in history.
+- Start rejects while pending requests exist.
 
-Acceptance command: `npm run ci`.
-
----
-
-### Task 3: Versioned and idempotent table command processor
-
-**Files:**
-- Extend: `src/gameplay/table/types.ts`
-- Create: `src/gameplay/table/GameplayTableCommandProcessor.ts`
-- Test: `tests/gameplayTableCommandProcessor.test.ts`
-
-Commands cover update settings, open join, request join, respond request, leave, and start. Every envelope has `commandId`, `expectedVersion`, actor, occurrence timestamp, and payload. Accepted commands increment once; rejected/stale commands retain version; same ID/same payload returns original outcome; same ID/different payload is an integrity conflict.
-
-Acceptance command: `npm run ci`.
+**TDD evidence:** RED #739 / GREEN #741.
 
 ---
 
-### Task 4: Supabase gameplay table schema, RLS, and transactional RPCs
+### Task 3: Versioned and idempotent table command processor — Complete
 
-**Files:**
-- Create: `supabase/migrations/202607250004_gameplay_tables.sql`
-- Create: `supabase/migrations/202607250005_gameplay_tables_rls.sql`
-- Create: `supabase/migrations/202607250006_gameplay_table_rpc.sql`
-- Test: `tests/gameplayTableSchema.test.ts`
+**Delivered files:**
+- `src/gameplay/table/types.ts`
+- `src/gameplay/table/GameplayTableCommandProcessor.ts`
+- `tests/gameplayTableCommandProcessor.test.ts`
 
-Schema:
+**Verified behavior:**
+- Settings, open join, request join, response, leave, and Start commands.
+- Accepted commands increment once.
+- Rejected and stale commands retain the version and are recorded.
+- Same ID and envelope returns the original outcome.
+- Same ID with a different envelope is an integrity conflict.
 
-- `gameplay_tables`: workspace, name, visibility, join policy, lifecycle, host user, timers, settings lock, version, timestamps.
-- `gameplay_table_seats`: table, seat number, seat kind, human user or bot ID, display-name snapshot, joined time; constraints enforce exactly one human/bot identifier for its kind.
-- `gameplay_join_requests`: pending/accepted/rejected requests and resolution metadata.
-- `gameplay_table_commands`: command ID, expected/resulting versions, payload, accepted flag, errors, actor, timestamp; unique per table/command ID.
-- `gameplay_table_events`: append-only lifecycle/join/host/start events.
-
-RLS:
-
-- Workspace membership remains the authentication boundary.
-- Public lobby rows may be selected by workspace members.
-- Private table details are selectable only by seated humans, table host, or workspace admins.
-- Seat-private data for active gameplay remains outside public lobby projections.
-- No direct insert/update/delete grants to authenticated clients.
-
-RPCs:
-
-- `create_gameplay_table`
-- `update_gameplay_table_settings`
-- `join_gameplay_table`
-- `request_gameplay_table_join`
-- `respond_gameplay_join_request`
-- `leave_gameplay_table`
-- `start_gameplay_table`
-- `get_gameplay_lobby`
-- `get_gameplay_table_snapshot`
-
-Each RPC asserts `auth.uid() = p_actor_user_id`, workspace membership, expected version/idempotency, table lifecycle, host authority where required, and commits command/event/snapshot changes atomically.
-
-Static schema tests assert security-definer fixed search paths, revoked public access, authenticated execute grants, constraints, and required JSON snapshot sections.
+**TDD evidence:** RED #742 / GREEN #745.
 
 ---
 
-### Task 5: Typed online table service adapter
+### Task 4: Supabase gameplay table schema, RLS, and transactional RPCs — Complete with deployment verification pending
 
-**Files:**
-- Create: `src/online/gameplay/types.ts`
-- Create: `src/online/gameplay/OnlineGameplayTableService.ts`
-- Test: `tests/onlineGameplayTableService.test.ts`
+**Delivered files:**
+- `supabase/migrations/202607250004_gameplay_tables.sql`
+- `supabase/migrations/202607250005_gameplay_tables_rls.sql`
+- `supabase/migrations/202607250006_gameplay_table_rpc.sql`
+- `tests/gameplayTableSchema.test.ts`
+- `tests/deploymentConfiguration.test.ts`
 
-Follow the existing `OnlineGameDatabase.rpc` abstraction. Every method supplies workspace/actor IDs from `AuthSessionState`, validates client input before RPC, parses incomplete payloads as explicit failures, and never accepts service-role credentials.
+**Delivered persistence:**
+- Gameplay tables, seats, requests, commands, and events.
+- Workspace-scoped RLS and no direct authenticated writes.
+- Security-definer RPCs for create, settings, join, request, respond, leave, Start, lobby, and snapshot.
+- Safe JSON snapshots without hand/deal/bot-decision secrets.
 
-Methods:
+**TDD evidence:** RED #746 / GREEN #750.
 
-```ts
-createTable(input)
-listLobby()
-openTable(tableId)
-updateSettings(tableId, expectedVersion, patch, commandId)
-joinTable(tableId, expectedVersion, input, commandId)
-requestJoin(tableId, expectedVersion, input, commandId)
-respondJoinRequest(tableId, expectedVersion, requestId, decision, commandId)
-leaveTable(tableId, expectedVersion, commandId)
-startTable(tableId, expectedVersion, commandId)
-```
-
-Acceptance command: `npm run ci`.
+**Open release gate:** migrations have not yet been executed against a live/local Supabase PostgreSQL instance.
 
 ---
 
-### Task 6: Realtime-safe public/private snapshot projection
+### Task 5: Typed online table service adapter — Complete
 
-**Files:**
-- Create: `src/online/gameplay/GameplayTableSnapshotProjector.ts`
-- Test: `tests/gameplayTableSnapshotProjection.test.ts`
+**Delivered files:**
+- `src/online/gameplay/types.ts`
+- `src/online/gameplay/OnlineGameplayTableService.ts`
+- `tests/onlineGameplayTableService.test.ts`
 
-Produce:
+**Verified behavior:**
+- Session workspace/actor injection.
+- Client validation before RPC invocation.
+- Strict lobby and table snapshot parsing.
+- Explicit database, domain-rejection, and incomplete-response failures.
+- No service-role credentials.
 
-- Public lobby card: no private code, no private-hand/deal fields, only host display, occupied count, join policy, timers, lifecycle, and version.
-- Seated table member snapshot: table settings, seats, relevant join requests, lifecycle/version.
-- Host snapshot: pending requests and host controls.
-- No projection includes hands, seed, shuffled deck, or unpublished bot decisions.
+**TDD evidence:** RED #751 / GREEN #753.
 
-Tests enumerate exact own-property keys and scan serialized payloads for forbidden fields.
+---
 
-Acceptance command: `npm run ci`.
+### Task 6: Realtime-safe public/private snapshot projection — Complete
+
+**Delivered files:**
+- `src/online/gameplay/GameplayTableSnapshotProjector.ts`
+- `tests/gameplayTableSnapshotProjection.test.ts`
+
+**Verified behavior:**
+- Exact allow-listed public lobby card.
+- Seated member snapshot with own request history.
+- Host/Admin request visibility with host powers kept host-only.
+- Explicit Start/settings permission projection.
+- Malicious extra fields, hands, seeds, deck state, and unpublished decisions cannot leak through projections.
+
+**TDD evidence:** RED #754 / GREEN #755.
+
+## Final verification
+
+CI run #755 passed repository typechecking, the complete test suite, and the production build.
