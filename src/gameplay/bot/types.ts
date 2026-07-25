@@ -64,3 +64,34 @@ export interface BotBidDecision {
   readonly exactMatchProbability: number;
   readonly evaluatedLegalBids: number;
 }
+
+export type BotActionSource =
+  | 'permanent-bot'
+  | 'disconnect-substitute'
+  | 'timeout-assistant';
+
+export type BotAuditReasonCode =
+  | BotReasonCode
+  | 'EXPECTED_UTILITY_BID'
+  | 'POLICY_TIMEOUT_FALLBACK'
+  | 'POLICY_ERROR_FALLBACK';
+
+export interface BotDecisionAudit {
+  readonly policyVersion: StandardBotPolicyVersion;
+  readonly actionSource: BotActionSource;
+  readonly reasonCode: BotAuditReasonCode;
+  readonly legalActionIds: readonly string[];
+  readonly selectedActionId: string;
+  readonly durationMs: number;
+  readonly fallbackUsed: boolean;
+}
+
+export interface StandardBotCardResult {
+  readonly decision: BotCardDecision;
+  readonly audit: BotDecisionAudit;
+}
+
+export interface StandardBotBidResult {
+  readonly decision: BotBidDecision;
+  readonly audit: BotDecisionAudit;
+}
