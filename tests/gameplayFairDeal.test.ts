@@ -12,8 +12,8 @@ const input: FairDealInput = {
   firstSeat: 1,
 };
 
-test('fair deal gives four seats thirteen unique cards each', () => {
-  const result = new FairDealService().deal(input);
+test('fair deal gives four seats thirteen unique cards each', async () => {
+  const result = await new FairDealService().deal(input);
   const cards = result.hands.flatMap((hand) => hand.cards);
 
   assert.deepEqual(result.hands.map((hand) => hand.cards.length), [13, 13, 13, 13]);
@@ -24,23 +24,23 @@ test('fair deal gives four seats thirteen unique cards each', () => {
   assert.equal(result.hands[0]!.cards[0], result.shuffledDeck[3]);
 });
 
-test('same seed and deal metadata reproduce the same commitment, deck, and hands', () => {
+test('same seed and deal metadata reproduce the same commitment, deck, and hands', async () => {
   const service = new FairDealService();
 
-  assert.deepEqual(service.deal(input), service.deal(input));
+  assert.deepEqual(await service.deal(input), await service.deal(input));
 });
 
-test('different seed changes the shuffled deck', () => {
+test('different seed changes the shuffled deck', async () => {
   const service = new FairDealService();
-  const first = service.deal(input);
-  const second = service.deal({ ...input, seedHex: '01'.repeat(32) });
+  const first = await service.deal(input);
+  const second = await service.deal({ ...input, seedHex: '01'.repeat(32) });
 
   assert.notDeepEqual(first.shuffledDeck, second.shuffledDeck);
 });
 
-test('verification rejects altered recorded hands', () => {
+test('verification rejects altered recorded hands', async () => {
   const service = new FairDealService();
-  const result = service.deal(input);
+  const result = await service.deal(input);
   const firstHand = result.hands[0]!;
   const secondHand = result.hands[1]!;
   const altered = {
@@ -56,34 +56,34 @@ test('verification rejects altered recorded hands', () => {
     }),
   };
 
-  const verification = service.verify(altered);
+  const verification = await service.verify(altered);
   assert.equal(verification.valid, false);
   assert.ok(verification.errors.includes('Recorded hands do not match the deterministic deal.'));
 });
 
-test('verification rejects altered commitment metadata', () => {
+test('verification rejects altered commitment metadata', async () => {
   const service = new FairDealService();
-  const result = service.deal(input);
+  const result = await service.deal(input);
 
-  const verification = service.verify({ ...result, commitment: '0'.repeat(64) });
+  const verification = await service.verify({ ...result, commitment: '0'.repeat(64) });
   assert.equal(verification.valid, false);
   assert.ok(verification.errors.includes('Deal commitment does not match the revealed seed and metadata.'));
 });
 
-test('seed must contain exactly 256 bits encoded as hexadecimal', () => {
+test('seed must contain exactly 256 bits encoded as hexadecimal', async () => {
   const service = new FairDealService();
 
-  assert.throws(
-    () => service.deal({ ...input, seedHex: '00' }),
+  await assert.rejects(
+    service.deal({ ...input, seedHex: '00' }),
     /Seed must be exactly 32 bytes encoded as 64 hexadecimal characters\./,
   );
 });
 
-test('first seat must be one of the four table seats', () => {
+test('first seat must be one of the four table seats', async () => {
   const service = new FairDealService();
 
-  assert.throws(
-    () => service.deal({ ...input, firstSeat: 4 as 0 }),
+  await assert.rejects(
+    service.deal({ ...input, firstSeat: 4 as 0 }),
     /First seat must be 0, 1, 2, or 3\./,
   );
 });
