@@ -134,7 +134,7 @@ export function GameplayTableScreen({
 
   async function respond(
     requestId: string,
-    decision: 'accepted' | 'rejected',
+    decision: 'accept' | 'reject',
   ) {
     const service = services.gameplayTables;
     if (service === undefined || table === undefined) return;
@@ -264,7 +264,7 @@ export function GameplayTableScreen({
                         type="button"
                         disabled={busy}
                         aria-label={`Accept ${request.displayName}`}
-                        onClick={() => void respond(request.requestId, 'accepted')}
+                        onClick={() => void respond(request.requestId, 'accept')}
                       >
                         Accept
                       </button>
@@ -273,7 +273,7 @@ export function GameplayTableScreen({
                         type="button"
                         disabled={busy}
                         aria-label={`Reject ${request.displayName}`}
-                        onClick={() => void respond(request.requestId, 'rejected')}
+                        onClick={() => void respond(request.requestId, 'reject')}
                       >
                         Reject
                       </button>
