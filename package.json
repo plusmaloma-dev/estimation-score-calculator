@@ -6,15 +6,19 @@
   "type": "module",
   "scripts": {
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true }); fs.rmSync('dist-app', { recursive: true, force: true })\"",
+    "clean:score-engine": "node -e \"fs.rmSync('dist-score-engine', { recursive: true, force: true })\"",
     "dev": "vite",
+    "typecheck:score-engine": "tsc -p tsconfig.score-engine.json --noEmit",
     "typecheck:engine": "tsc -p tsconfig.engine.json --noEmit",
     "typecheck:app": "tsc -p tsconfig.app.json --noEmit",
     "typecheck": "npm run typecheck:engine && npm run typecheck:app",
+    "test:score-engine": "npm run clean:score-engine && tsc -p tsconfig.score-engine.json && node --test dist-score-engine/tests/score-engine/*.test.js",
     "test:engine": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/*.test.js",
     "test:ui": "vitest run",
     "test:app": "vitest",
     "test": "npm run test:engine && npm run test:ui",
     "build": "vite build",
+    "ci:score-engine": "npm run typecheck:score-engine && npm run test:score-engine",
     "ci": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
