@@ -120,7 +120,7 @@ export class GameplayRoundApplicationService {
       envelope,
     );
 
-    if (processResult.record === undefined) {
+    if (processResult.duplicate || processResult.record === undefined) {
       return {
         valid: processResult.valid,
         errors: processResult.errors,
