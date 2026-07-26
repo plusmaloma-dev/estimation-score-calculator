@@ -46,12 +46,13 @@ test('round schema stores private aggregate, append-only commands, and public in
   assert.match(schema, /transition jsonb not null default '\{\}'::jsonb/i);
 });
 
-test('private aggregate has no authenticated read or write grant', () => {
+test('private aggregate and command ledger have no authenticated read or write grant', () => {
   assert.doesNotMatch(schema, /create policy[\s\S]*gameplay_round_states/is);
+  assert.doesNotMatch(schema, /create policy[\s\S]*gameplay_round_commands/is);
   assert.doesNotMatch(schema, /grant\s+(select|insert|update|delete|all)[^;]*gameplay_round_states/i);
-  assert.doesNotMatch(schema, /grant\s+(insert|update|delete|all)[^;]*gameplay_round_commands/i);
-  assert.match(schema, /gameplay_round_commands_audit_select[\s\S]*can_audit_gameplay_table\(table_id\)/i);
+  assert.doesNotMatch(schema, /grant\s+(select|insert|update|delete|all)[^;]*gameplay_round_commands/i);
   assert.match(schema, /gameplay_round_invalidations_scoped_select[\s\S]*can_view_gameplay_table\(table_id\)/i);
+  assert.match(schema, /grant select on public\.gameplay_round_invalidations/i);
   assert.match(schema, /alter publication supabase_realtime add table public\.gameplay_round_invalidations/i);
 });
 
