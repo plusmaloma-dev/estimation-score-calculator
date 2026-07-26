@@ -28,9 +28,16 @@ export function HomeScreen() {
 
   return (
     <section className="screen-stack" aria-labelledby="recent-games-heading">
-      <button className="primary-button" type="button" onClick={() => navigate('new-game')}>
-        {t('startNewGame')}
-      </button>
+      <div className="home-primary-actions">
+        <button className="primary-button" type="button" onClick={() => navigate('new-game')}>
+          {t('startNewGame')}
+        </button>
+        {services.gameplayTables !== undefined && (
+          <button className="secondary-button" type="button" onClick={() => navigate('gameplay-lobby')}>
+            {t('playOnline')}
+          </button>
+        )}
+      </div>
 
       <h2 id="recent-games-heading">{t('recentGames')}</h2>
       {error !== undefined && <div className="error-summary" role="alert">{error}</div>}
