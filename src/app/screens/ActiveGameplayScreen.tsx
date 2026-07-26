@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { EstimationBid } from '../../domain/bid.js';
+import type { Card } from '../../domain/card.js';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useApp } from '../AppContext.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
 import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
+import { GameplayCardPanel } from '../components/GameplayCardPanel.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 function commandId(prefix: string): string {
@@ -208,6 +210,35 @@ export function ActiveGameplayScreen({
     }
   }
 
+  async function playCard(card: Card) {
+    const service = services.gameplayRound;
+    if (service === undefined || roundSnapshot === undefined || roundBusy) return;
+
+    setRoundBusy(true);
+    setRoundErrors([]);
+    try {
+      const result = await service.playCard(
+        tableId,
+        roundSnapshot.version,
+        commandId('play-card'),
+        card,
+      );
+      if (!result.valid || result.value === undefined) {
+        setRoundErrors(result.errors);
+        const reload = await service.getSnapshot(tableId);
+        if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        return;
+      }
+      setRoundSnapshot(result.value);
+    } catch (reason: unknown) {
+      setRoundErrors([reason instanceof Error ? reason.message : 'Card could not be played.']);
+      const reload = await service.getSnapshot(tableId);
+      if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+    } finally {
+      setRoundBusy(false);
+    }
+  }
+
   async function pause() {
     const service = services.activeGameControl;
     if (service === undefined || snapshot === undefined) return;
@@ -298,11 +329,20 @@ export function ActiveGameplayScreen({
           <ActiveSeatStatus seats={snapshot.seats} activeSeat={snapshot.turn?.seat} />
 
           {roundSnapshot !== undefined && snapshot.lifecycle !== 'terminated' && (
-            <GameplayBidPanel
-              snapshot={roundSnapshot}
-              busy={roundBusy || snapshot.lifecycle === 'paused'}
-              onSubmit={submitEstimate}
-            />
+            <>
+              <GameplayBidPanel
+                snapshot={roundSnapshot}
+                busy={roundBusy || snapshot.lifecycle === 'paused'}
+                onSubmit={submitEstimate}
+              />
+              {(roundSnapshot.phase === 'playing' || roundSnapshot.phase === 'scored') && (
+                <GameplayCardPanel
+                  snapshot={roundSnapshot}
+                  busy={roundBusy || snapshot.lifecycle === 'paused'}
+                  onPlay={playCard}
+                />
+              )}
+            </>
           )}
 
           {isHost && snapshot.lifecycle !== 'terminated' && (
