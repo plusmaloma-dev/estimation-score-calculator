@@ -89,6 +89,7 @@ export type ActiveGameRealtimePort = Pick<ActiveGameRealtimeSynchronizer,
 >;
 
 export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
+  | 'startGame'
   | 'getSnapshot'
   | 'submitBid'
   | 'playCard'
