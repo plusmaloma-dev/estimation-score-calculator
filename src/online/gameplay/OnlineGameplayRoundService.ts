@@ -13,6 +13,7 @@ import type {
   SeatIndex,
 } from '../../gameplay/types.js';
 import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
+import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
 import type { OnlineGameplayResult } from './types.js';
 import type {
   OnlineGameplayRoundPlayer,
@@ -88,6 +89,64 @@ export class OnlineGameplayRoundService {
       commandId: commandId.trim(),
       card,
     });
+  }
+
+  async processBotDirective(
+    tableId: string,
+    directiveId: string,
+  ): Promise<OnlineBotDirectiveResult> {
+    const errors = this.validateTableId(tableId);
+    if (!directiveId.trim()) errors.push('Bot directive ID is required.');
+    if (errors.length > 0) return { valid: false, errors, terminal: true };
+
+    const response = await this.client.functions.invoke('gameplay-round-command', {
+      body: {
+        action: 'process-bot-directive',
+        tableId: tableId.trim(),
+        directiveId: directiveId.trim(),
+      },
+    });
+    if (response.error !== null) {
+      return { valid: false, errors: [response.error.message], terminal: false };
+    }
+
+    const envelope = this.object(response.data);
+    if (
+      envelope === undefined
+      || typeof envelope.valid !== 'boolean'
+      || typeof envelope.terminal !== 'boolean'
+    ) {
+      return {
+        valid: false,
+        errors: ['Gameplay bot directive response is incomplete.'],
+        terminal: false,
+      };
+    }
+    const responseErrors = this.stringArray(envelope.errors);
+    if (!envelope.valid) {
+      return {
+        valid: false,
+        errors: responseErrors.length > 0
+          ? responseErrors
+          : ['Gameplay bot directive was rejected.'],
+        terminal: envelope.terminal,
+      };
+    }
+    if (this.containsProhibitedField(envelope.value)) {
+      return {
+        valid: false,
+        errors: ['Gameplay round snapshot contains prohibited private fields.'],
+        terminal: true,
+      };
+    }
+    const snapshot = this.parseSnapshot(envelope.value);
+    return snapshot === undefined
+      ? {
+          valid: false,
+          errors: ['Gameplay round snapshot is incomplete.'],
+          terminal: false,
+        }
+      : { valid: true, errors: [], terminal: envelope.terminal, value: snapshot };
   }
 
   private async invoke(
