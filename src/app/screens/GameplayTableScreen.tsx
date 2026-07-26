@@ -18,16 +18,18 @@ function newCommandId(prefix: string): string {
 export function GameplayTableScreen({
   tableId,
   currentUserId,
+  currentDisplayName = '',
 }: {
   readonly tableId: string;
   readonly currentUserId: string;
+  readonly currentDisplayName?: string;
 }) {
   const { services, navigate, openActiveGame } = useApp();
   const { t } = useI18n();
   const [table, setTable] = useState<OnlineGameplayTableSnapshot | undefined>();
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(currentDisplayName);
   const [requestedSeat, setRequestedSeat] = useState<0 | 1 | 2 | 3>(1);
   const [turnTimerSeconds, setTurnTimerSeconds] = useState<TurnTimerSeconds>(45);
   const [disconnectGraceSeconds, setDisconnectGraceSeconds] = useState<DisconnectGraceSeconds>(60);
@@ -148,9 +150,37 @@ export function GameplayTableScreen({
   }
 
   async function startGame() {
-    const service = services.gameplayTables;
-    if (service === undefined || table === undefined) return;
-    await mutate(() => service.startTable(
+    if (busy || table === undefined) return;
+    const secureService = services.gameplayRound;
+    if (secureService !== undefined) {
+      setBusy(true);
+      setErrors([]);
+      try {
+        const result = await secureService.startGame(
+          table.tableId,
+          table.version,
+          newCommandId('start-game'),
+        );
+        if (!result.valid || result.value === undefined) {
+          setErrors(result.errors);
+          return;
+        }
+        openActiveGame(result.value.tableId);
+      } catch (reason: unknown) {
+        setErrors([
+          reason instanceof Error
+            ? reason.message
+            : 'Secure gameplay session could not be initialized.',
+        ]);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    const tableService = services.gameplayTables;
+    if (tableService === undefined) return;
+    await mutate(() => tableService.startTable(
       table.tableId,
       table.version,
       newCommandId('start-table'),
