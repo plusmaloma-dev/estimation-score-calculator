@@ -89,11 +89,13 @@ export type ActiveGameRealtimePort = Pick<ActiveGameRealtimeSynchronizer,
 >;
 
 export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
-  | 'startGame'
   | 'getSnapshot'
   | 'submitBid'
   | 'playCard'
-> & Partial<Pick<OnlineGameplayRoundService, 'processBotDirective'>>;
+> & Partial<Pick<OnlineGameplayRoundService,
+  | 'startGame'
+  | 'processBotDirective'
+>>;
 
 export type GameplayRoundRealtimePort = Pick<GameplayRoundRealtimeSynchronizer,
   | 'connect'
