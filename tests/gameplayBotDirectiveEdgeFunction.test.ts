@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 const edge = readFileSync('supabase/functions/gameplay-round-command/index.ts', 'utf8');
+const botService = readFileSync('src/gameplay/bot/GameplayBotDirectiveService.ts', 'utf8');
 
 function compact(value: string): string {
   return value.replace(/\s+/g, ' ');
@@ -20,7 +21,7 @@ test('issued directive and authoritative control state are loaded with service-r
   assert.match(edge, /directives/i);
   assert.match(edge, /gameplay_active_controls/i);
   assert.match(edge, /gameplay_active_seat_controls/i);
-  assert.match(edge, /bot-round:\$\{directiveId\}/i);
+  assert.match(botService, /bot-round:\$\{directive\.directiveId\}/i);
   assert.match(edge, /directive\.turnId[\s\S]*turn_id/i);
   assert.match(edge, /directive\.seat[\s\S]*turn_seat/i);
   assert.match(edge, /directive\.actionKind[\s\S]*turn_action_kind/i);
