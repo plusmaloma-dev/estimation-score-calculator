@@ -6,7 +6,7 @@ import { GameplayApp } from './GameplayApp.js';
 const services: GameplayApplicationServices = {
   gameplayTables: {
     listLobby: async () => ({ valid: true, errors: [], value: [] }),
-  } as GameplayApplicationServices['gameplayTables'],
+  } as unknown as GameplayApplicationServices['gameplayTables'],
 };
 
 describe('GameplayApp', () => {
