@@ -1,10 +1,9 @@
 import { cardId, type Card, type ContractSuit } from '../domain/card.js';
 import type { EstimationBid } from '../domain/bid.js';
-import { houseRulesV1ScoringProfile } from '../scoring/houseRulesV1Profile.js';
-import { HOUSE_RULES_V1 } from '../scoring/ruleSets.js';
-import { EstimationMvpService } from '../services/EstimationMvpService.js';
 import { BidValidationService } from '../services/BidValidationService.js';
 import { LegalCardPlayService } from './LegalCardPlayService.js';
+import type { RoundScoringPort } from './scoring/RoundScoringPort.js';
+import { ScoreEngineRoundScoringAdapter } from './scoring/ScoreEngineRoundScoringAdapter.js';
 import { TrickResolutionService } from './TrickResolutionService.js';
 import {
   SEAT_INDICES,
@@ -21,8 +20,8 @@ import {
 
 export class HouseRulesRoundEngine {
   constructor(
+    private readonly scoringPort: RoundScoringPort = new ScoreEngineRoundScoringAdapter(),
     private readonly bidValidationService = new BidValidationService(),
-    private readonly estimationMvpService = new EstimationMvpService(),
     private readonly legalCardPlayService = new LegalCardPlayService(),
     private readonly trickResolutionService = new TrickResolutionService(),
   ) {}
@@ -92,7 +91,7 @@ export class HouseRulesRoundEngine {
     const isFinalBid = tentativeBids.length === 4;
 
     if (isFinalBid) {
-      const fullValidation = this.estimationMvpService.validateBids(tentativeBids, {
+      const fullValidation = this.scoringPort.validateBids(tentativeBids, {
         mode: 'round-estimates',
         bidOwnerPlayerId,
       });
@@ -211,16 +210,13 @@ export class HouseRulesRoundEngine {
     const bidOwnerPlayerId = this.playerIdForSeat(state.players, state.bidOwnerSeat);
     const lastBidSeat = state.bidOrder[3];
     const riskPlayerId = this.playerIdForSeat(state.players, lastBidSeat);
-    const scoreResult = this.estimationMvpService.calculateRound({
+    const scoreResult = this.scoringPort.scoreRound({
       roundNumber: state.roundNumber,
       bids: state.bids,
       actualResults: state.players.map(({ seat: playerSeat, playerId }) => ({
         playerId,
         actualTricks: actualTricksBySeat[playerSeat],
       })),
-      profile: houseRulesV1ScoringProfile,
-      ruleSet: HOUSE_RULES_V1,
-      bidValidationMode: 'round-estimates',
       bidOwnerPlayerId,
       riskPlayerId,
       roundMultiplier: state.roundMultiplier,
