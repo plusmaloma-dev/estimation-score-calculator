@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  CanonicalDeck,
+  createCanonicalDeck,
   OnlineGameplayRoundService,
   type GameplayRoundFunctionClient,
 } from '../src/index.js';
@@ -33,7 +33,7 @@ function client(responses: readonly InvokeResponse[]): GameplayRoundFunctionClie
 }
 
 function snapshot(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
-  const ownHand = new CanonicalDeck().cards().slice(0, 13);
+  const ownHand = createCanonicalDeck().slice(0, 13);
   return {
     tableId: '11111111-1111-4111-8111-111111111111',
     roundNumber: 1,
@@ -84,7 +84,7 @@ test('submitBid and playCard route command identity and expected version exactly
   ]);
   const service = new OnlineGameplayRoundService(database);
   const bid = { playerId: 'p2', bidType: 'normal' as const, tricks: 5, trumpSuit: 'spades' as const };
-  const card = new CanonicalDeck().cards()[0]!;
+  const card = createCanonicalDeck()[0]!;
 
   const bidResult = await service.submitBid(
     '11111111-1111-4111-8111-111111111111', 3, 'bid-command', bid,
