@@ -2,6 +2,7 @@ import type { Card, CardSuit, Rank } from '../../domain/card.js';
 import { cardId } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import { GameplayRoundResultPanel } from './GameplayRoundResultPanel.js';
 
 const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
   spades: '♠',
@@ -87,7 +88,10 @@ export function GameplayCardPanel({
       </div>
 
       {snapshot.phase === 'scored' ? (
-        <p role="status">{t('roundScored')}</p>
+        <>
+          <p role="status">{t('roundScored')}</p>
+          <GameplayRoundResultPanel snapshot={snapshot} />
+        </>
       ) : snapshot.phase !== 'playing' ? null : (
         <>
           <p role="status">
