@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import type { AuthSessionState } from '../../online/auth/types.js';
-import type { AuthPort } from '../AppContext.js';
+import type { GameplayAuthPort } from '../gameplay/GameplayContext.js';
 
 export function SignInScreen({
   auth,
   onAuthenticated,
   initialErrors = [],
 }: {
-  readonly auth: Pick<AuthPort, 'signIn'>;
+  readonly auth: Pick<GameplayAuthPort, 'signIn'>;
   readonly onAuthenticated: (session: AuthSessionState) => void;
   readonly initialErrors?: readonly string[];
 }) {
