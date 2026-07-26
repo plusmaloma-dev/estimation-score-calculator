@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EstimationBid } from '../../domain/bid.js';
 import type { Card } from '../../domain/card.js';
-import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
+import { BotDirectiveCoordinator } from '../../online/gameplay/BotDirectiveCoordinator.js';
+import type {
+  OnlineActiveGameControlSnapshot,
+  OnlineBotActionDirective,
+} from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useApp } from '../AppContext.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
@@ -41,6 +45,32 @@ function remainingSeconds(snapshot: OnlineActiveGameControlSnapshot): number | u
   return Math.max(0, Math.ceil((Date.parse(turn.deadlineAt) - Date.now()) / 1_000));
 }
 
+function recoverableDirective(
+  snapshot: OnlineActiveGameControlSnapshot,
+): OnlineBotActionDirective | undefined {
+  const turn = snapshot.turn;
+  if (
+    turn === undefined
+    || turn.status !== 'assistant-pending' && turn.status !== 'bot-processing'
+  ) return undefined;
+  const seat = snapshot.seats[turn.seat];
+  if (seat === undefined) return undefined;
+  const source = seat.controlOwner === 'permanent-bot'
+    ? 'permanent-bot'
+    : seat.controlOwner === 'temporary-bot'
+      ? 'disconnect-substitute'
+      : 'timeout-assistant';
+  return {
+    directiveId: `bot-action:${snapshot.tableId}:${turn.turnId}:${turn.seat}`,
+    tableId: snapshot.tableId,
+    turnId: turn.turnId,
+    seat: turn.seat,
+    actionKind: turn.actionKind,
+    source,
+    issuedAt: turn.startedAt,
+  };
+}
+
 export function ActiveGameplayScreen({
   tableId,
   currentUserId,
@@ -58,6 +88,16 @@ export function ActiveGameplayScreen({
   const [roundBusy, setRoundBusy] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeConfirmed, setCloseConfirmed] = useState(false);
+  const evaluatedTurns = useRef(new Set<string>());
+  const directiveCoordinator = useMemo(() => {
+    const processBotDirective = services.gameplayRound?.processBotDirective;
+    if (processBotDirective === undefined) return undefined;
+    return new BotDirectiveCoordinator({
+      processBotDirective: (directiveTableId, directiveId) => (
+        processBotDirective.call(services.gameplayRound, directiveTableId, directiveId)
+      ),
+    });
+  }, [services.gameplayRound]);
 
   useEffect(() => {
     let active = true;
@@ -148,6 +188,77 @@ export function ActiveGameplayScreen({
       void realtime.disconnect();
     };
   }, [services.activeGameRealtime, tableId]);
+
+  useEffect(() => {
+    const service = services.activeGameControl;
+    const turn = snapshot?.turn;
+    if (
+      service === undefined
+      || snapshot === undefined
+      || snapshot.lifecycle !== 'active'
+      || turn === undefined
+      || turn.status !== 'running'
+    ) return;
+
+    const seat = snapshot.seats[turn.seat];
+    if (seat === undefined) return;
+    const key = `${turn.turnId}:${snapshot.version}`;
+    if (evaluatedTurns.current.has(key)) return;
+    const delay = seat.controlOwner === 'human'
+      ? Math.max(0, Date.parse(turn.deadlineAt ?? turn.startedAt) - Date.now())
+      : 0;
+
+    const timer = window.setTimeout(() => {
+      if (evaluatedTurns.current.has(key)) return;
+      evaluatedTurns.current.add(key);
+      const occurredAt = nowIso();
+      const evaluation = () => service.evaluateDeadlines(
+        tableId,
+        snapshot.version,
+        `evaluate-deadline:${turn.turnId}:${snapshot.version}:${currentUserId}`,
+        occurredAt,
+      );
+      const resultPromise = services.activeGameRealtime === undefined
+        ? evaluation()
+        : services.activeGameRealtime.runMutation(evaluation);
+      void resultPromise.then((result) => {
+        if (result.valid && result.value !== undefined) {
+          setSnapshot(result.value);
+          return;
+        }
+        if (!result.errors.includes('No active deadline transition was produced.')) {
+          setErrors(result.errors);
+        }
+      }).catch((reason: unknown) => {
+        evaluatedTurns.current.delete(key);
+        setErrors([reason instanceof Error ? reason.message : 'Turn deadline could not be evaluated.']);
+      });
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [currentUserId, services.activeGameControl, services.activeGameRealtime, snapshot, tableId]);
+
+  useEffect(() => {
+    if (snapshot === undefined || directiveCoordinator === undefined) return;
+    const fallback = recoverableDirective(snapshot);
+    const directives = snapshot.directives.length > 0
+      ? snapshot.directives
+      : fallback === undefined ? [] : [fallback];
+    if (directives.length === 0) return;
+
+    void directiveCoordinator.process(
+      directives,
+      (value) => {
+        setRoundSnapshot(value);
+        setRoundErrors([]);
+      },
+      (directiveErrors) => setRoundErrors(directiveErrors),
+    ).catch((reason: unknown) => {
+      setRoundErrors([reason instanceof Error ? reason.message : 'Bot directive processing failed.']);
+    });
+  }, [directiveCoordinator, snapshot]);
+
+  useEffect(() => () => directiveCoordinator?.reset(), [directiveCoordinator]);
 
   async function mutate(
     operation: () => Promise<{
