@@ -34,6 +34,7 @@ export interface GameplayRoundFunctionClient {
 
 const PHASES = ['bidding', 'playing', 'scored'] as const;
 const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
+const SHA256_HEX = /^[0-9a-f]{64}$/i;
 const PROHIBITED_KEYS = new Set([
   'hands',
   'seed',
@@ -47,12 +48,33 @@ const PROHIBITED_KEYS = new Set([
 export class OnlineGameplayRoundService {
   constructor(private readonly client: GameplayRoundFunctionClient) {}
 
+  async startGame(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction(
+      'gameplay-start',
+      {
+        tableId: tableId.trim(),
+        expectedVersion,
+        commandId: commandId.trim(),
+      },
+      true,
+    );
+  }
+
   async getSnapshot(
     tableId: string,
   ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
     const errors = this.validateTableId(tableId);
     if (errors.length > 0) return this.failure(errors);
-    return this.invoke({ action: 'snapshot', tableId: tableId.trim() });
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'snapshot',
+      tableId: tableId.trim(),
+    });
   }
 
   async submitBid(
@@ -64,7 +86,7 @@ export class OnlineGameplayRoundService {
     const errors = this.validateCommand(tableId, expectedVersion, commandId);
     if (this.parseBid(bid) === undefined) errors.push('Gameplay bid is invalid.');
     if (errors.length > 0) return this.failure(errors);
-    return this.invoke({
+    return this.invokeFunction('gameplay-round-command', {
       action: 'submit-bid',
       tableId: tableId.trim(),
       expectedVersion,
@@ -82,7 +104,7 @@ export class OnlineGameplayRoundService {
     const errors = this.validateCommand(tableId, expectedVersion, commandId);
     if (this.parseCard(card) === undefined) errors.push('Gameplay card is invalid.');
     if (errors.length > 0) return this.failure(errors);
-    return this.invoke({
+    return this.invokeFunction('gameplay-round-command', {
       action: 'play-card',
       tableId: tableId.trim(),
       expectedVersion,
@@ -139,7 +161,7 @@ export class OnlineGameplayRoundService {
         terminal: true,
       };
     }
-    const snapshot = this.parseSnapshot(envelope.value);
+    const snapshot = this.parseSnapshot(envelope.value, false);
     return snapshot === undefined
       ? {
           valid: false,
@@ -149,10 +171,12 @@ export class OnlineGameplayRoundService {
       : { valid: true, errors: [], terminal: envelope.terminal, value: snapshot };
   }
 
-  private async invoke(
+  private async invokeFunction(
+    functionName: 'gameplay-start' | 'gameplay-round-command',
     body: Readonly<Record<string, unknown>>,
+    requireDealCommitment = false,
   ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
-    const response = await this.client.functions.invoke('gameplay-round-command', { body });
+    const response = await this.client.functions.invoke(functionName, { body });
     if (response.error !== null) return this.failure([response.error.message]);
 
     const envelope = this.object(response.data);
@@ -167,13 +191,16 @@ export class OnlineGameplayRoundService {
       return this.failure(['Gameplay round snapshot contains prohibited private fields.']);
     }
 
-    const snapshot = this.parseSnapshot(envelope.value);
+    const snapshot = this.parseSnapshot(envelope.value, requireDealCommitment);
     return snapshot === undefined
       ? this.failure(['Gameplay round snapshot is incomplete.'])
       : { valid: true, errors: [], value: snapshot };
   }
 
-  private parseSnapshot(value: unknown): OnlineGameplayRoundSnapshot | undefined {
+  private parseSnapshot(
+    value: unknown,
+    requireDealCommitment: boolean,
+  ): OnlineGameplayRoundSnapshot | undefined {
     const row = this.object(value);
     if (row === undefined) return undefined;
 
@@ -183,6 +210,9 @@ export class OnlineGameplayRoundService {
     const version = this.nonNegativeInteger(row.version);
     const viewerSeat = this.seat(row.viewerSeat);
     const bidOwnerSeat = this.seat(row.bidOwnerSeat);
+    const dealCommitment = row.dealCommitment === null || row.dealCommitment === undefined
+      ? undefined
+      : this.sha256Hex(row.dealCommitment);
     if (
       tableId === undefined
       || roundNumber === undefined
@@ -190,6 +220,10 @@ export class OnlineGameplayRoundService {
       || version === undefined
       || viewerSeat === undefined
       || bidOwnerSeat === undefined
+      || (requireDealCommitment && dealCommitment === undefined)
+      || (row.dealCommitment !== null
+        && row.dealCommitment !== undefined
+        && dealCommitment === undefined)
       || !Array.isArray(row.players)
       || row.players.length !== 4
       || !Array.isArray(row.ownHand)
@@ -253,6 +287,7 @@ export class OnlineGameplayRoundService {
       version,
       viewerSeat,
       bidOwnerSeat,
+      ...(dealCommitment === undefined ? {} : { dealCommitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(currentTurnSeat === undefined ? {} : { currentTurnSeat }),
       players,
@@ -403,6 +438,10 @@ export class OnlineGameplayRoundService {
 
   private contractSuit(value: unknown): ContractSuit | undefined {
     return typeof value === 'string' && isValidContractSuit(value) ? value : undefined;
+  }
+
+  private sha256Hex(value: unknown): string | undefined {
+    return typeof value === 'string' && SHA256_HEX.test(value) ? value.toLowerCase() : undefined;
   }
 
   private seat(value: unknown): SeatIndex | undefined {
