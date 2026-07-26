@@ -51,7 +51,10 @@ function AppContent({
       {route === 'new-game' && <NewGameScreen />}
       {route === 'gameplay-lobby' && <GameplayLobbyScreen />}
       {route === 'gameplay-table' && activeGameplayTableId !== undefined && (
-        <GameplayTableScreen tableId={activeGameplayTableId} />
+        <GameplayTableScreen
+          tableId={activeGameplayTableId}
+          currentUserId={session?.user.id ?? ''}
+        />
       )}
       {route === 'active-game' && activeGameplayTableId !== undefined && (
         <section className="screen-stack" aria-labelledby="active-game-heading">
