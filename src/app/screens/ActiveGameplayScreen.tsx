@@ -190,6 +190,37 @@ export function ActiveGameplayScreen({
   }, [services.activeGameRealtime, tableId]);
 
   useEffect(() => {
+    let active = true;
+    const realtime = services.gameplayRoundRealtime;
+    if (realtime === undefined) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void realtime.connect(
+      tableId,
+      (value) => {
+        if (!active) return;
+        setRoundSnapshot(value);
+        setRoundErrors([]);
+      },
+      (realtimeErrors) => {
+        if (!active) return;
+        setRoundErrors(realtimeErrors);
+      },
+    ).catch((reason: unknown) => {
+      if (!active) return;
+      setRoundErrors([reason instanceof Error ? reason.message : 'Round Realtime synchronization failed.']);
+    });
+
+    return () => {
+      active = false;
+      void realtime.disconnect();
+    };
+  }, [services.gameplayRoundRealtime, tableId]);
+
+  useEffect(() => {
     const service = services.activeGameControl;
     const turn = snapshot?.turn;
     if (
@@ -300,16 +331,21 @@ export function ActiveGameplayScreen({
     setRoundBusy(true);
     setRoundErrors([]);
     try {
-      const result = await service.submitBid(
+      const operation = () => service.submitBid(
         tableId,
         roundSnapshot.version,
         commandId('submit-bid'),
         bid,
       );
+      const result = services.gameplayRoundRealtime === undefined
+        ? await operation()
+        : await services.gameplayRoundRealtime.runMutation(operation);
       if (!result.valid || result.value === undefined) {
         setRoundErrors(result.errors);
-        const reload = await service.getSnapshot(tableId);
-        if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        if (services.gameplayRoundRealtime === undefined) {
+          const reload = await service.getSnapshot(tableId);
+          if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        }
         return;
       }
       setRoundSnapshot(result.value);
@@ -329,16 +365,21 @@ export function ActiveGameplayScreen({
     setRoundBusy(true);
     setRoundErrors([]);
     try {
-      const result = await service.playCard(
+      const operation = () => service.playCard(
         tableId,
         roundSnapshot.version,
         commandId('play-card'),
         card,
       );
+      const result = services.gameplayRoundRealtime === undefined
+        ? await operation()
+        : await services.gameplayRoundRealtime.runMutation(operation);
       if (!result.valid || result.value === undefined) {
         setRoundErrors(result.errors);
-        const reload = await service.getSnapshot(tableId);
-        if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        if (services.gameplayRoundRealtime === undefined) {
+          const reload = await service.getSnapshot(tableId);
+          if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        }
         return;
       }
       setRoundSnapshot(result.value);
