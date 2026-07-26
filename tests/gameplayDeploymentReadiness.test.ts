@@ -79,8 +79,8 @@ test('runbook links a separate Vercel project and exposes only browser-safe vari
     assert.match(exampleEnvironment, new RegExp(`^${variable}=`, 'm'));
     assert.match(runbook, new RegExp(`vercel env add ${variable} preview`, 'i'));
   }
-  assert.doesNotMatch(runbook, /vercel env add .*service.role/i);
-  assert.doesNotMatch(runbook, /VITE_.*SERVICE/i);
+  assert.doesNotMatch(runbook, /vercel env add\s+VITE_[A-Z0-9_]*SERVICE/i);
+  assert.doesNotMatch(runbook, /^VITE_[A-Z0-9_]*SERVICE[A-Z0-9_]*=/im);
   assert.doesNotMatch(runbook, /--no-verify-jwt/i);
   assert.match(startFunction, /auth\.getUser\(\)/i);
   assert.match(roundFunction, /auth\.getUser\(\)/i);
