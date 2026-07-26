@@ -1,0 +1,246 @@
+.home-primary-actions,
+.gameplay-lobby-actions,
+.screen-actions,
+.active-host-controls,
+.gameplay-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+
+.gameplay-lobby-actions,
+.gameplay-table-heading {
+  justify-content: space-between;
+}
+
+.gameplay-create-form,
+.gameplay-table-settings,
+.gameplay-join-form {
+  box-shadow: 0 .5rem 1.5rem rgb(20 50 44 / 6%);
+}
+
+.gameplay-create-form h3,
+.gameplay-table-settings h3,
+.gameplay-table-heading h2,
+.active-game-screen h2,
+.active-turn-card h3 {
+  margin: 0;
+}
+
+.gameplay-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.gameplay-form-grid label,
+.gameplay-join-form label {
+  display: grid;
+  gap: .4rem;
+  font-weight: 700;
+}
+
+.gameplay-form-grid select,
+.gameplay-join-form select,
+.gameplay-join-form input,
+.gameplay-create-form select {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid #bcc9c6;
+  border-radius: .75rem;
+  background: white;
+  padding: .65rem .8rem;
+  color: inherit;
+}
+
+.gameplay-lobby-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.gameplay-table-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.gameplay-table-heading p {
+  margin: .35rem 0 0;
+  color: #64706d;
+}
+
+.gameplay-seat-grid,
+.active-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-seat,
+.active-seat-card {
+  display: grid;
+  gap: .35rem;
+  min-height: 7rem;
+  align-content: center;
+  border: 1px solid #cad6d2;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 .35rem 1rem rgb(20 50 44 / 5%);
+}
+
+.gameplay-seat span,
+.active-seat-card span {
+  color: #62706c;
+  font-size: .9rem;
+}
+
+.gameplay-seat--vacant {
+  border-style: dashed;
+  background: #f7faf9;
+}
+
+.gameplay-request-list {
+  display: grid;
+  gap: .75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-request-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #d8e1df;
+  border-radius: .8rem;
+  padding: .75rem;
+}
+
+.active-game-screen {
+  width: min(100%, 68rem);
+  margin: 0 auto;
+}
+
+.active-lifecycle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #bdd2cc;
+  border-radius: .9rem;
+  background: #eaf5f1;
+  padding: .8rem 1rem;
+}
+
+.active-lifecycle--paused {
+  border-color: #d8bd7c;
+  background: #fff8e7;
+}
+
+.active-lifecycle--terminated {
+  border-color: #d7b3b3;
+  background: #fff1f1;
+}
+
+.active-lifecycle span {
+  color: #5d6b67;
+  font-size: .85rem;
+}
+
+.active-turn-card {
+  display: grid;
+  gap: .35rem;
+  border: 1px solid #cbd8d4;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
+}
+
+.active-turn-card p {
+  margin: 0;
+  color: #5e6b68;
+}
+
+.active-seat-card--turn {
+  border-color: #087846;
+  box-shadow: inset 0 0 0 1px #087846, 0 .45rem 1.2rem rgb(0 98 56 / 12%);
+}
+
+.active-host-controls {
+  justify-content: flex-end;
+  border-top: 1px solid #d8e1df;
+  padding-top: 1rem;
+}
+
+.termination-confirmation {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin: 1rem 0;
+  border: 1px solid #ead3a7;
+  border-radius: .75rem;
+  background: #fff9ec;
+  padding: .8rem;
+  font-weight: 700;
+}
+
+.termination-confirmation input {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+@media (max-width: 48rem) {
+  .gameplay-form-grid,
+  .gameplay-seat-grid,
+  .active-seat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gameplay-table-heading,
+  .gameplay-request-list > li,
+  .active-lifecycle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gameplay-request-actions,
+  .active-host-controls {
+    justify-content: stretch;
+  }
+
+  .gameplay-request-actions > button,
+  .active-host-controls > button {
+    flex: 1 1 10rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .home-primary-actions,
+  .gameplay-lobby-actions,
+  .screen-actions,
+  .gameplay-request-actions,
+  .active-host-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .home-primary-actions > button,
+  .gameplay-lobby-actions > button,
+  .screen-actions > button,
+  .gameplay-request-actions > button,
+  .active-host-controls > button {
+    width: 100%;
+  }
+
+  .gameplay-seat,
+  .active-seat-card {
+    min-height: 5.5rem;
+  }
+}
