@@ -338,8 +338,8 @@ describe('OnlineBrowserShellService', () => {
       id: 'override-1',
       round_number: 2,
       player_id: 'p1',
-      calculated_score: 50,
-      previous_applied_score: 50,
+      calculated_score: 25,
+      previous_applied_score: 25,
       new_applied_score: 7,
       reason: 'UAT manual edit',
       changed_at: '2026-07-23T11:05:00.000Z',
@@ -355,14 +355,14 @@ describe('OnlineBrowserShellService', () => {
       id: 'override-2',
       round_number: 2,
       player_id: 'p1',
-      calculated_score: 50,
+      calculated_score: 25,
       previous_applied_score: 7,
-      new_applied_score: 50,
+      new_applied_score: 25,
       reason: 'Restore original',
       changed_at: '2026-07-23T11:06:00.000Z',
       changed_by: 'user-1',
     });
-    storedCarryRound.scores[0].applied_score = 50;
+    storedCarryRound.scores[0].applied_score = 25;
     const restored = await service.openSession('game-carry');
     expect(restored.roundHistory?.[1]?.playerScores.map((score) => score.score))
       .toEqual([50, 28, 24, -24]);

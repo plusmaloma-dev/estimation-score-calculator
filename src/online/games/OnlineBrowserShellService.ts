@@ -421,9 +421,14 @@ export class OnlineBrowserShellService {
     };
     const calculatedGame = this.mvpService.calculateGame(gameInput);
     this.gameInputs.set(snapshot.game.id, gameInput);
-    const explicitlyAuditedScores = new Set(
-      (snapshot.overrides ?? []).map((override) => `${override.round_number}:${override.player_id}`),
-    );
+    const latestOverrideByScore = new Map<string, SnapshotOverrideRow>();
+    for (const override of snapshot.overrides ?? []) {
+      const key = `${override.round_number}:${override.player_id}`;
+      const current = latestOverrideByScore.get(key);
+      if (current === undefined || current.changed_at <= override.changed_at) {
+        latestOverrideByScore.set(key, override);
+      }
+    }
     const roundHistory = orderedRounds.map((round): UiRoundHistoryEntry => {
       const input = gameInput.rounds.find((candidate) => candidate.roundNumber === round.round_number);
       const bidsByPlayerId = new Map((input?.bids ?? []).map((bid) => [bid.playerId, bid]));
@@ -432,8 +437,10 @@ export class OnlineBrowserShellService {
           ?.scoreResult?.playerScores ?? []).map((score) => [score.playerId, score.score]),
       );
       const playerScores = round.scores.map((score) => {
-        const hasExplicitAudit = explicitlyAuditedScores.has(`${round.round_number}:${score.player_id}`);
-        const appliedScore = hasExplicitAudit
+        const latestOverride = latestOverrideByScore.get(`${round.round_number}:${score.player_id}`);
+        const hasActiveOverride = latestOverride !== undefined
+          && latestOverride.new_applied_score !== latestOverride.calculated_score;
+        const appliedScore = hasActiveOverride
           ? score.applied_score
           : calculatedScoresByPlayerId.get(score.player_id) ?? score.applied_score;
         return this.mapPlayerScore(score, appliedScore, bidsByPlayerId.get(score.player_id)?.bidType);
