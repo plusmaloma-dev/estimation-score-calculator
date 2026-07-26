@@ -74,7 +74,7 @@ The caller is the bid owner and first bidder. The next seat in table order has t
 
 ## Verification and release gates
 
-Fresh CI **#923** passed repository typechecking, all engine and React tests, and the production build.
+CI **#923** passed repository typechecking, all engine and React tests, and the production build after the final Start production and regression changes. Later documentation-only commits remain subject to the normal branch CI check.
 
 The migrations and Edge Function contracts are statically validated but have not yet been executed against a live Supabase project. Remaining release gates are:
 
