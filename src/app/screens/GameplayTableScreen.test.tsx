@@ -131,7 +131,7 @@ describe('GameplayTableScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Reject Waiting Player' }));
     expect(respondJoinRequest).toHaveBeenCalledWith(
-      'table-1', 4, 'request-1', 'rejected', expect.any(String),
+      'table-1', 4, 'request-1', 'reject', expect.any(String),
     );
     expect(screen.getByRole('button', { name: 'Start game' })).toBeEnabled();
 
