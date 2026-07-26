@@ -51,13 +51,14 @@ export function GameplayCardPanel({
   const legalIds = new Set(snapshot.legalCards.map((card) => cardId(card)));
   const isViewerTurn = snapshot.phase === 'playing'
     && snapshot.currentTurnSeat === snapshot.viewerSeat;
+  const completedTrickCount = snapshot.completedTricks.at(-1)?.trickNumber ?? 0;
 
   return (
     <section className="gameplay-card-panel" aria-labelledby="card-play-heading">
       <div className="gameplay-round-heading">
         <h3 id="card-play-heading">{t('cardPlay')}</h3>
         <span className="rule-chip">
-          {snapshot.completedTricks.length} of 13 tricks completed
+          {completedTrickCount} of 13 tricks completed
         </span>
       </div>
 
