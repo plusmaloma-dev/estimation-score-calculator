@@ -1,12 +1,15 @@
 node_modules/
 dist/
 dist-app/
+dist-gameplay/
 coverage/
+deployment-evidence/
 .env
 .env.*
 !.env.example
 *.tsbuildinfo
 .vercel/
 supabase/.temp/
+supabase-gameplay/.temp/
 .DS_Store
 npm-debug.log*
