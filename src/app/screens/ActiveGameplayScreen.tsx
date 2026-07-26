@@ -81,6 +81,37 @@ export function ActiveGameplayScreen({
     };
   }, [services.activeGameControl, tableId]);
 
+  useEffect(() => {
+    let active = true;
+    const realtime = services.activeGameRealtime;
+    if (realtime === undefined) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void realtime.connect(
+      tableId,
+      (value) => {
+        if (!active) return;
+        setSnapshot(value);
+        setErrors([]);
+      },
+      (realtimeErrors) => {
+        if (!active) return;
+        setErrors(realtimeErrors);
+      },
+    ).catch((reason: unknown) => {
+      if (!active) return;
+      setErrors([reason instanceof Error ? reason.message : 'Realtime synchronization failed.']);
+    });
+
+    return () => {
+      active = false;
+      void realtime.disconnect();
+    };
+  }, [services.activeGameRealtime, tableId]);
+
   async function mutate(
     operation: () => Promise<{
       readonly valid: boolean;
@@ -92,11 +123,15 @@ export function ActiveGameplayScreen({
     setBusy(true);
     setErrors([]);
     try {
-      const result = await operation();
+      const result = services.activeGameRealtime === undefined
+        ? await operation()
+        : await services.activeGameRealtime.runMutation(operation);
       if (!result.valid || result.value === undefined) {
         setErrors(result.errors);
-        const reload = await services.activeGameControl?.getSnapshot(tableId);
-        if (reload?.valid && reload.value !== undefined) setSnapshot(reload.value);
+        if (services.activeGameRealtime === undefined) {
+          const reload = await services.activeGameControl?.getSnapshot(tableId);
+          if (reload?.valid && reload.value !== undefined) setSnapshot(reload.value);
+        }
         return;
       }
       setSnapshot(result.value);
