@@ -99,6 +99,7 @@ export interface GameplayStateTransition {
   readonly valid: boolean;
   readonly errors: readonly string[];
   readonly state: HouseRulesRoundState;
+  readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
 export type GameplayCommand =
