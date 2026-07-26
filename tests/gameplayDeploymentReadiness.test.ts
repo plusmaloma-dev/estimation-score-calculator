@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8');
 const exampleEnvironment = readFileSync('.env.example', 'utf8');
-const supabaseConfig = readFileSync('supabase/config.toml', 'utf8');
+const startFunction = readFileSync('supabase/functions/gameplay-start/index.ts', 'utf8');
+const roundFunction = readFileSync('supabase/functions/gameplay-round-command/index.ts', 'utf8');
 
 function expectText(value: string): RegExp {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -24,7 +25,7 @@ test('gameplay deployment runbook uses the isolated branch and full validation g
 
 test('runbook dry-runs and applies all migrations before deploying functions', () => {
   const dryRun = runbook.indexOf('npx supabase db push --dry-run');
-  const apply = runbook.indexOf('npx supabase db push');
+  const apply = runbook.indexOf('\nnpx supabase db push\n', dryRun + 1);
   const startDeploy = runbook.indexOf('npx supabase functions deploy gameplay-start');
   const roundDeploy = runbook.indexOf('npx supabase functions deploy gameplay-round-command');
 
@@ -50,7 +51,7 @@ test('runbook dry-runs and applies all migrations before deploying functions', (
   }
 });
 
-test('runbook configures only browser-safe preview variables and both JWT-protected functions', () => {
+test('runbook exposes only browser-safe preview variables and preserves authenticated functions', () => {
   for (const variable of [
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY',
@@ -61,8 +62,9 @@ test('runbook configures only browser-safe preview variables and both JWT-protec
   }
   assert.doesNotMatch(runbook, /vercel env add .*service.role/i);
   assert.doesNotMatch(runbook, /VITE_.*SERVICE/i);
-  assert.match(supabaseConfig, /\[functions\.gameplay-start\][\s\S]*verify_jwt\s*=\s*true/i);
-  assert.match(supabaseConfig, /\[functions\.gameplay-round-command\][\s\S]*verify_jwt\s*=\s*true/i);
+  assert.doesNotMatch(runbook, /--no-verify-jwt/i);
+  assert.match(startFunction, /auth\.getUser\(\)/i);
+  assert.match(roundFunction, /auth\.getUser\(\)/i);
 });
 
 test('runbook includes solo and multi-browser acceptance evidence without recording credentials', () => {
