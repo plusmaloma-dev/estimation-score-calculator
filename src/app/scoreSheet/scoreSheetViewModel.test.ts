@@ -73,6 +73,17 @@ describe('buildScoreSheetViewModel', () => {
       ...openedSession,
       scoreSheet: {
         ...openedSession.scoreSheet!,
+        scoreOverrides: [{
+          id: 'override-active',
+          roundNumber: 1,
+          playerId: 'A',
+          calculatedScore: 14,
+          previousAppliedScore: 14,
+          newAppliedScore: 20,
+          reason: 'Active correction',
+          changedAtIso: '2026-07-22T10:06:00.000Z',
+          actorId: 'admin-1',
+        }],
         gameResult: {
           valid: true,
           errors: [],
@@ -99,6 +110,7 @@ describe('buildScoreSheetViewModel', () => {
       cumulativeScore: 20,
       overridden: true,
     }));
+    expect(session.scoreSheet?.scoreOverrides).toHaveLength(1);
   });
 
   it('shows Hold in the historical estimate annotation', () => {
@@ -122,6 +134,17 @@ describe('buildScoreSheetViewModel', () => {
       ...openedSession,
       scoreSheet: {
         ...openedSession.scoreSheet!,
+        scoreOverrides: [{
+          id: 'override-restored',
+          roundNumber: 1,
+          playerId: 'A',
+          calculatedScore: 28,
+          previousAppliedScore: 40,
+          newAppliedScore: 28,
+          reason: 'Restore original',
+          changedAtIso: '2026-07-22T10:07:00.000Z',
+          actorId: 'admin-1',
+        }],
         gameResult: {
           valid: true,
           errors: [],
@@ -142,6 +165,7 @@ describe('buildScoreSheetViewModel', () => {
     };
 
     expect(buildScoreSheetViewModel(session).rounds[0]?.cells.every((cell) => !cell.overridden)).toBe(true);
+    expect(session.scoreSheet?.scoreOverrides).toHaveLength(1);
   });
 
   it('labels Dash Call and round Risk together in history', () => {

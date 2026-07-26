@@ -49,9 +49,10 @@ exports, and override classification for legacy UAT rounds that stored an unmult
 score without an audit row. It does not manufacture an override or rewrite audit
 history. Newly saved rounds must already persist the correct multiplied score.
 
-The score-sheet view model will use explicit override audit presence, not a bare numeric
-mismatch, to decide whether a cell is edited. “Restore Original” therefore remains
-available only for genuine user-created overrides.
+After reconciliation, a numeric mismatch can only represent a currently applied manual
+override. The score-sheet view model will continue to show Edited when the reconciled
+applied value differs from the engine result. A restored override retains its immutable
+audit history but no longer displays Edited or Restore Original.
 
 ## Data and migration decision
 
@@ -69,7 +70,8 @@ RED/GREEN coverage will prove:
 - estimate-entry pickers do not show a suggested actual;
 - a legacy unmultiplied carry snapshot with no override audit opens with the x2/x4
   engine result and no Edited/Restore state;
-- a genuine override audit preserves the applied score and Edited/Restore state;
+- an active genuine override preserves the applied score and Edited/Restore state;
+- a restored genuine override preserves its audit history without remaining Edited;
 - the online save payload and SQL contract persist multiplied scores as both calculated
   and applied values without an override row; and
 - the full typecheck, engine suite, UI suite, and production build remain green.

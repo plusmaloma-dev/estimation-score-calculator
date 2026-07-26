@@ -250,6 +250,9 @@ export function CurrentRoundRow({
           value={numberPickerTarget.entryType === 'estimate'
             ? draft.estimates[numberPickerTarget.playerId]
             : draft.actuals[numberPickerTarget.playerId]}
+          suggestedValue={numberPickerTarget.entryType === 'actual'
+            ? draft.estimates[numberPickerTarget.playerId]
+            : undefined}
           max={numberPickerTarget.entryType === 'estimate' ? 12 : 13}
           onSelect={(value) => {
             dispatch(numberPickerTarget.entryType === 'estimate'

@@ -421,11 +421,23 @@ export class OnlineBrowserShellService {
     };
     const calculatedGame = this.mvpService.calculateGame(gameInput);
     this.gameInputs.set(snapshot.game.id, gameInput);
+    const explicitlyAuditedScores = new Set(
+      (snapshot.overrides ?? []).map((override) => `${override.round_number}:${override.player_id}`),
+    );
     const roundHistory = orderedRounds.map((round): UiRoundHistoryEntry => {
       const input = gameInput.rounds.find((candidate) => candidate.roundNumber === round.round_number);
       const bidsByPlayerId = new Map((input?.bids ?? []).map((bid) => [bid.playerId, bid]));
-      const playerScores = round.scores.map((score) =>
-        this.mapPlayerScore(score, score.applied_score, bidsByPlayerId.get(score.player_id)?.bidType));
+      const calculatedScoresByPlayerId = new Map(
+        (calculatedGame.rounds.find((candidate) => candidate.roundNumber === round.round_number)
+          ?.scoreResult?.playerScores ?? []).map((score) => [score.playerId, score.score]),
+      );
+      const playerScores = round.scores.map((score) => {
+        const hasExplicitAudit = explicitlyAuditedScores.has(`${round.round_number}:${score.player_id}`);
+        const appliedScore = hasExplicitAudit
+          ? score.applied_score
+          : calculatedScoresByPlayerId.get(score.player_id) ?? score.applied_score;
+        return this.mapPlayerScore(score, appliedScore, bidsByPlayerId.get(score.player_id)?.bidType);
+      });
       return {
         roundNumber: round.round_number,
         roundType: round.round_type,

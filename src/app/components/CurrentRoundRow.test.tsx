@@ -240,6 +240,9 @@ describe('CurrentRoundRow', () => {
     await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
     await user.click(screen.getByRole('button', { name: 'Rami actual tricks' }));
     expect(screen.getByRole('button', { name: 'Choose 13' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose 5, matches estimate' }))
+      .toHaveClass('number-picker-value--suggested');
+    expect(screen.getByRole('button', { name: 'Choose 5, matches estimate' })).toHaveFocus();
   });
 
   it('clears a mobile value and closes the picker when portrait begins', async () => {

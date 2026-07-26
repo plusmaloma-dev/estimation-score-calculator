@@ -3,7 +3,7 @@
 **Date:** 2026-07-26
 **Branch:** `fix/uat-round-2-findings`
 **Source:** `feature/react-vite-frontend-prototype` at `b84ecf3`
-**Status:** Implementation published in draft PR #15; hosted CI and manual UAT pending
+**Status:** Follow-up implementation locally verified; draft PR #15 update and manual UAT pending
 **Draft PR:** https://github.com/plusmaloma-dev/estimation-score-calculator/pull/15
 
 ## Delivered behavior
@@ -123,6 +123,46 @@ The build retains the pre-existing chunk-size advisory. Current main JS output i
 - system scores do not set `overridden`;
 - explicit manual override tests remain green;
 - high-contract multiplier exclusion remains green.
+
+## Follow-up fixes
+
+### Accepted-estimate suggestion
+
+- The centered actual-tricks picker now marks the player's accepted estimate with a
+  gold `Est.` suggestion state and an accessible “matches estimate” label.
+- When no actual value is selected, keyboard focus starts on the accepted estimate.
+- A previously selected actual remains the selected and initially focused value even
+  when it differs from the estimate.
+- Estimate entry continues to use the same picker without an actual-value suggestion.
+
+### Legacy carried-score reconciliation
+
+- Opening an online snapshot now compares stored round rows with the authoritative
+  chronological engine result.
+- For a round/player without an explicit override audit, the engine score is used as
+  the current applied score. This repairs legacy x2/x4 rows that were stored before
+  the authoritative full-game save fix.
+- For a round/player with an explicit audit, the persisted applied score remains
+  authoritative, preserving genuine manual edits.
+- Restored overrides retain immutable audit history but no longer show `Edited` when
+  their current applied score equals the calculated score.
+- No data migration is required and no audit records are synthesized.
+
+Follow-up RED evidence:
+
+- picker-focused tests failed three assertions before `suggestedValue` existed;
+- the legacy carry snapshot test expected `[50, 28, 24, -24]` and received the
+  historical unmultiplied `[25, 14, 12, -12]`.
+
+Follow-up GREEN evidence:
+
+- picker/current-round focused suite: 20 tests passed;
+- carry reconciliation/view-model focused suite: 11 tests passed;
+- full `npm run ci`: both typechecks passed, 188 engine tests passed, 100 UI tests
+  passed across 24 files, and the production build passed.
+
+The current bundle is 514.91 kB minified and 145.24 kB gzip. The existing Vite
+chunk-size advisory remains non-blocking.
 
 ## Manual UAT
 

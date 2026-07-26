@@ -31,18 +31,18 @@
 - Consumes: accepted estimate from `CurrentRoundDraft.estimates[playerId]`
 - Produces: `NumberPickerDialogProps.suggestedValue?: number`
 
-- [ ] **Step 1: Write failing component tests**
+- [x] **Step 1: Write failing component tests**
 
 Add assertions that an actual picker with `suggestedValue={8}` gives option 8 the
 suggested marker and accessible “matches estimate” name, focuses it when no actual is
 selected, and keeps a different existing actual selected.
 
-- [ ] **Step 2: Write failing integration test**
+- [x] **Step 2: Write failing integration test**
 
 In the mobile `CurrentRoundRow` test, accept an estimate, open that player's actual
 picker, and assert that the matching number is suggested.
 
-- [ ] **Step 3: Run RED tests**
+- [x] **Step 3: Run RED tests**
 
 Run:
 
@@ -53,18 +53,18 @@ npx vitest run src/app/components/NumberPickerDialog.test.tsx src/app/components
 Expected: failures because `suggestedValue` and the suggested visual/accessibility
 contract do not exist.
 
-- [ ] **Step 4: Implement the minimal picker behavior**
+- [x] **Step 4: Implement the minimal picker behavior**
 
 Add the optional prop, use the existing selected value as first focus priority, fall
 back to the suggested value, render a visible `Est.` marker, and add a dedicated
 suggested CSS state that remains distinguishable from `[aria-pressed="true"]`.
 
-- [ ] **Step 5: Pass the estimate only for actual entry**
+- [x] **Step 5: Pass the estimate only for actual entry**
 
 In `CurrentRoundRow`, set `suggestedValue` to the target player's accepted estimate
 when `entryType === 'actual'`; omit it for estimate entry.
 
-- [ ] **Step 6: Run GREEN tests**
+- [x] **Step 6: Run GREEN tests**
 
 Run the same focused command and require all picker/current-row tests to pass.
 
@@ -81,43 +81,45 @@ Run the same focused command and require all picker/current-row tests to pass.
 - Consumes: chronological `MvpGameResult`, snapshot `calculated_score`,
   `applied_score`, and `SnapshotOverrideRow`
 - Produces: online round history whose applied score is engine-calculated unless an
-  explicit audit exists; view cells whose `overridden` state follows audit presence
+  explicit audit exists; view cells whose `overridden` state reflects the reconciled
+  current applied value
 
-- [ ] **Step 1: Write failing legacy snapshot test**
+- [x] **Step 1: Write failing legacy snapshot test**
 
 Create an all-loser round followed by a snapshot round whose stored calculated/applied
 scores are unmultiplied and whose overrides array is empty. Assert that opening the
 session returns x2 engine scores and no score override records.
 
-- [ ] **Step 2: Write failing genuine override test**
+- [x] **Step 2: Write failing genuine override test**
 
 Use the same snapshot with one explicit override audit. Assert that the audited
 player keeps the persisted applied score while unaudited players use engine scores.
 
-- [ ] **Step 3: Write failing view-model tests**
+- [x] **Step 3: Cover active and restored override states**
 
-Assert that unaudited reconciled carry cells are not overridden and an explicitly
-audited player is overridden with calculated/applied values preserved.
+Assert that an active audited override keeps its persisted applied value, while a
+restored audited override may equal the engine result and therefore does not remain
+Edited.
 
-- [ ] **Step 4: Strengthen the SQL contract test**
+- [x] **Step 4: Strengthen the SQL contract test**
 
 Assert that the latest `save_game_round` definition writes `score_item->>'score'` into
 both `calculated_score` and initial `applied_score`, with override writes confined to
 `override_round_scores`.
 
-- [ ] **Step 5: Run RED tests**
+- [x] **Step 5: Run RED tests**
 
 Run:
 
 ```text
-npx vitest run src/online/games/OnlineBrowserShellService.test.ts src/app/scoreSheet/scoreSheetViewModel.test.ts
+npx vitest run src/online/games/OnlineBrowserShellService.test.ts src/app/screens/ScoreSheetCarryScreen.test.tsx
 npm run test:engine
 ```
 
 Expected: snapshot/view assertions fail because unaudited legacy persisted values are
 still treated as applied scores and edit state is inferred numerically.
 
-- [ ] **Step 6: Implement reconciliation**
+- [x] **Step 6: Implement reconciliation**
 
 Build a `(roundNumber, playerId)` set from snapshot override audits. While mapping
 round history, locate the engine score for the same round/player. Use:
@@ -129,13 +131,13 @@ applied = hasExplicitOverride ? persisted applied_score : engine score
 Preserve persisted applied values only for audited players. Keep `gameResult` as the
 chronological engine calculation.
 
-- [ ] **Step 7: Make edit state audit-driven**
+- [x] **Step 7: Verify current edit-state semantics**
 
-Build the view model's overridden set from `scoreSheet.scoreOverrides` and use it for
-`overridden`. Continue deriving `calculatedScore` from the engine and `appliedScore`
-from reconciled round history.
+Keep the view model's numerical calculated/applied comparison after reconciliation.
+This displays active overrides while allowing Restore Original to clear the current
+Edited state without deleting immutable audit history.
 
-- [ ] **Step 8: Run GREEN tests**
+- [x] **Step 8: Run GREEN tests**
 
 Run the focused UI/online suites and the engine schema test; require zero failures.
 
@@ -149,7 +151,7 @@ Run the focused UI/online suites and the engine schema test; require zero failur
 - Consumes: final test output and Vercel deployment URL
 - Produces: updated draft PR #15 and verified UAT preview
 
-- [ ] **Step 1: Run complete validation**
+- [x] **Step 1: Run complete validation**
 
 Run:
 
@@ -160,7 +162,7 @@ npm run ci
 Require both typechecks, all engine tests, all UI tests, and the production build to
 pass. Record the existing chunk-size advisory separately.
 
-- [ ] **Step 2: Update delivery evidence**
+- [x] **Step 2: Update delivery evidence**
 
 Document the missed picker feedback, legacy carry reconciliation, RED/GREEN evidence,
 no-destructive-migration decision, and manual UAT results.

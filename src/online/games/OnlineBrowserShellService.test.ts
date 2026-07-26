@@ -108,6 +108,17 @@ describe('OnlineBrowserShellService', () => {
           { player_id: 'p4', bid_tricks: 0, actual_tricks: 2, delta: 2, did_match_bid: false, role: 'risk-taker', risk_type: 'round-risk', is_risk_taker: true, risk_modifier: 10, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'failed', calculated_score: -37, applied_score: -37, notes: [] },
         ],
       }],
+      overrides: [{
+        id: 'override-1',
+        round_number: 1,
+        player_id: 'p1',
+        calculated_score: 25,
+        previous_applied_score: 25,
+        new_applied_score: 30,
+        reason: 'Manual adjustment',
+        changed_at: '2026-07-23T10:30:00.000Z',
+        changed_by: 'user-1',
+      }],
     };
     const client = {
       from: vi.fn(),
@@ -312,6 +323,51 @@ describe('OnlineBrowserShellService', () => {
       (score: any) => score.calculated_score === score.applied_score,
     )).toBe(true);
 
+    const storedCarryRound = snapshot.rounds[1] as any;
+    storedCarryRound.scores = storedCarryRound.scores.map((score: any) => ({
+      ...score,
+      calculated_score: score.calculated_score / 2,
+      applied_score: score.applied_score / 2,
+    }));
+    const legacyReopened = await service.openSession('game-carry');
+    expect(legacyReopened.roundHistory?.[1]?.playerScores.map((score) => score.score))
+      .toEqual([50, 28, 24, -24]);
+    expect(legacyReopened.scoreSheet?.scoreOverrides).toEqual([]);
+
+    (snapshot.overrides as any[]).push({
+      id: 'override-1',
+      round_number: 2,
+      player_id: 'p1',
+      calculated_score: 50,
+      previous_applied_score: 50,
+      new_applied_score: 7,
+      reason: 'UAT manual edit',
+      changed_at: '2026-07-23T11:05:00.000Z',
+      changed_by: 'user-1',
+    });
+    storedCarryRound.scores[0].applied_score = 7;
+    const activelyOverridden = await service.openSession('game-carry');
+    expect(activelyOverridden.roundHistory?.[1]?.playerScores.map((score) => score.score))
+      .toEqual([7, 28, 24, -24]);
+    expect(activelyOverridden.scoreSheet?.scoreOverrides).toHaveLength(1);
+
+    (snapshot.overrides as any[]).push({
+      id: 'override-2',
+      round_number: 2,
+      player_id: 'p1',
+      calculated_score: 50,
+      previous_applied_score: 7,
+      new_applied_score: 50,
+      reason: 'Restore original',
+      changed_at: '2026-07-23T11:06:00.000Z',
+      changed_by: 'user-1',
+    });
+    storedCarryRound.scores[0].applied_score = 50;
+    const restored = await service.openSession('game-carry');
+    expect(restored.roundHistory?.[1]?.playerScores.map((score) => score.score))
+      .toEqual([50, 28, 24, -24]);
+    expect(restored.scoreSheet?.scoreOverrides).toHaveLength(2);
+
     const allLoserInput = {
       bidOwnerPlayerId: 'p1',
       profile,
@@ -334,6 +390,6 @@ describe('OnlineBrowserShellService', () => {
     const x4Payload = finalSaveCall?.[1].p_round_payload as any;
     expect(x4Payload.roundResult.carriedAllLoserMultiplier).toBe(4);
     expect(x4Payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([100, 56, 48, -48]);
-    expect(snapshot.overrides).toEqual([]);
+    expect(snapshot.overrides).toHaveLength(2);
   });
 });

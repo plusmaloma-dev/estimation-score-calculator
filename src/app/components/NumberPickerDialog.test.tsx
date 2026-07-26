@@ -43,6 +43,33 @@ describe('NumberPickerDialog', () => {
     expect(props.onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('highlights and focuses the matching estimate without selecting an actual value', () => {
+    renderPicker({
+      title: 'Rami — Actual tricks',
+      value: undefined,
+      suggestedValue: 8,
+      max: 13,
+    });
+
+    const estimate = screen.getByRole('button', { name: 'Choose 8, matches estimate' });
+    expect(estimate).toHaveClass('number-picker-value--suggested');
+    expect(estimate).toHaveAttribute('aria-pressed', 'false');
+    expect(estimate).toHaveFocus();
+  });
+
+  it('keeps a different actual selected while the estimate remains suggested', () => {
+    renderPicker({
+      title: 'Rami — Actual tricks',
+      value: 6,
+      suggestedValue: 8,
+      max: 13,
+    });
+
+    expect(screen.getByRole('button', { name: 'Choose 6' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Choose 8, matches estimate' }))
+      .toHaveClass('number-picker-value--suggested');
+  });
+
   it('cancels on Escape and backdrop click without selecting a value', () => {
     const props = renderPicker();
     const dialog = screen.getByRole('dialog', { name: 'Rami — Estimate' });
