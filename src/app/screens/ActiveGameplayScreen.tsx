@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import type { EstimationBid } from '../../domain/bid.js';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
+import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useApp } from '../AppContext.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
+import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 function commandId(prefix: string): string {
@@ -48,6 +51,9 @@ export function ActiveGameplayScreen({
   const [snapshot, setSnapshot] = useState<OnlineActiveGameControlSnapshot | undefined>();
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [roundSnapshot, setRoundSnapshot] = useState<OnlineGameplayRoundSnapshot | undefined>();
+  const [roundErrors, setRoundErrors] = useState<readonly string[]>([]);
+  const [roundBusy, setRoundBusy] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeConfirmed, setCloseConfirmed] = useState(false);
 
@@ -80,6 +86,35 @@ export function ActiveGameplayScreen({
       active = false;
     };
   }, [services.activeGameControl, tableId]);
+
+  useEffect(() => {
+    let active = true;
+    const service = services.gameplayRound;
+    if (service === undefined) {
+      return () => {
+        active = false;
+      };
+    }
+
+    service.getSnapshot(tableId)
+      .then((result) => {
+        if (!active) return;
+        if (!result.valid || result.value === undefined) {
+          setRoundErrors(result.errors);
+          return;
+        }
+        setRoundSnapshot(result.value);
+        setRoundErrors([]);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setRoundErrors([reason instanceof Error ? reason.message : 'Active round could not be loaded.']);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [services.gameplayRound, tableId]);
 
   useEffect(() => {
     let active = true;
@@ -141,6 +176,35 @@ export function ActiveGameplayScreen({
       if (reload?.valid && reload.value !== undefined) setSnapshot(reload.value);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function submitEstimate(bid: EstimationBid) {
+    const service = services.gameplayRound;
+    if (service === undefined || roundSnapshot === undefined || roundBusy) return;
+
+    setRoundBusy(true);
+    setRoundErrors([]);
+    try {
+      const result = await service.submitBid(
+        tableId,
+        roundSnapshot.version,
+        commandId('submit-bid'),
+        bid,
+      );
+      if (!result.valid || result.value === undefined) {
+        setRoundErrors(result.errors);
+        const reload = await service.getSnapshot(tableId);
+        if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        return;
+      }
+      setRoundSnapshot(result.value);
+    } catch (reason: unknown) {
+      setRoundErrors([reason instanceof Error ? reason.message : 'Estimate could not be submitted.']);
+      const reload = await service.getSnapshot(tableId);
+      if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+    } finally {
+      setRoundBusy(false);
     }
   }
 
@@ -208,6 +272,11 @@ export function ActiveGameplayScreen({
           {errors.map((error) => <p key={error}>{error}</p>)}
         </div>
       )}
+      {roundErrors.length > 0 && (
+        <div className="error-summary" role="alert">
+          {roundErrors.map((error) => <p key={error}>{error}</p>)}
+        </div>
+      )}
 
       {snapshot === undefined ? (
         <p>{t('loadingActiveGame')}</p>
@@ -227,6 +296,14 @@ export function ActiveGameplayScreen({
           )}
 
           <ActiveSeatStatus seats={snapshot.seats} activeSeat={snapshot.turn?.seat} />
+
+          {roundSnapshot !== undefined && snapshot.lifecycle !== 'terminated' && (
+            <GameplayBidPanel
+              snapshot={roundSnapshot}
+              busy={roundBusy || snapshot.lifecycle === 'paused'}
+              onSubmit={submitEstimate}
+            />
+          )}
 
           {isHost && snapshot.lifecycle !== 'terminated' && (
             <div className="active-host-controls" aria-label="Host controls">
