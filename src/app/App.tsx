@@ -3,6 +3,8 @@ import type { AuthSessionState } from '../online/auth/types.js';
 import { AppProvider, useApp, type AppServices } from './AppContext.js';
 import { UserSessionMenu } from './components/UserSessionMenu.js';
 import { I18nProvider, useI18n } from './i18n/I18nContext.js';
+import { GameplayLobbyScreen } from './screens/GameplayLobbyScreen.js';
+import { GameplayTableScreen } from './screens/GameplayTableScreen.js';
 import { HomeScreen } from './screens/HomeScreen.js';
 import { NewGameScreen } from './screens/NewGameScreen.js';
 import { ScoreSheetScreen } from './screens/ScoreSheetScreen.js';
@@ -15,9 +17,15 @@ function AppContent({
   readonly session?: AuthSessionState;
   readonly onSignOut?: () => Promise<void>;
 }) {
-  const { route, activeScoreSheetId, navigate, services } = useApp();
+  const {
+    route,
+    activeScoreSheetId,
+    activeGameplayTableId,
+    navigate,
+    services,
+  } = useApp();
   const { language, setLanguage, t } = useI18n();
-  const isInGame = route === 'score-sheet';
+  const isInGame = route === 'score-sheet' || route === 'active-game';
 
   return (
     <main className={isInGame ? 'app-shell app-shell--game' : 'app-shell'}>
@@ -41,6 +49,19 @@ function AppContent({
 
       {route === 'home' && <HomeScreen />}
       {route === 'new-game' && <NewGameScreen />}
+      {route === 'gameplay-lobby' && <GameplayLobbyScreen />}
+      {route === 'gameplay-table' && activeGameplayTableId !== undefined && (
+        <GameplayTableScreen tableId={activeGameplayTableId} />
+      )}
+      {route === 'active-game' && activeGameplayTableId !== undefined && (
+        <section className="screen-stack" aria-labelledby="active-game-heading">
+          <button className="secondary-button" type="button" onClick={() => navigate('gameplay-table')}>
+            {t('backToLobby')}
+          </button>
+          <h2 id="active-game-heading">Active online game</h2>
+          <p>Table {activeGameplayTableId}</p>
+        </section>
+      )}
       {route === 'score-sheet' && activeScoreSheetId !== undefined && (
         <ScoreSheetScreen
           scoreSheetId={activeScoreSheetId}
