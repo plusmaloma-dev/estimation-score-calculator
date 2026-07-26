@@ -91,7 +91,7 @@ export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
   | 'getSnapshot'
   | 'submitBid'
   | 'playCard'
->;
+> & Partial<Pick<OnlineGameplayRoundService, 'processBotDirective'>>;
 
 export interface SessionApplicationServices {
   readonly shell: BrowserShellPort;
