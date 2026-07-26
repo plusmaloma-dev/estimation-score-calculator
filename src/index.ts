@@ -44,6 +44,7 @@ export * from './gameplay/control/ActiveGameControlEngineWithTurns.js';
 export * from './gameplay/control/ActiveGameDeadlineService.js';
 export * from './gameplay/control/ActiveControlCommandProcessor.js';
 export * from './gameplay/control/ActiveControlReplayService.js';
+export * from './online/gameplay/types.js';
 export * from './online/gameplay/roundTypes.js';
 export * from './online/gameplay/OnlineGameplayRoundService.js';
 export * from './online/gameplay/GameplayRoundRealtimeSynchronizer.js';
