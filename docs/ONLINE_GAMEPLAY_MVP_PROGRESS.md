@@ -1,128 +1,88 @@
 # Online Gameplay and Computer-Player MVP Progress
 
 **Product approval:** 25 July 2026  
-**Latest implementation update:** 26 July 2026  
-**Approval scope:** Design, implementation plans, and recommended subsequent implementation decisions approved without additional routine scope gates  
-**Implementation branch:** `feature/online-game-bot-mvp`  
-**Draft implementation PR:** #14  
-**Merge authorization:** Not granted for `main`
+**Latest update:** 26 July 2026  
+**Branch:** `feature/online-game-bot-mvp`  
+**Draft PR:** #14  
+**Merge authorization:** Not granted
 
 ## Approved baseline
 
-- House Rules V1 only.
-- Real-time four-seat online play.
-- One to four human players.
-- Standard bots fill vacant seats when the host starts.
-- Connected-player timeout produces one bot action only.
-- Disconnected-player grace expiry produces temporary bot takeover.
-- Returning human reclaims at the next safe uncommitted action boundary.
-- Private and public tables with open or host-approved public joining.
-- Secure, deterministic, verifiable thirteen-card dealing.
-- Exact-estimate bot objective.
-- Existing House Rules V1 scoring engine remains authoritative.
+- House Rules V1, real-time four-seat play, and one to four humans.
+- Standard bots fill vacant seats at Start.
+- One-turn bot assistance on timeout and temporary takeover after disconnect grace.
+- Private/public tables, secure dealing, exact-estimate bots, audit, replay, and Realtime synchronization.
+- The existing House Rules V1 scoring engine remains authoritative.
 
-## Core implementation decisions
+## Core decisions
 
-- Web Crypto HMAC/SHA-256 with rejection sampling; no `Math.random()`, random sorting, modulo bias, Node-only crypto, or `Buffer`.
-- Explicit bidding/play seat orders and immutable transitions.
-- Versioned, idempotent commands with recorded accepted/rejected outcomes.
-- Privacy-safe bot observations containing only own hand, legal actions, and public state.
-- Deterministic Acquire, Control, Dump, Recovery, and Endgame card modes.
-- Normalized 0–13 trick probabilities and House Rules V1 bid expected utility.
-- Audited hard-deadline/error fallback for all bot decisions.
-- Public/private clients use typed RPC or Edge Function adapters and allow-listed projections.
-- Active timers use supplied ISO timestamps; domain services never call `Date.now()`.
-- Pause/resume stores exact remaining durations.
-- Bot directives contain public work identity only; private observations remain server-side.
-- Realtime row changes are invalidation signals; clients reload authoritative snapshots.
-- Failed or ambiguous mutations reload authoritative state before another mutation.
-- Failed CI runs retain downloadable validation logs.
+- Web Crypto, SHA-256 commitments, deterministic Fisher-Yates, and rejection sampling.
+- No `Math.random()`, random sort, modulo bias, Node-only crypto, or browser access to private deal material.
+- Immutable state transitions with expected versions and idempotency IDs.
+- Viewer-scoped hands and public state only.
+- Bot observations and decisions remain server-side; directives contain public work identity only.
+- Realtime changes invalidate client state; clients reload authoritative snapshots.
+- Secure Start uses a dedicated authenticated Edge Function with deterministic retry identities.
 
 ## Completed milestones
 
-| Task | Result | CI evidence |
+| Milestone | Status | CI evidence |
 | --- | --- | --- |
-| Engine — secure deal, legal play, scored round, commands, replay | Complete | #663–#695 |
-| Standard bot — observation, bid/card policy, fallback, full-round simulation | Complete | #699–#720 |
-| Table/lobby — lifecycle, joining, bot filling, commands, Supabase definitions | Complete | #735–#755 |
-| Active control — timers, takeover/reclaim, commands, replay, Supabase/Realtime | Complete | #760–#802 |
-| React lobby/waiting room/continuity — routes, tables, Start UI, controls, responsive layout | Complete | #795–#828 |
-| Active round foundation — private projection, Edge Function persistence, bidding UI | Complete | Existing branch validation through #866 |
-| Card-play panel and authoritative submission | Complete | RED #872 / GREEN #876 |
-| Public directive coordinator | Complete | RED #877 / GREEN #878 |
-| Private Standard-bot directive decision and audit | Complete | RED #879 / GREEN #885 |
-| Typed public bot-directive invocation | Complete | RED #886 / GREEN #887 |
-| Secure server-side bot orchestration | Complete | RED #888 / GREEN #890 |
-| Browser deadline/directive orchestration and reconnect recovery | Complete | RED #891 / GREEN #894 |
-| Multi-client round Realtime synchronization | Complete | RED #895 / GREEN #899 |
-| Authoritative scored-round results panel | Complete | RED #900 / GREEN #903 |
+| Gameplay engine, scoring, commands, replay | Complete | #663–#695 |
+| Standard bot and full-round simulation | Complete | #699–#720 |
+| Table/lobby domain, joining, bots, Supabase definitions | Complete | #735–#755 |
+| Timers, disconnect, takeover, reclaim, command replay | Complete | #760–#802 |
+| React lobby, waiting room, controls, responsive layout | Complete | #795–#828 |
+| Private active-round backend and bidding UI | Complete | Through #866 |
+| Card play and authoritative submission | Complete | RED #872 / GREEN #876 |
+| Server-side bot directive pipeline | Complete | RED #877–#891 / GREEN #894 |
+| Round Realtime and scored results | Complete | RED #895/#900 / GREEN #899/#903 |
+| Pure secure Start bootstrap | Complete | RED #906 / GREEN #912 |
+| Authenticated retry-safe Start orchestration | Complete | RED #913 / GREEN #915 |
+| Typed Start client and waiting-room routing | Complete | RED #917 / GREEN #922 |
+| Opening bot kickoff and reconnect regression | Complete | GREEN #923 |
 
-## Delivered active-round capabilities
+## Secure Start behavior
 
-- Viewer-scoped snapshots expose only the authenticated seat's hand and public state.
-- Legal estimates are supplied by the authoritative engine; the final estimate cannot make the total equal 13.
-- Legal cards are supplied by the server and enforce follow-suit.
-- Human bids and cards carry expected versions and idempotency command IDs.
-- Rejected or ambiguous commands trigger an authoritative reload.
-- Public round invalidations trigger scoped Realtime reloads across clients.
-- Permanent, temporary, and timeout-assistant bot directives execute through the Standard bot server boundary.
-- Bot decisions retain policy version, reason, legal actions, duration, fallback status, source, directive ID, and turn ID in private audit metadata.
-- Directive retries use deterministic command identities and do not recalculate completed actions.
-- Reconnect can recover an assistant-pending or bot-processing directive from public turn identity.
-- Trick progress, cards played, tricks won, and scored-round results are rendered without hidden-hand leakage.
+The configured Start action now:
+
+1. starts and locks the table and fills vacant seats with permanent bots;
+2. initializes active control and seat ownership;
+3. generates a fresh secure seed, deal ID, nonce, deterministic dealer/caller, and public commitment on the server;
+4. deals thirteen private cards to every seat and stores the verification record privately;
+5. initializes the first House Rules V1 round and bidding timer;
+6. returns only the authenticated player's hand and public state;
+7. immediately processes a permanent-bot first bidder through the existing directive pipeline;
+8. resumes safely after partial retries or reconnects.
+
+The caller is the bid owner and first bidder. The next seat in table order has the first card lead after bidding.
 
 ## Current progress
 
 | Area | Progress |
 | --- | ---: |
-| Research and approved design | 100% |
-| Gameplay engine core | 100% |
-| Standard bot policy and simulation | 100% |
-| Online table/lobby domain and commands | 100% |
-| Active-game continuity and command replay | 100% |
-| Active-round backend, private projection, commands, and Realtime | 100% |
-| React bidding, card play, bot orchestration, and round results | 100% |
-| Start Game secure session bootstrap | 0% |
-| Multi-round progression and final deal reveal/verification | 35% |
-| Live Supabase migration/RLS/RPC/Edge Function verification | 0% |
+| Engine and scoring | 100% |
+| Standard bot | 100% |
+| Lobby and table lifecycle | 100% |
+| Active control and continuity | 100% |
+| Active-round backend and UI | 100% |
+| Secure Start bootstrap | 100% |
+| Multi-round progression and final deal verification UI | 35% |
+| Live Supabase/Edge verification | 0% |
 | Multi-browser gameplay UAT | 0% |
-| **Overall gameplay MVP implementation** | **93%** |
+| **Overall gameplay MVP implementation** | **96%** |
 
-## Verification note
+## Verification and release gates
 
-Repository CI #903 passed typechecking, all engine and React tests, and the production build after the active-round results delivery.
+Fresh CI **#923** passed repository typechecking, all engine and React tests, and the production build.
 
-The SQL migrations and Edge Function contracts are statically validated but have not been applied or executed against a local or hosted Supabase PostgreSQL project in this workstream. PostgreSQL compilation, transaction behavior, RLS behavior, Realtime publication, Edge Function runtime behavior, and multi-session integration remain release gates.
+The migrations and Edge Function contracts are statically validated but have not yet been executed against a live Supabase project. Remaining release gates are:
 
-## Start audit finding
+- database migration compilation and transaction testing;
+- RLS and workspace-isolation testing;
+- Edge runtime and authentication testing;
+- Realtime multi-client testing;
+- one hosted Start-to-score complete-round smoke test;
+- two-browser timeout, disconnect, takeover, reclaim, pause/resume, and termination UAT.
 
-`start_gameplay_table` currently performs only the lobby transition:
-
-1. validates the host and pending requests;
-2. fills vacant seats with permanent Standard bots;
-3. locks settings;
-4. marks the table active.
-
-It does **not** yet:
-
-- generate and persist the secure deal and pre-game commitment;
-- initialize `gameplay_active_controls` and seat-control ownership;
-- initialize the private `gameplay_round_states` aggregate;
-- start the first bidding turn and timer;
-- trigger the first permanent-bot action when applicable.
-
-The UI therefore must not be described as end-to-end playable until this bootstrap is implemented and live-verified.
-
-## Active next milestone
-
-Implement an idempotent authenticated Start Game bootstrap:
-
-1. run the existing table Start command;
-2. initialize active control and four seat-control records;
-3. generate a fresh 256-bit seed, nonce, deal ID, commitment, deterministic dealer, and fair deal server-side;
-4. persist private deal audit data and the initial House Rules V1 round aggregate;
-5. start the first bidding turn with the configured timer;
-6. issue and execute a permanent-bot directive when the first seat is a bot;
-7. return the host's scoped initial round snapshot;
-8. add partial-failure recovery and retry-safe command identities;
-9. apply migrations/functions and run multi-browser UAT.
+Detailed Start delivery: `docs/superpowers/reports/2026-07-26-start-game-bootstrap-delivery.md`.
