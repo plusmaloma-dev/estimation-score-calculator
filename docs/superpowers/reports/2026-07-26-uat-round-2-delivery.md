@@ -3,7 +3,8 @@
 **Date:** 2026-07-26
 **Branch:** `fix/uat-round-2-findings`
 **Source:** `feature/react-vite-frontend-prototype` at `b84ecf3`
-**Status:** Local implementation and validation complete; draft PR and hosted CI pending
+**Status:** Implementation published in draft PR #15; hosted CI and manual UAT pending
+**Draft PR:** https://github.com/plusmaloma-dev/estimation-score-calculator/pull/15
 
 ## Delivered behavior
 
@@ -143,4 +144,4 @@ The build retains the pre-existing chunk-size advisory. Current main JS output i
 
 - The optional additive `riskTypes` field is normalized from legacy `riskType` and stored bids; old documents without bid metadata cannot recover a classification they never stored.
 - The Vite bundle remains above the default 500 kB advisory threshold; this predates Round 2 and does not block the build.
-- Hosted CI and manual UAT against the deployed preview remain pending until the isolated branch is pushed and the draft PR is opened.
+- Hosted CI and manual UAT against the deployed preview remain pending.

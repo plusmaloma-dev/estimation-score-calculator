@@ -14,4 +14,4 @@
 | All-loser carry correction | Complete | 100% |
 | Persistence and projections | Complete | 100% |
 | Full validation | Local `npm run ci` green: 188 engine, 98 UI, production build | 100% |
-| Overall UAT Round 2 | Implementation complete; draft PR pending | 95% |
+| Overall UAT Round 2 | Complete in draft PR #15; manual preview UAT remains a release gate | 100% |
