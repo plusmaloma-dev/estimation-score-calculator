@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineGameplayTableSnapshot } from '../../online/gameplay/types.js';
@@ -87,12 +87,14 @@ describe('GameplayLobbyScreen', () => {
     const user = userEvent.setup();
     renderLobby(createServices());
 
-    expect(await screen.findByText('Friday Majlis')).toBeVisible();
-    expect(screen.getByText('2 of 4 seats')).toBeVisible();
-    expect(screen.getByText('Host approval')).toBeVisible();
-    expect(screen.getByText('45s turn timer')).toBeVisible();
+    const heading = await screen.findByText('Friday Majlis');
+    const card = heading.closest('article');
+    expect(card).not.toBeNull();
+    expect(within(card!).getByText('2 of 4 seats')).toBeVisible();
+    expect(within(card!).getByText('Host approval')).toBeVisible();
+    expect(within(card!).getByText('45s turn timer')).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Open table' }));
+    await user.click(within(card!).getByRole('button', { name: 'Open table' }));
     expect(screen.getByLabelText('route-probe')).toHaveTextContent('gameplay-table:table-1');
   });
 
