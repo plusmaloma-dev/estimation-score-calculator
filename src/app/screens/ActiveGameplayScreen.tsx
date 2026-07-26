@@ -218,10 +218,11 @@ export function ActiveGameplayScreen({
         `evaluate-deadline:${turn.turnId}:${snapshot.version}:${currentUserId}`,
         occurredAt,
       );
-      const resultPromise = services.activeGameRealtime === undefined
+      const maybeResult = services.activeGameRealtime === undefined
         ? evaluation()
         : services.activeGameRealtime.runMutation(evaluation);
-      void resultPromise.then((result) => {
+      void Promise.resolve(maybeResult).then((result) => {
+        if (result === undefined) return;
         if (result.valid && result.value !== undefined) {
           setSnapshot(result.value);
           return;
