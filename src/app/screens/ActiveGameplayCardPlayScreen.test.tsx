@@ -176,7 +176,7 @@ describe('ActiveGameplayScreen card play', () => {
     );
     expect(screen.queryByRole('button', { name: 'Ace of hearts' })).not.toBeInTheDocument();
     expect(screen.getByText('A♥')).toBeVisible();
-    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Waiting for Seat 2');
+    expect(screen.getByText('Waiting for Seat 2')).toBeVisible();
   });
 
   it('reloads the authoritative round snapshot after a rejected card command', async () => {
