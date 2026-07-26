@@ -4,8 +4,8 @@ import type {
   TurnTimerSeconds,
 } from '../../gameplay/table/types.js';
 import type { OnlineGameplayTableSnapshot } from '../../online/gameplay/types.js';
-import { useApp } from '../AppContext.js';
 import { GameplaySeatGrid } from '../components/GameplaySeatGrid.js';
+import { useGameplayApp } from '../gameplay/GameplayContext.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 function newCommandId(prefix: string): string {
@@ -24,7 +24,7 @@ export function GameplayTableScreen({
   readonly currentUserId: string;
   readonly currentDisplayName?: string;
 }) {
-  const { services, navigate, openActiveGame } = useApp();
+  const { services, navigate, openActiveGame } = useGameplayApp();
   const { t } = useI18n();
   const [table, setTable] = useState<OnlineGameplayTableSnapshot | undefined>();
   const [errors, setErrors] = useState<readonly string[]>([]);
