@@ -21,7 +21,7 @@
     "build:gameplay": "vite build --config vite.gameplay.config.ts",
     "test:gameplay-boundary": "npm run build:gameplay && npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayFrontendImportBoundary.test.js",
     "ci:score-engine": "npm run typecheck:score-engine && npm run test:score-engine",
-    "ci": "npm run typecheck && npm test && npm run build"
+    "ci": "npm run typecheck && npm test && npm run build && npm run build:gameplay"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
