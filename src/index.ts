@@ -27,6 +27,8 @@ export * from './gameplay/HouseRulesRoundEngine.js';
 export * from './gameplay/GameplayCommandProcessor.js';
 export * from './gameplay/GameplayReplayService.js';
 export * from './gameplay/GameplayRoundSnapshotProjector.js';
+export * from './gameplay/roundApplicationTypes.js';
+export * from './gameplay/GameplayRoundApplicationService.js';
 export * from './gameplay/bot/types.js';
 export * from './gameplay/bot/BotObservationService.js';
 export * from './gameplay/bot/StandardCardPolicy.js';
