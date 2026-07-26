@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
@@ -166,5 +166,40 @@ describe('ActiveGameplayScreen', () => {
       'table-1', 7, true, expect.any(String), expect.any(String),
     );
     expect(screen.getByRole('status')).toHaveTextContent('Game terminated');
+  });
+
+  it('applies authoritative Realtime snapshots and unsubscribes on unmount', async () => {
+    let publishSnapshot: ((value: OnlineActiveGameControlSnapshot) => void) | undefined;
+    const connect = vi.fn(async (
+      tableId: string,
+      onSnapshot: (value: OnlineActiveGameControlSnapshot) => void,
+    ) => {
+      expect(tableId).toBe('table-1');
+      publishSnapshot = onSnapshot;
+    });
+    const disconnect = vi.fn(async () => undefined);
+    const appServices = services(activeSnapshot()) as AppServices & {
+      activeGameRealtime: {
+        connect: typeof connect;
+        disconnect: typeof disconnect;
+      };
+    };
+    appServices.activeGameRealtime = { connect, disconnect };
+
+    const view = renderActive(appServices, 'host-user');
+    expect(await screen.findByRole('button', { name: 'Pause game' })).toBeVisible();
+    expect(connect).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      publishSnapshot?.(activeSnapshot({
+        lifecycle: 'paused',
+        version: 8,
+        pausedAt: '2026-07-26T08:05:00.000Z',
+      }));
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Game paused');
+
+    view.unmount();
+    expect(disconnect).toHaveBeenCalledTimes(1);
   });
 });
