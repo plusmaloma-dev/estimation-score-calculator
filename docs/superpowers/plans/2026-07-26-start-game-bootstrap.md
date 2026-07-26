@@ -68,7 +68,7 @@
 - [x] Update the project progress record to 96% implementation.
 - [x] Create `docs/superpowers/reports/2026-07-26-start-game-bootstrap-delivery.md`.
 - [x] Keep live database, RLS, Realtime, Edge runtime, and multi-browser testing as explicit release gates.
-- [x] Run fresh full repository validation: CI #923 passed.
+- [x] Run full repository validation after production changes: CI #923 passed. Documentation-only commits followed and require the normal branch CI check.
 
 ## Remaining release work
 
