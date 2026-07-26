@@ -1,6 +1,7 @@
 # Online Gameplay and Computer-Player MVP Progress
 
 **Product approval:** 25 July 2026  
+**Latest implementation update:** 26 July 2026  
 **Approval scope:** Design, implementation plans, and recommended subsequent implementation decisions approved without additional routine scope gates  
 **Implementation branch:** `feature/online-game-bot-mvp`  
 **Draft implementation PR:** #14  
@@ -33,7 +34,9 @@
 - Active timers use supplied ISO timestamps; domain services never call `Date.now()`.
 - Pause/resume stores exact remaining durations rather than recomputing elapsed time heuristically.
 - Bot-action directives are deterministic invalidation/work instructions and never contain hidden cards or policy observations.
-- Failed CI runs retain a downloadable `ci-output.log` artifact.
+- Realtime row changes are invalidation signals; clients reload authoritative snapshots.
+- Failed or ambiguous active-control mutations reload authoritative state before another mutation.
+- Failed CI runs retain a downloadable validation-log artifact.
 
 ## Completed milestones
 
@@ -58,8 +61,17 @@
 | Control Task 1 RED/GREEN — lifecycle, timer freeze/resume, confirmed termination | Complete | #760 / #766 |
 | Control Task 2 RED/GREEN — disconnect, active host transfer, takeover, reclaim | Complete | #767 / #769 |
 | Control Task 3 RED/GREEN — deterministic turn deadlines and bot directives | Complete | #770 / #774 |
+| Control Task 4 RED/GREEN — versioned commands, replay, and tamper detection | Complete | #779 / #784 |
+| Control Task 5 RED/GREEN — active-control schema, RLS, RPCs, and publication definitions | Complete | #785 / #789 |
+| Control Task 6 RED/GREEN — typed control service and authoritative Realtime reload | Complete | #792 / #802 |
+| React Task 1 RED/GREEN — gameplay routes and authenticated service wiring | Complete | #795 / #804 |
+| React Task 2 RED/GREEN — lobby listing, creation, and refresh | Complete | #805 / #808 |
+| React Task 3 RED/GREEN — waiting room, joining, approvals, settings, and Start | Complete | #809 / #815 |
+| React Task 4 RED/GREEN — active continuity shell and host lifecycle controls | Complete | #816 / #820 |
+| React Task 5 RED/GREEN — responsive/accessibility and browser privacy contract | Complete | #821 / #823 |
+| React Task 6 RED/GREEN — screen-level Realtime subscription | Complete | #824 / #828 |
 
-## Delivered gameplay, bot, table, and control APIs
+## Delivered gameplay, bot, table, control, and React APIs
 
 - `FairDealService.deal(input)` / `verify(record)`
 - `LegalCardPlayService.legalCards(...)` / `validate(...)`
@@ -87,6 +99,14 @@
 - `ActiveGameControlEngine.disconnect(...)` / `reconnect(...)` / `evaluateGrace(...)`
 - `ActiveGameControlEngine.startTurn(...)` / `beginBotAction(...)` / `completeActionBoundary(...)`
 - `ActiveGameDeadlineService.evaluate(...)`
+- `ActiveControlCommandProcessor.process(...)`
+- `ActiveControlReplayService.replay(...)`
+- `ActiveGameControlService.initialize(...)` / `getSnapshot(...)`
+- `ActiveGameControlService.pause(...)` / `resume(...)` / `terminate(...)`
+- `ActiveGameRealtimeSynchronizer.connect(...)` / `refresh(...)` / `runMutation(...)`
+- `GameplayLobbyScreen`
+- `GameplayTableScreen`
+- `ActiveGameplayScreen`
 
 ## Current progress
 
@@ -98,24 +118,30 @@
 | Online table/lobby domain and commands | 100% |
 | Supabase gameplay schema, RLS, and RPC definitions | 100% |
 | Typed table service and privacy-safe projections | 100% |
-| Active-game lifecycle, connection continuity, and deadlines | 60% |
-| Active-control command/replay layer | 0% |
-| Active-control Supabase/Realtime integration | 0% |
-| Live Supabase migration/RLS/RPC integration verification | 0% |
-| React gameplay lobby and table screens | 0% |
-| End-to-end gameplay UAT | 0% |
-| **Overall gameplay MVP implementation** | **67%** |
+| Active-game lifecycle, connection continuity, deadlines, command replay | 100% |
+| Active-control schema/RPC definitions, typed service, and Realtime synchronizer | 100% |
+| React lobby, table creation, waiting room, and host controls | 100% |
+| React active-game continuity and responsive accessibility | 100% |
+| Active bidding and private-hand card-play interface | 0% |
+| Live Supabase migration/RLS/RPC/multi-session verification | 0% |
+| Full round progression and end-to-end gameplay UAT | 0% |
+| **Overall gameplay MVP implementation** | **82%** |
 
 ## Verification note
 
-The gameplay-table SQL migrations are statically validated and included in deterministic deployment ordering. They have not yet been applied to a local or hosted Supabase PostgreSQL instance. PostgreSQL compilation, transaction behavior, RLS behavior, and multi-session integration remain release gates.
+All gameplay and active-control SQL migrations are statically validated and included in deterministic deployment ordering. They have not been applied to a local or hosted Supabase PostgreSQL instance in this workstream. PostgreSQL compilation, transaction behavior, RLS behavior, Realtime publication, and multi-session integration remain release gates.
+
+The React delivery is verified against typed service doubles and repository-wide CI. It is not yet a playable online card game because active bidding, private-hand delivery, legal card selection, bot directive execution, trick progression, and live backend integration remain outstanding.
 
 ## Active next milestone
 
-Continue `docs/superpowers/plans/2026-07-25-active-game-control-continuity.md`:
+Implement the active round interaction slice:
 
-1. Versioned/idempotent active-control commands.
-2. Deterministic control replay and tamper detection.
-3. Supabase active-control persistence and RPC extensions.
-4. Typed online control service.
-5. Realtime authoritative snapshot reload and reconnect synchronization.
+1. Define a privacy-safe player gameplay snapshot containing own hand and public state only.
+2. Add authoritative gameplay snapshot and bid/card RPCs with expected versions and command IDs.
+3. Add typed online round service and Realtime authoritative reload.
+4. Render legal estimate selection and public auction progress.
+5. Render own-hand cards and legal follow-suit actions.
+6. Execute pending Standard-bot directives through the existing bot policy.
+7. Progress tricks, round scoring, completion, replay, and verification.
+8. Apply migrations and run multi-session browser UAT.
