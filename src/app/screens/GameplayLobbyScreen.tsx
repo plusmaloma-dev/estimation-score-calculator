@@ -6,7 +6,7 @@ import type {
   TurnTimerSeconds,
 } from '../../gameplay/table/types.js';
 import type { OnlineGameplayLobbyCard } from '../../online/gameplay/types.js';
-import { useApp } from '../AppContext.js';
+import { useGameplayApp } from '../gameplay/GameplayContext.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 function newCommandId(prefix: string): string {
@@ -17,7 +17,7 @@ function newCommandId(prefix: string): string {
 }
 
 export function GameplayLobbyScreen() {
-  const { services, navigate, openGameplayTable } = useApp();
+  const { services, navigate, openGameplayTable } = useGameplayApp();
   const { t } = useI18n();
   const [tables, setTables] = useState<readonly OnlineGameplayLobbyCard[] | undefined>();
   const [errors, setErrors] = useState<readonly string[]>([]);
@@ -92,7 +92,7 @@ export function GameplayLobbyScreen() {
   return (
     <section className="screen-stack" aria-labelledby="online-tables-heading">
       <div className="screen-actions gameplay-lobby-actions">
-        <button className="secondary-button" type="button" onClick={() => navigate('home')}>
+        <button className="secondary-button" type="button" onClick={() => navigate('gameplay-home')}>
           {t('backHome')}
         </button>
         <button className="secondary-button" type="button" onClick={() => void loadTables()}>
