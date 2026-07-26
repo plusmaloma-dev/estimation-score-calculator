@@ -51,6 +51,28 @@ export class GameplayBotDirectiveService {
     if (viewerSeat === undefined) {
       return this.failure(['Authenticated user does not occupy a human seat at this table.']);
     }
+
+    const commandId = `bot-round:${directive.directiveId}`;
+    const existing = aggregate.records.find((record) => record.commandId === commandId);
+    if (existing !== undefined) {
+      if (existing.transition.metadata?.directiveId !== directive.directiveId) {
+        return this.failure(['Bot directive command id was already used with different metadata.']);
+      }
+      const recordedAudit = this.auditFromRecord(existing);
+      return {
+        valid: existing.accepted,
+        errors: existing.errors,
+        duplicate: true,
+        value: this.projector.project(
+          aggregate.tableId,
+          aggregate.state,
+          aggregate.version,
+          viewerSeat,
+        ),
+        ...(recordedAudit === undefined ? {} : { audit: recordedAudit }),
+      };
+    }
+
     if (aggregate.lifecycle !== 'active') {
       return this.failure(['Gameplay bot directives are accepted only while the table is active.']);
     }
@@ -75,28 +97,18 @@ export class GameplayBotDirectiveService {
       aggregate.version,
       aggregate.records,
       {
-        commandId: `bot-round:${directive.directiveId}`,
+        commandId,
         expectedVersion: aggregate.version,
         command,
       },
     );
 
-    if (processed.duplicate || processed.record === undefined) {
-      const recordedAudit = processed.record === undefined
-        ? undefined
-        : this.auditFromRecord(processed.record);
-      return {
-        valid: processed.valid,
-        errors: processed.errors,
-        duplicate: processed.duplicate,
-        value: this.projector.project(
-          aggregate.tableId,
-          aggregate.state,
-          aggregate.version,
-          viewerSeat,
-        ),
-        ...(recordedAudit === undefined ? {} : { audit: recordedAudit }),
-      };
+    if (processed.record === undefined) {
+      return this.failure(
+        processed.errors.length > 0
+          ? processed.errors
+          : ['Bot directive did not produce a gameplay command record.'],
+      );
     }
 
     const record: GameplayCommandRecord = {
