@@ -1,6 +1,6 @@
 import type { MvpGameInput, MvpGameResult } from '../services/EstimationMvpService.js';
 import type { LeaderboardEntry } from '../services/LeaderboardService.js';
-import type { PlayerScoreResult, RoundScoreResult } from '../scoring/types.js';
+import { normalizedRiskTypes, type PlayerScoreResult, type RoundScoreResult } from '../scoring/types.js';
 
 export interface ScoreSheetMarkdownExportInput {
   readonly title: string;
@@ -102,7 +102,7 @@ export class ScoreSheetMarkdownExportService {
     const generatedNotes = [
       playerScore.didMatchBid ? 'matched bid' : 'missed bid',
       playerScore.role,
-      playerScore.riskType !== 'none' ? playerScore.riskType : undefined,
+      normalizedRiskTypes(playerScore).length > 0 ? normalizedRiskTypes(playerScore).join('+') : undefined,
       playerScore.isRiskTaker ? `risk modifier ${playerScore.riskModifier}` : undefined,
       playerScore.isHighContract ? 'high contract' : undefined,
       playerScore.isOnlyWinner ? 'only winner' : undefined,

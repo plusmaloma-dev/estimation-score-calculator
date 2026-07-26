@@ -102,6 +102,11 @@ export class ScoreCalculationService {
             didMatchBid: false,
             role: evaluation?.role ?? this.resolveRole(bid, input.bidOwnerPlayerId),
             riskType: evaluation?.riskType ?? this.resolveRiskType(bid, input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY),
+            riskTypes: this.resolveRiskTypes(
+              bid,
+              evaluation?.riskType ?? this.resolveRiskType(bid, input.profile.highContractThreshold ?? Number.POSITIVE_INFINITY),
+              evaluation?.isHighContract ?? false,
+            ),
             isRiskTaker: evaluation?.isRiskTaker ?? false,
             riskModifier: evaluation?.riskModifier ?? 0,
             isHighContract: evaluation?.isHighContract ?? false,
@@ -260,5 +265,24 @@ export class ScoreCalculationService {
     }
 
     return 'none';
+  }
+
+  private resolveRiskTypes(
+    bid: EstimationBid,
+    primaryRiskType: PlayerRoundEvaluation['riskType'],
+    isHighContract: boolean,
+  ): readonly PlayerRoundEvaluation['riskType'][] {
+    const bidRiskType = bid.bidType === 'dash'
+      ? 'dash'
+      : bid.bidType === 'dash-call'
+        ? 'dash-call'
+        : bid.bidType === 'with'
+          ? 'with'
+          : isHighContract
+            ? 'high-contract'
+            : 'none';
+    return [...new Set([bidRiskType, primaryRiskType].filter(
+      (riskType): riskType is PlayerRoundEvaluation['riskType'] => riskType !== 'none',
+    ))];
   }
 }

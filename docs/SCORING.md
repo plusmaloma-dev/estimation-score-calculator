@@ -179,7 +179,7 @@ The next round multiplier applies to the full calculated score of each player in
 
 Confirmed: x2 does not apply to high-contract rounds.
 
-Open point: If two all-loser rounds happen consecutively, confirm whether the multiplier stays x2 or stacks.
+Confirmed: consecutive all-loser rounds accumulate linearly. One skipped round carries x2, two carry x4, three carry x6, and the next eligible scored round consumes the carry.
 
 ## Confirmed Dash in Under Round
 
@@ -325,12 +325,9 @@ Bid 9, actual 7 => delta 2 => -2 -50 = -52
 
 ## Open Confirmation Questions
 
-1. Dash behavior in Over rounds.
-2. Dash Call formula.
-3. Whether With can apply to high contracts and whether it follows high-contract scoring.
-4. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
-5. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
-6. Whether consecutive all-loser rounds stack the next-round multiplier or keep it at x2.
+1. Whether With can apply to high contracts and whether it follows high-contract scoring.
+2. Whether high contract bid owner also receives owner bonus, or high contract score fully overrides normal owner bonus.
+3. Whether only-winner/only-loser bonus applies on high contract and Dash rounds.
 
 ## Decision
 

@@ -51,6 +51,8 @@ function formatSigned(value: number): string {
 function annotationForBid(bid: EstimationBid, riskModifier: number, riskType: string): string {
   const annotations: string[] = [];
   if (riskType === 'round-risk') annotations.push(riskModifier > 10 ? `${Math.max(2, riskModifier / 10)}R` : 'R');
+  if (bid.bidType === 'dash') annotations.push('D');
+  if (bid.bidType === 'dash-call') annotations.push('DC');
   if (bid.bidType === 'with' || riskType === 'with') annotations.push('W');
   if (bid.bidType === 'hold') annotations.push('H');
   return annotations.length > 0 ? ` ${annotations.join(' ')}` : '';

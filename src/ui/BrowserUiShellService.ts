@@ -5,7 +5,7 @@ import type { AnalyticsScreenModel } from '../browser/analytics/AnalyticsScreenM
 import { AnalyticsViewService } from '../browser/analytics/AnalyticsViewService.js';
 import type { GameSummaryModel } from '../browser/gameSummary/GameSummaryViewService.js';
 import { GameSummaryViewService } from '../browser/gameSummary/GameSummaryViewService.js';
-import type { PlayerRoundActualResult, RiskType, ScoringProfile } from '../scoring/types.js';
+import { normalizedRiskTypes, type PlayerRoundActualResult, type RiskType, type ScoringProfile } from '../scoring/types.js';
 import type { ScoringRuleSetId } from '../scoring/ruleSets.js';
 import { FEDERATION_2026, isScoringRuleSetId, resolveScoringRuleSetId } from '../scoring/ruleSets.js';
 import { ScoreSheetBackupService } from '../importExport/ScoreSheetBackupService.js';
@@ -450,7 +450,7 @@ export class BrowserUiShellService {
   private resolveRiskTypes(playerScores: NonNullable<MvpRoundResult['scoreResult']>['playerScores']): readonly RiskType[] {
     const riskTypes = new Set<RiskType>();
     for (const playerScore of playerScores) {
-      if (playerScore.riskType !== 'none') riskTypes.add(playerScore.riskType);
+      for (const riskType of normalizedRiskTypes(playerScore)) riskTypes.add(riskType);
     }
     return [...riskTypes];
   }

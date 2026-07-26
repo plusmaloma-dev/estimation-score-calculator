@@ -126,10 +126,45 @@ test('game summary view service exposes recent rounds with winners and risk meta
       roundType: 'under',
       valid: true,
       winnerPlayerIds: ['A', 'B'],
-      riskTypes: ['round-risk'],
+      riskTypes: ['round-risk', 'dash'],
       nextRoundMultiplier: '—',
     },
   ]);
+});
+
+test('game summary preserves Dash Call beside round Risk', () => {
+  const dashCallInput: MvpGameInput = {
+    playerOrder: ['A', 'B', 'C', 'D'],
+    rounds: [{
+      roundNumber: 1,
+      profile,
+      bidOwnerPlayerId: 'A',
+      riskPlayerId: 'C',
+      bids: [
+        { playerId: 'A', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        { playerId: 'B', bidType: 'normal', tricks: 4 },
+        { playerId: 'C', bidType: 'dash-call', tricks: 0 },
+        { playerId: 'D', bidType: 'normal', tricks: 2 },
+      ],
+      actualResults: [
+        { playerId: 'A', actualTricks: 5 },
+        { playerId: 'B', actualTricks: 4 },
+        { playerId: 'C', actualTricks: 1 },
+        { playerId: 'D', actualTricks: 3 },
+      ],
+    }],
+  };
+  const dashCallSheet: PersistedScoreSheet = {
+    ...scoreSheet,
+    id: 'dash-call-sheet',
+    roundCount: 1,
+    gameInput: dashCallInput,
+    gameResult: new EstimationMvpService().calculateGame(dashCallInput),
+  };
+
+  const model = new GameSummaryViewService().buildModel(dashCallSheet);
+
+  assert.deepEqual(model.recentRounds[0]?.riskTypes, ['dash-call', 'round-risk']);
 });
 
 test('game summary view service disables round-dependent actions for empty games', () => {

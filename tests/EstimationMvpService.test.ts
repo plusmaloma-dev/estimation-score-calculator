@@ -167,6 +167,7 @@ describe('EstimationMvpService', () => {
     assert.equal(result.bidValidation.roundType, 'over');
     assert.equal(dashCallScore?.role, 'risk-taker');
     assert.equal(dashCallScore?.riskType, 'round-risk');
+    assert.deepEqual(dashCallScore?.riskTypes, ['dash-call', 'round-risk']);
     assert.equal(dashCallScore?.isRiskTaker, true);
     assert.equal(dashCallScore?.riskModifier, 10);
     assert.equal(dashCallScore?.delta, 2);

@@ -7,6 +7,8 @@ export interface BiddingState {
   readonly estimateEntryOrder: readonly string[];
   readonly estimatesByPlayerId: Readonly<Record<string, number | undefined>>;
   readonly statusByPlayerId: Readonly<Record<string, BiddingPlayerStatus>>;
+  readonly normalBiddingStarted: boolean;
+  readonly dashCallPlayerId?: string;
   readonly bidOwnerPlayerId?: string;
   readonly winningEstimate: number;
   readonly trumpSuit?: ContractSuit;
@@ -102,6 +104,7 @@ export function createBiddingState(playerOrder: readonly string[]): BiddingState
     estimateEntryOrder: [],
     estimatesByPlayerId: Object.fromEntries(playerOrder.map((playerId) => [playerId, undefined])),
     statusByPlayerId: Object.fromEntries(playerOrder.map((playerId) => [playerId, 'normal'])),
+    normalBiddingStarted: false,
     winningEstimate: 0,
     confirmed: false,
   };
@@ -114,57 +117,61 @@ export function setBiddingEstimate(
 ): BiddingState {
   assertPlayer(state, playerId);
   if (state.confirmed) return state;
+  if (state.dashCallPlayerId === playerId) return state;
 
-  const isTemporaryOwnerBlank = value === undefined && state.bidOwnerPlayerId === playerId;
-  const wasEntered = state.estimatesByPlayerId[playerId] !== undefined
-    || state.estimateEntryOrder.includes(playerId);
+  const activeState = value !== undefined && !state.normalBiddingStarted
+    ? { ...state, normalBiddingStarted: true }
+    : state;
+  const isTemporaryOwnerBlank = value === undefined && activeState.bidOwnerPlayerId === playerId;
+  const wasEntered = activeState.estimatesByPlayerId[playerId] !== undefined
+    || activeState.estimateEntryOrder.includes(playerId);
   const estimateEntryOrder = value === undefined
     ? isTemporaryOwnerBlank
-      ? state.estimateEntryOrder
-      : state.estimateEntryOrder.filter((candidate) => candidate !== playerId)
+      ? activeState.estimateEntryOrder
+      : activeState.estimateEntryOrder.filter((candidate) => candidate !== playerId)
     : wasEntered
-      ? state.estimateEntryOrder
-      : [...state.estimateEntryOrder, playerId];
-  const estimatesByPlayerId = { ...state.estimatesByPlayerId, [playerId]: value };
+      ? activeState.estimateEntryOrder
+      : [...activeState.estimateEntryOrder, playerId];
+  const estimatesByPlayerId = { ...activeState.estimatesByPlayerId, [playerId]: value };
   const nextValue = value ?? 0;
 
   if (isTemporaryOwnerBlank) {
     return {
-      ...state,
+      ...activeState,
       estimateEntryOrder,
       estimatesByPlayerId,
     };
   }
 
-  if (state.bidOwnerPlayerId === undefined) {
-    const owner = firstEnteredHighestPlayerId(state.playerOrder, estimateEntryOrder, estimatesByPlayerId);
+  if (activeState.bidOwnerPlayerId === undefined) {
+    const owner = firstEnteredHighestPlayerId(activeState.playerOrder, estimateEntryOrder, estimatesByPlayerId);
     if (owner === undefined) {
       return {
-        ...state,
+        ...activeState,
         estimateEntryOrder,
         estimatesByPlayerId,
         winningEstimate: 0,
         statusByPlayerId: Object.fromEntries(
-          state.playerOrder.map((candidate) => [candidate, 'normal']),
+          activeState.playerOrder.map((candidate) => [candidate, 'normal']),
         ) as Record<string, BiddingPlayerStatus>,
       };
     }
-    return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, owner);
+    return transferOwnership(activeState, estimatesByPlayerId, estimateEntryOrder, owner);
   }
 
-  if (playerId !== state.bidOwnerPlayerId && nextValue > state.winningEstimate) {
-    return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, playerId);
+  if (playerId !== activeState.bidOwnerPlayerId && nextValue > activeState.winningEstimate) {
+    return transferOwnership(activeState, estimatesByPlayerId, estimateEntryOrder, playerId);
   }
 
-  if (playerId === state.bidOwnerPlayerId && nextValue > state.winningEstimate) {
+  if (playerId === activeState.bidOwnerPlayerId && nextValue > activeState.winningEstimate) {
     const statusByPlayerId = deriveStatusByPlayerId(
-      state,
+      activeState,
       estimatesByPlayerId,
-      state.bidOwnerPlayerId,
+      activeState.bidOwnerPlayerId,
       nextValue,
     );
     return {
-      ...state,
+      ...activeState,
       estimateEntryOrder,
       estimatesByPlayerId,
       winningEstimate: nextValue,
@@ -172,30 +179,30 @@ export function setBiddingEstimate(
     };
   }
 
-  if (playerId === state.bidOwnerPlayerId && nextValue < state.winningEstimate) {
-    const nextOwner = firstEnteredHighestPlayerId(state.playerOrder, estimateEntryOrder, estimatesByPlayerId);
+  if (playerId === activeState.bidOwnerPlayerId && nextValue < activeState.winningEstimate) {
+    const nextOwner = firstEnteredHighestPlayerId(activeState.playerOrder, estimateEntryOrder, estimatesByPlayerId);
     if (nextOwner === undefined) {
       return {
-        ...state,
+        ...activeState,
         estimateEntryOrder,
         estimatesByPlayerId,
-        statusByPlayerId: Object.fromEntries(state.playerOrder.map((candidate) => [candidate, 'normal'])),
+        statusByPlayerId: Object.fromEntries(activeState.playerOrder.map((candidate) => [candidate, 'normal'])),
         bidOwnerPlayerId: undefined,
         winningEstimate: 0,
         trumpSuit: undefined,
       };
     }
-    if (nextOwner !== state.bidOwnerPlayerId) {
-      return transferOwnership(state, estimatesByPlayerId, estimateEntryOrder, nextOwner);
+    if (nextOwner !== activeState.bidOwnerPlayerId) {
+      return transferOwnership(activeState, estimatesByPlayerId, estimateEntryOrder, nextOwner);
     }
     const statusByPlayerId = deriveStatusByPlayerId(
-      state,
+      activeState,
       estimatesByPlayerId,
-      state.bidOwnerPlayerId,
+      activeState.bidOwnerPlayerId,
       nextValue,
     );
     return {
-      ...state,
+      ...activeState,
       estimateEntryOrder,
       estimatesByPlayerId,
       winningEstimate: nextValue,
@@ -204,17 +211,35 @@ export function setBiddingEstimate(
   }
 
   const statusByPlayerId = deriveStatusByPlayerId(
-    state,
+    activeState,
     estimatesByPlayerId,
-    state.bidOwnerPlayerId,
-    state.winningEstimate,
+    activeState.bidOwnerPlayerId,
+    activeState.winningEstimate,
   );
 
   return {
-    ...state,
+    ...activeState,
     estimateEntryOrder,
     estimatesByPlayerId,
     statusByPlayerId,
+  };
+}
+
+export function announceDashCall(state: BiddingState, playerId: string): BiddingState {
+  assertPlayer(state, playerId);
+  if (
+    state.confirmed
+    || state.dashCallPlayerId !== undefined
+    || state.normalBiddingStarted
+    || state.estimateEntryOrder.length > 0
+  ) {
+    return state;
+  }
+
+  return {
+    ...state,
+    dashCallPlayerId: playerId,
+    estimatesByPlayerId: { ...state.estimatesByPlayerId, [playerId]: 0 },
   };
 }
 
@@ -280,6 +305,9 @@ export function confirmBidding(state: BiddingState): ConfirmBiddingResult {
   }
   if (sumEstimates(state) === 13) {
     errors.push('Total estimates cannot equal 13.');
+  }
+  if (state.dashCallPlayerId !== undefined && normalizedEstimate(state, state.dashCallPlayerId) !== 0) {
+    errors.push('Dash Call estimate must remain zero.');
   }
   if (state.bidOwnerPlayerId === undefined || state.winningEstimate <= 0) {
     errors.push('At least one positive estimate is required.');

@@ -1,8 +1,17 @@
-# Subagent-Driven Development Progress
+# Development Progress
 
-Task 1: complete (metadata contract and initial red test)
-Task 2: complete (chronological skip, carry, consume, and reset implementation)
-Task 3: complete (x2/x4/x6, high-contract, negative-score, and Multiple WITH coverage)
-Task 4: complete (browser persistence, reopen, leaderboard, and override coverage)
-Task 5: complete (React integration coverage with unchanged table layout)
-Final verification: pending GitHub Actions CI
+## Earlier all-loser carry delivery
+
+- Tasks 1-5 complete: chronological x2/x4/x6 carry, persistence/reopen, override isolation, and React coverage.
+
+## UAT Round 2 - 2026-07-26
+
+| Activity | Status | Completion |
+|---|---|---:|
+| Existing behavior investigation | Complete | 100% |
+| Regression tests | Complete; RED and GREEN recorded | 100% |
+| Dash Call implementation | Complete | 100% |
+| All-loser carry correction | Complete | 100% |
+| Persistence and projections | Complete | 100% |
+| Full validation | Local `npm run ci` green: 188 engine, 98 UI, production build | 100% |
+| Overall UAT Round 2 | Implementation complete; draft PR pending | 95% |

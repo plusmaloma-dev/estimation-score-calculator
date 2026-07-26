@@ -1,9 +1,11 @@
 # All-Loser Carry Multiplier Design
 
 **Date:** 2026-07-23  
-**Status:** Approved for specification  
+**Status:** Partially superseded by the approved 2026-07-26 UAT Round 2 design
 **Branch:** `feature/react-vite-frontend-prototype`  
 **Related PR:** #11 — Build React Vite frontend prototype
+
+> The 2026-07-26 UAT Round 2 instruction is authoritative where this historical design conflicts with it. In particular, existing high-contract carry exclusions remain unchanged.
 
 ## 1. Purpose
 

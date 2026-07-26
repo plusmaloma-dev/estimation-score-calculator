@@ -103,6 +103,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .estimate-annotations { display: block; min-height: .75rem; margin-top: .1rem; color: #d51118; font-size: clamp(.45rem, .52vw, .64rem); font-weight: 850; letter-spacing: .04em; }
 .hold-toggle { min-width: 1.5rem; min-height: 1.5rem; border: 1px solid #d3a455; border-radius: .35rem; background: #fff; color: #7a4f08; padding: .08rem .25rem; font-size: clamp(.45rem, .52vw, .64rem); font-weight: 850; line-height: 1; }
 .hold-toggle--selected { border-color: #9b6508; background: #fff0c9; box-shadow: inset 0 0 0 1px #9b6508; }
+.dash-call-toggle { min-width: 1.7rem; min-height: 1.5rem; border: 1px solid #788a9b; border-radius: .35rem; background: #fff; color: #263746; padding: .08rem .25rem; font-size: clamp(.45rem, .52vw, .64rem); font-weight: 850; line-height: 1; }
+.dash-call-toggle--selected { border-color: #263746; background: #e7eef4; box-shadow: inset 0 0 0 1px #263746; }
 .multiple-with-label { border-radius: 999px; background: #e7f6ef; color: #06613a; padding: .22rem .5rem; font-weight: 850; }
 .accepted-bid-label { color: #087443; font-weight: 750; }
 .pending-score { color: #697773; }
@@ -257,6 +259,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .ranking-badge span:last-child { display: none; }
   .estimate-input, .trick-input, .trump-select { width: 100%; height: 1.65rem; padding: 0; font-size: .52rem; }
   .hold-toggle { width: auto; }
+  .dash-call-toggle { width: auto; }
   .score-sheet-legend { grid-template-columns: 1fr; }
   .legend-group, .legend-suits { grid-column: auto; border-inline-end: 0; border-bottom: 1px solid #e1e6e4; }
   .legend-group:last-child { border-bottom: 0; }

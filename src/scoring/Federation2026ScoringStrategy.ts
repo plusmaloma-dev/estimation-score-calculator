@@ -47,6 +47,16 @@ export class Federation2026ScoringStrategy implements ScoringStrategy {
       didMatchBid: evaluation.didMatchBid,
       role: evaluation.role,
       riskType: evaluation.riskType,
+      riskTypes: [...new Set([
+        playerBid.bidType === 'dash'
+          ? 'dash' as const
+          : playerBid.bidType === 'with'
+            ? 'with' as const
+            : evaluation.isHighContract
+              ? 'high-contract' as const
+              : 'none' as const,
+        evaluation.riskType,
+      ].filter((riskType) => riskType !== 'none'))],
       isRiskTaker: evaluation.isRiskTaker,
       riskModifier: evaluation.riskModifier,
       isHighContract: evaluation.isHighContract,

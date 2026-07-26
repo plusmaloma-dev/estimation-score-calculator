@@ -39,7 +39,7 @@ const gameInput: MvpGameInput = {
         { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
         { playerId: 'B', bidType: 'normal', tricks: 4, trumpSuit: 'hearts' },
         { playerId: 'C', bidType: 'normal', tricks: 4, trumpSuit: 'diamonds' },
-        { playerId: 'D', bidType: 'dash', tricks: 0 },
+        { playerId: 'D', bidType: 'dash-call', tricks: 0 },
       ],
       actualResults: [
         { playerId: 'A', actualTricks: 4 },
@@ -68,8 +68,9 @@ test('exports final standings and per-player round scores as markdown tables', (
   assert.match(markdown, /\| 2 \| B \| 14 \| 1 \|/);
   assert.match(markdown, /## Round Scores/);
   assert.match(markdown, /\| 1 \| under \| A \| 4 \| 4 \| 0 \| 14 \| success \|/);
-  assert.match(markdown, /\| 1 \| under \| D \| 0 \| 2 \| 2 \| -12 \| failed \|/);
-  assert.match(markdown, /Dash Under/);
+  assert.match(markdown, /\| 1 \| under \| D \| 0 \| 2 \| 2 \| -27 \| failed \|/);
+  assert.match(markdown, /dash-call\+round-risk/);
+  assert.match(markdown, /Dash Call failed/);
 });
 
 test('exports validation errors for invalid unscored rounds', () => {

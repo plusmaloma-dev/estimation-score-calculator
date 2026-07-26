@@ -1,6 +1,7 @@
 import type { PersistedScoreSheet } from '../persistence/types.js';
 import { EstimationMvpService } from '../services/EstimationMvpService.js';
 import { StatisticsService } from '../statistics/StatisticsService.js';
+import { normalizedRiskTypes, type PlayerScoreResult } from '../scoring/types.js';
 
 export interface RichScoreSheetExportOptions {
   readonly generatedAtIso?: string;
@@ -184,14 +185,14 @@ export class RichScoreSheetExportService {
     return playerScore === undefined ? `${playerId}: -` : `${playerId}: ${playerScore.score}`;
   }
 
-  private formatRiskSummary(playerScores: readonly { readonly playerId: string; readonly riskType: string; readonly isRiskTaker: boolean; readonly riskModifier: number }[]): string {
-    const riskEntries = playerScores.filter((score) => score.riskType !== 'none' || score.isRiskTaker || score.riskModifier !== 0);
+  private formatRiskSummary(playerScores: readonly PlayerScoreResult[]): string {
+    const riskEntries = playerScores.filter((score) => normalizedRiskTypes(score).length > 0 || score.isRiskTaker || score.riskModifier !== 0);
     if (riskEntries.length === 0) {
       return '-';
     }
 
     return riskEntries
-      .map((score) => `${score.playerId}: ${score.riskType}${score.riskModifier !== 0 ? ` (${score.riskModifier})` : ''}`)
+      .map((score) => `${score.playerId}: ${normalizedRiskTypes(score).join('+') || 'none'}${score.riskModifier !== 0 ? ` (${score.riskModifier})` : ''}`)
       .join(', ');
   }
 

@@ -1,5 +1,5 @@
 import type { MvpGameInput, MvpGameResult } from '../services/EstimationMvpService.js';
-import type { PlayerScoreResult } from '../scoring/types.js';
+import { normalizedRiskTypes, type PlayerScoreResult } from '../scoring/types.js';
 
 export interface ScoreSheetCsvExportInput {
   readonly gameInput: MvpGameInput;
@@ -93,6 +93,7 @@ export class ScoreSheetCsvExportService {
     bidType: string,
     runningScore: number,
   ): string[] {
+    const riskTypes = normalizedRiskTypes(playerScore);
     return [
       roundNumber.toString(),
       roundType,
@@ -104,7 +105,7 @@ export class ScoreSheetCsvExportService {
       playerScore.score.toString(),
       playerScore.status,
       playerScore.role,
-      playerScore.riskType,
+      riskTypes.length > 0 ? riskTypes.join('+') : playerScore.riskType,
       playerScore.riskModifier.toString(),
       runningScore.toString(),
       this.formatNotes(playerScore),

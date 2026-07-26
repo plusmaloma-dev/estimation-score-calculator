@@ -5,6 +5,7 @@ import {
   createCurrentRoundDraft,
   currentRoundReducer,
   resolveAutomaticRiskPlayerId,
+  resolveDashCallPlayerId,
   resolveHighestEstimatePlayerId,
   resolveHoldPlayerIds,
   resolveMultipleWithRoundMultiplier,
@@ -35,11 +36,13 @@ export function CurrentRoundRow({
   roundNumber,
   players,
   existingTotals,
+  allowDashCall = true,
   onSave,
 }: {
   readonly roundNumber: number;
   readonly players: readonly CurrentRoundPlayer[];
   readonly existingTotals: Readonly<Record<string, number>>;
+  readonly allowDashCall?: boolean;
   readonly onSave?: (draft: CurrentRoundDraft) => void;
 }) {
   const playerOrder = players.map((player) => player.id);
@@ -59,6 +62,10 @@ export function CurrentRoundRow({
   const withPlayerIds = new Set(resolveWithPlayerIds(draft));
   const holdPlayerIds = new Set(resolveHoldPlayerIds(draft));
   const riskPlayerId = resolveAutomaticRiskPlayerId(draft);
+  const dashCallPlayerId = resolveDashCallPlayerId(draft);
+  const canAnnounceDashCall = allowDashCall
+    && isEstimating
+    && !draft.bidding.normalBiddingStarted;
   const multipleWithMultiplier = resolveMultipleWithRoundMultiplier(draft);
   const overUnderLabel = draft.overUnder > 0 ? `+${draft.overUnder}` : String(draft.overUnder);
   const totalEstimates = draft.overUnder + 13;
@@ -77,11 +84,13 @@ export function CurrentRoundRow({
           const isWinner = winnerPlayerId === player.id;
           const estimate = draft.estimates[player.id] ?? 0;
           const isHold = holdPlayerIds.has(player.id);
+          const isDashCall = dashCallPlayerId === player.id;
           const canToggleHold = isEstimating && !isWinner && estimate > 0;
           const annotations = [
             ...(withPlayerIds.has(player.id) ? ['W'] : []),
             ...(holdPlayerIds.has(player.id) ? ['H'] : []),
             ...(riskPlayerId === player.id ? ['R'] : []),
+            ...(isDashCall ? ['DC'] : []),
           ];
           return [
             <td key={`${player.id}-estimate`} className={isWinner ? 'current-estimate current-estimate--winner' : 'current-estimate'}>
@@ -91,7 +100,7 @@ export function CurrentRoundRow({
                     className="estimate-input number-picker-trigger"
                     aria-label={`${player.name} estimate`}
                     type="button"
-                    disabled={!isEstimating}
+                    disabled={!isEstimating || isDashCall}
                     onClick={() => setNumberPickerTarget({
                       playerId: player.id,
                       playerName: player.name,
@@ -108,7 +117,7 @@ export function CurrentRoundRow({
                     min="0"
                     max="12"
                     inputMode="numeric"
-                    disabled={!isEstimating}
+                    disabled={!isEstimating || isDashCall}
                     value={draft.estimates[player.id] ?? ''}
                     onChange={(event) => dispatch({
                       type: 'set-estimate',
@@ -116,6 +125,17 @@ export function CurrentRoundRow({
                       value: numberValue(event.target.value),
                     })}
                   />
+                )}
+                {canAnnounceDashCall && (dashCallPlayerId === undefined || isDashCall) && (
+                  <button
+                    type="button"
+                    className={isDashCall ? 'dash-call-toggle dash-call-toggle--selected' : 'dash-call-toggle'}
+                    aria-label={`${player.name} Dash Call`}
+                    aria-pressed={isDashCall}
+                    onClick={() => dispatch({ type: 'announce-dash-call', playerId: player.id })}
+                  >
+                    DC
+                  </button>
                 )}
                 {canToggleHold && (
                   <button

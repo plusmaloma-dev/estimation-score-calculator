@@ -76,6 +76,7 @@ describe('ScoreSheetScreen', () => {
     expect(within(table).getByText('4♠')).toBeInTheDocument();
     expect(within(table).getAllByText('+1').length).toBeGreaterThan(0);
     expect(within(table).getByText('KING')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ahmed Dash Call' })).not.toBeInTheDocument();
   });
 
   it('accepts estimates and saves the calculated round through the shell', async () => {
@@ -103,6 +104,28 @@ describe('ScoreSheetScreen', () => {
         { playerId: 'C', bidType: 'normal', tricks: 0 },
         { playerId: 'D', bidType: 'normal', tricks: 0 },
       ],
+    }));
+  });
+
+  it('submits a pre-bidding Dash Call as a distinct zero-trick bid', async () => {
+    const user = userEvent.setup();
+    const saveRound = vi.fn(() => ({ valid: true, errors: [] }));
+    render(<ScoreSheetScreen scoreSheetId="sheet-1" shell={{ openSession: () => emptyOpened, saveRound }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Rami Dash Call' }));
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    await user.selectOptions(screen.getByLabelText('Ahmed trump'), 'spades');
+    await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
+
+    for (const [name, actual] of [['Ahmed', '5'], ['Mona', '3'], ['Rami', '0'], ['Dina', '5']] as const) {
+      await user.type(screen.getByLabelText(`${name} actual tricks`), actual);
+    }
+    await user.click(screen.getByRole('button', { name: 'Calculate scores' }));
+
+    expect(saveRound).toHaveBeenCalledWith('sheet-1', expect.objectContaining({
+      bids: expect.arrayContaining([
+        { playerId: 'C', bidType: 'dash-call', tricks: 0 },
+      ]),
     }));
   });
 

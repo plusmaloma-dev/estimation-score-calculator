@@ -217,8 +217,8 @@ export class EstimationMvpService {
         ...scoreResult,
         playerScores: scoreResult.playerScores.map((score) => ({
           ...score,
-          score: score.score * carriedAllLoserMultiplier,
-          notes: carriedAllLoserMultiplier > 1
+          score: score.isHighContract ? score.score : score.score * carriedAllLoserMultiplier,
+          notes: carriedAllLoserMultiplier > 1 && !score.isHighContract
             ? [...score.notes, `All-loser carry multiplier applied: x${carriedAllLoserMultiplier}.`]
             : score.notes,
         })),

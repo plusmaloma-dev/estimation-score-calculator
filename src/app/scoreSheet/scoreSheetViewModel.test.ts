@@ -112,4 +112,53 @@ describe('buildScoreSheetViewModel', () => {
 
     expect(buildScoreSheetViewModel(session).rounds[0]?.cells[1]?.estimateLabel).toBe('3 H');
   });
+
+  it('treats an authoritative carried score as original rather than overridden', () => {
+    const calculatedScores = openedSession.roundHistory?.[0]?.playerScores.map((score) => ({
+      ...score,
+      score: score.score * 2,
+    })) ?? [];
+    const session: UiOpenSessionResult = {
+      ...openedSession,
+      scoreSheet: {
+        ...openedSession.scoreSheet!,
+        gameResult: {
+          valid: true,
+          errors: [],
+          ruleSet: 'HOUSE_RULES_V1',
+          rounds: [{
+            roundNumber: 1,
+            valid: true,
+            errors: [],
+            bidValidation: { valid: true, errors: [], totalEstimatedTricks: 14, roundType: 'over' },
+            carriedAllLoserMultiplier: 2,
+            carryConsumed: true,
+            scoreResult: { valid: true, errors: [], playerScores: calculatedScores },
+          }],
+          leaderboard: openedSession.leaderboard ?? [],
+        },
+      },
+      roundHistory: [{ ...openedSession.roundHistory![0]!, playerScores: calculatedScores }],
+    };
+
+    expect(buildScoreSheetViewModel(session).rounds[0]?.cells.every((cell) => !cell.overridden)).toBe(true);
+  });
+
+  it('labels Dash Call and round Risk together in history', () => {
+    const round = openedSession.roundHistory![0]!;
+    const session: UiOpenSessionResult = {
+      ...openedSession,
+      roundHistory: [{
+        ...round,
+        bids: round.bids.map((bid) => bid.playerId === 'C'
+          ? { ...bid, bidType: 'dash-call' as const, tricks: 0 }
+          : bid),
+        playerScores: round.playerScores.map((score) => score.playerId === 'C'
+          ? { ...score, riskType: 'round-risk' as const, riskTypes: ['dash-call', 'round-risk'] as const, riskModifier: 10 }
+          : score),
+      }],
+    };
+
+    expect(buildScoreSheetViewModel(session).rounds[0]?.cells[2]?.estimateLabel).toBe('0 R DC');
+  });
 });

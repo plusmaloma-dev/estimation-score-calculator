@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  announceDashCall,
   confirmBidding,
   createBiddingState,
   resolveMultipleWithMultiplier,
@@ -10,6 +11,35 @@ import {
 } from './biddingState.js';
 
 describe('biddingState', () => {
+  it('announces one Dash Call before bidding and fixes that player at zero', () => {
+    let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
+
+    state = announceDashCall(state, 'P3');
+
+    expect(state.dashCallPlayerId).toBe('P3');
+    expect(state.estimatesByPlayerId.P3).toBe(0);
+    expect(state.estimateEntryOrder).toEqual([]);
+    expect(setBiddingEstimate(state, 'P3', 2)).toBe(state);
+    expect(announceDashCall(state, 'P4')).toBe(state);
+  });
+
+  it('rejects a Dash Call after normal bidding has started', () => {
+    let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
+    state = setBiddingEstimate(state, 'P1', 5);
+
+    expect(announceDashCall(state, 'P3')).toBe(state);
+    expect(state.dashCallPlayerId).toBeUndefined();
+  });
+
+  it('does not reopen Dash Call after an entered zero is cleared', () => {
+    let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
+    state = setBiddingEstimate(state, 'P1', 0);
+    state = setBiddingEstimate(state, 'P1', undefined);
+
+    expect(state.normalBiddingStarted).toBe(true);
+    expect(announceDashCall(state, 'P3')).toBe(state);
+  });
+
   it('selects Hold only through an explicit non-owner toggle and can remove it', () => {
     let state = createBiddingState(['P1', 'P2', 'P3', 'P4']);
     state = setBiddingEstimate(state, 'P1', 5);

@@ -88,14 +88,14 @@ describe('OnlineBrowserShellService', () => {
       ],
       rounds: [{
         id: 'round-1', round_number: 1, round_type: 'under', bid_owner_player_id: 'p1',
-        risk_player_id: null, trump_suit: 'spades', is_all_loser_round: false,
+        risk_player_id: 'p4', trump_suit: 'spades', is_all_loser_round: false,
         consecutive_all_loser_count_before_round: 0, carried_all_loser_multiplier: 1,
         carry_consumed: false, multiple_with_multiplier: 1,
         bids: [
           { player_id: 'p1', bid_type: 'normal', tricks: 5, trump_suit: 'spades', with_target_player_id: null },
           { player_id: 'p2', bid_type: 'normal', tricks: 4, trump_suit: null, with_target_player_id: null },
           { player_id: 'p3', bid_type: 'hold', tricks: 3, trump_suit: null, with_target_player_id: null },
-          { player_id: 'p4', bid_type: 'dash', tricks: 0, trump_suit: null, with_target_player_id: null },
+          { player_id: 'p4', bid_type: 'dash-call', tricks: 0, trump_suit: null, with_target_player_id: null },
         ],
         actuals: [
           { player_id: 'p1', actual_tricks: 5 }, { player_id: 'p2', actual_tricks: 4 },
@@ -105,7 +105,7 @@ describe('OnlineBrowserShellService', () => {
           { player_id: 'p1', bid_tricks: 5, actual_tricks: 5, delta: 0, did_match_bid: true, role: 'bid-owner', risk_type: 'none', is_risk_taker: false, risk_modifier: 0, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'success', calculated_score: 25, applied_score: 30, notes: [] },
           { player_id: 'p2', bid_tricks: 4, actual_tricks: 4, delta: 0, did_match_bid: true, role: 'other-player', risk_type: 'none', is_risk_taker: false, risk_modifier: 0, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'success', calculated_score: 14, applied_score: 14, notes: [] },
           { player_id: 'p3', bid_tricks: 3, actual_tricks: 2, delta: -1, did_match_bid: false, role: 'other-player', risk_type: 'none', is_risk_taker: false, risk_modifier: 0, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'failed', calculated_score: -1, applied_score: -1, notes: [] },
-          { player_id: 'p4', bid_tricks: 0, actual_tricks: 2, delta: 2, did_match_bid: false, role: 'other-player', risk_type: 'none', is_risk_taker: false, risk_modifier: 0, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'failed', calculated_score: -10, applied_score: -10, notes: [] },
+          { player_id: 'p4', bid_tricks: 0, actual_tricks: 2, delta: 2, did_match_bid: false, role: 'risk-taker', risk_type: 'round-risk', is_risk_taker: true, risk_modifier: 10, is_high_contract: false, is_only_winner: false, is_only_loser: false, status: 'failed', calculated_score: -37, applied_score: -37, notes: [] },
         ],
       }],
     };
@@ -125,6 +125,8 @@ describe('OnlineBrowserShellService', () => {
       tricks: 3,
     }));
     expect(opened.roundHistory?.[0]?.playerScores[0]?.score).toBe(30);
+    expect(opened.roundHistory?.[0]?.playerScores[3]?.riskTypes).toEqual(['dash-call', 'round-risk']);
+    expect(opened.roundHistory?.[0]?.riskTypes).toEqual(['dash-call', 'round-risk']);
     expect(opened.leaderboard?.[0]).toEqual(expect.objectContaining({ playerId: 'p1', totalScore: 30 }));
   });
 
@@ -166,5 +168,172 @@ describe('OnlineBrowserShellService', () => {
       p_game_id: 'game-1',
       p_actor_user_id: 'user-1',
     }));
+  });
+
+  it('persists the full-game x2 carry result as the original online calculation', async () => {
+    const snapshot = {
+      game: {
+        id: 'game-carry', name: 'Carry Table', status: 'draft', rule_set: 'HOUSE_RULES_V1', version: 2,
+        created_at: '2026-07-23T10:00:00.000Z', updated_at: '2026-07-23T11:00:00.000Z',
+        finalized_at: null, finalized_by: null,
+      },
+      players: [
+        { player_id: 'p1', seat_number: 1, player_name_snapshot: 'Ahmed' },
+        { player_id: 'p2', seat_number: 2, player_name_snapshot: 'Mona' },
+        { player_id: 'p3', seat_number: 3, player_name_snapshot: 'Rami' },
+        { player_id: 'p4', seat_number: 4, player_name_snapshot: 'Dina' },
+      ],
+      rounds: [{
+        id: 'round-1', round_number: 1, round_type: 'under', bid_owner_player_id: 'p1',
+        risk_player_id: null, trump_suit: 'hearts', is_all_loser_round: true,
+        consecutive_all_loser_count_before_round: 0, carried_all_loser_multiplier: 1,
+        carry_consumed: false, multiple_with_multiplier: 1,
+        bids: [
+          { player_id: 'p1', bid_type: 'normal', tricks: 5, trump_suit: 'hearts', with_target_player_id: null },
+          { player_id: 'p2', bid_type: 'normal', tricks: 4, trump_suit: null, with_target_player_id: null },
+          { player_id: 'p3', bid_type: 'normal', tricks: 2, trump_suit: null, with_target_player_id: null },
+          { player_id: 'p4', bid_type: 'normal', tricks: 1, trump_suit: null, with_target_player_id: null },
+        ],
+        actuals: [
+          { player_id: 'p1', actual_tricks: 4 }, { player_id: 'p2', actual_tricks: 3 },
+          { player_id: 'p3', actual_tricks: 3 }, { player_id: 'p4', actual_tricks: 3 },
+        ],
+        scores: ['p1', 'p2', 'p3', 'p4'].map((playerId, index) => ({
+          player_id: playerId, bid_tricks: [5, 4, 2, 1][index], actual_tricks: [4, 3, 3, 3][index],
+          delta: [1, 1, 1, 2][index], did_match_bid: false,
+          role: index === 0 ? 'bid-owner' : 'other-player', risk_type: 'none',
+          is_risk_taker: false, risk_modifier: 0, is_high_contract: false,
+          is_only_winner: false, is_only_loser: false, status: 'failed',
+          calculated_score: 0, applied_score: 0, notes: [],
+        })),
+      }],
+      overrides: [],
+      lock: null,
+    };
+    const rpc = vi.fn(async (name: string, _args?: Readonly<Record<string, unknown>>) => {
+      if (name === 'get_game_snapshot') return { data: snapshot, error: null };
+      if (name === 'acquire_game_lock') {
+        return {
+          data: { game_id: 'game-carry', holder_user_id: 'user-1', expires_at: '2026-07-23T11:15:00.000Z' },
+          error: null,
+        };
+      }
+      if (name === 'save_game_round') {
+        const payload = _args?.p_round_payload as any;
+        (snapshot.rounds as any[]).push({
+          id: 'round-2',
+          round_number: payload.roundNumber,
+          round_type: payload.roundResult.bidValidation.roundType,
+          bid_owner_player_id: payload.roundInput.bidOwnerPlayerId,
+          risk_player_id: payload.roundInput.riskPlayerId ?? null,
+          trump_suit: payload.roundInput.bids.find((bid: any) => bid.playerId === payload.roundInput.bidOwnerPlayerId)?.trumpSuit,
+          is_all_loser_round: payload.roundResult.isAllLoserRound,
+          consecutive_all_loser_count_before_round: payload.roundResult.consecutiveAllLoserCountBeforeRound,
+          carried_all_loser_multiplier: payload.roundResult.carriedAllLoserMultiplier,
+          carry_consumed: payload.roundResult.carryConsumed,
+          multiple_with_multiplier: payload.roundInput.multipleWithMultiplier ?? 1,
+          bids: payload.roundInput.bids.map((bid: any) => ({
+            player_id: bid.playerId,
+            bid_type: bid.bidType,
+            tricks: bid.tricks,
+            trump_suit: bid.trumpSuit ?? null,
+            with_target_player_id: bid.withTargetPlayerId ?? null,
+          })),
+          actuals: payload.roundInput.actualResults.map((actual: any) => ({
+            player_id: actual.playerId,
+            actual_tricks: actual.actualTricks,
+          })),
+          scores: payload.roundResult.scoreResult.playerScores.map((score: any) => ({
+            player_id: score.playerId,
+            bid_tricks: score.bidTricks,
+            actual_tricks: score.actualTricks,
+            delta: score.delta,
+            did_match_bid: score.didMatchBid,
+            role: score.role,
+            risk_type: score.riskType,
+            is_risk_taker: score.isRiskTaker,
+            risk_modifier: score.riskModifier,
+            is_high_contract: score.isHighContract,
+            is_only_winner: score.isOnlyWinner,
+            is_only_loser: score.isOnlyLoser,
+            status: score.status,
+            calculated_score: score.score,
+            applied_score: score.score,
+            notes: score.notes,
+          })),
+        });
+        snapshot.game.version += 1;
+        return {
+          data: {
+            game_id: 'game-carry',
+            round_number: payload.roundNumber,
+            version: snapshot.game.version,
+          },
+          error: null,
+        };
+      }
+      return { data: null, error: { message: `Unexpected RPC ${name}` } };
+    });
+    const service = new OnlineBrowserShellService({ from: vi.fn(), rpc }, session);
+    await service.openSession('game-carry');
+
+    const profile = {
+      id: 'house-rules-v1', name: 'House Rules V1', type: 'standard' as const, ruleSet: 'HOUSE_RULES_V1' as const,
+    };
+    const scoredInput = {
+      roundNumber: 2,
+      bidOwnerPlayerId: 'p1',
+      profile,
+      bids: [
+        { playerId: 'p1', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        { playerId: 'p2', bidType: 'normal', tricks: 4 },
+        { playerId: 'p3', bidType: 'normal', tricks: 2 },
+        { playerId: 'p4', bidType: 'normal', tricks: 0 },
+      ],
+      actualResults: [
+        { playerId: 'p1', actualTricks: 5 }, { playerId: 'p2', actualTricks: 4 },
+        { playerId: 'p3', actualTricks: 2 }, { playerId: 'p4', actualTricks: 2 },
+      ],
+    } as const;
+    const result = await service.saveRound('game-carry', scoredInput);
+
+    expect(result.valid).toBe(true);
+    const rpcCalls = rpc.mock.calls as unknown as Array<[string, Readonly<Record<string, unknown>>]>;
+    const saveCall = rpcCalls.find(([name]) => name === 'save_game_round');
+    const payload = saveCall?.[1]?.p_round_payload as any;
+    expect(payload.roundResult.carriedAllLoserMultiplier).toBe(2);
+    expect(payload.roundResult.carryConsumed).toBe(true);
+    expect(payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([50, 28, 24, -24]);
+    expect(snapshot.overrides).toEqual([]);
+
+    const reopened = await service.openSession('game-carry');
+    expect(reopened.roundHistory?.[1]?.playerScores.map((score) => score.score)).toEqual([50, 28, 24, -24]);
+    expect((snapshot.rounds[1] as any).scores.every(
+      (score: any) => score.calculated_score === score.applied_score,
+    )).toBe(true);
+
+    const allLoserInput = {
+      bidOwnerPlayerId: 'p1',
+      profile,
+      bids: [
+        { playerId: 'p1', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+        { playerId: 'p2', bidType: 'normal', tricks: 4 },
+        { playerId: 'p3', bidType: 'normal', tricks: 2 },
+        { playerId: 'p4', bidType: 'normal', tricks: 1 },
+      ],
+      actualResults: [
+        { playerId: 'p1', actualTricks: 4 }, { playerId: 'p2', actualTricks: 3 },
+        { playerId: 'p3', actualTricks: 3 }, { playerId: 'p4', actualTricks: 3 },
+      ],
+    } as const;
+    await service.saveRound('game-carry', { ...allLoserInput, roundNumber: 3 });
+    await service.saveRound('game-carry', { ...allLoserInput, roundNumber: 4 });
+    await service.saveRound('game-carry', { ...scoredInput, roundNumber: 5 });
+
+    const finalSaveCall = rpcCalls.filter(([name]) => name === 'save_game_round').at(-1);
+    const x4Payload = finalSaveCall?.[1].p_round_payload as any;
+    expect(x4Payload.roundResult.carriedAllLoserMultiplier).toBe(4);
+    expect(x4Payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([100, 56, 48, -48]);
+    expect(snapshot.overrides).toEqual([]);
   });
 });

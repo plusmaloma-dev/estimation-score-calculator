@@ -142,13 +142,16 @@ test('carry resets immediately after the next scored round', () => {
   assert.deepEqual(result.rounds.map((round) => round.carryConsumed), [false, true, false]);
 });
 
-test('a high-contract scored round consumes the same carried multiplier', () => {
+test('a high-contract score keeps its existing carry exclusion while the round consumes the carry', () => {
   const service = new EstimationMvpService();
-  const expectedBaseScores = baseScores(service, highContractRound);
+  const ordinary = service.calculateRound(highContractRound);
+  const expectedScores = ordinary.scoreResult?.playerScores.map((score) =>
+    score.isHighContract ? score.score : score.score * 2) ?? [];
   const result = service.calculateGame({ playerOrder: players, rounds: [allLoserRound, highContractRound] });
 
   assert.equal(result.rounds[1]?.carriedAllLoserMultiplier, 2);
-  assert.deepEqual(result.rounds[1]?.scoreResult?.playerScores.map((score) => score.score), expectedBaseScores.map((score) => score * 2));
+  assert.equal(result.rounds[1]?.carryConsumed, true);
+  assert.deepEqual(result.rounds[1]?.scoreResult?.playerScores.map((score) => score.score), expectedScores);
 });
 
 test('carried multiplier applies to positive and negative scores', () => {

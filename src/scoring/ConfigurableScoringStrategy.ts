@@ -1,4 +1,4 @@
-import type { PlayerScoreResult, ScoreContext, ScoringStrategy } from './types.js';
+import type { PlayerScoreResult, RiskType, ScoreContext, ScoringStrategy } from './types.js';
 
 export class ConfigurableScoringStrategy implements ScoringStrategy {
   calculatePlayerScore(context: ScoreContext): PlayerScoreResult {
@@ -227,6 +227,18 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     notes: readonly string[],
   ): PlayerScoreResult {
     const { playerBid, actualResult, evaluation } = context;
+    const bidRiskType: RiskType = playerBid.bidType === 'dash'
+      ? 'dash'
+      : playerBid.bidType === 'dash-call'
+        ? 'dash-call'
+        : playerBid.bidType === 'with'
+          ? 'with'
+          : evaluation.isHighContract
+            ? 'high-contract'
+            : 'none';
+    const riskTypes = [...new Set([bidRiskType, evaluation.riskType].filter(
+      (riskType): riskType is RiskType => riskType !== 'none',
+    ))];
 
     return {
       playerId: playerBid.playerId,
@@ -236,6 +248,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       didMatchBid: evaluation.didMatchBid,
       role: evaluation.role,
       riskType: evaluation.riskType,
+      riskTypes,
       isRiskTaker: evaluation.isRiskTaker,
       riskModifier: evaluation.riskModifier,
       isHighContract: evaluation.isHighContract,
