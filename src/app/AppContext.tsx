@@ -13,6 +13,7 @@ import type {
 } from '../index.js';
 import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
 import type { ActiveGameControlService } from '../online/gameplay/ActiveGameControlService.js';
+import type { ActiveGameRealtimeSynchronizer } from '../online/gameplay/ActiveGameRealtimeSynchronizer.js';
 import type { OnlineGameplayTableService } from '../online/gameplay/OnlineGameplayTableService.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
@@ -78,11 +79,19 @@ export type ActiveGameControlPort = Pick<ActiveGameControlService,
   | 'completeActionBoundary'
 >;
 
+export type ActiveGameRealtimePort = Pick<ActiveGameRealtimeSynchronizer,
+  | 'connect'
+  | 'disconnect'
+  | 'refresh'
+  | 'runMutation'
+>;
+
 export interface SessionApplicationServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
   readonly gameplayTables?: GameplayTablePort;
   readonly activeGameControl?: ActiveGameControlPort;
+  readonly activeGameRealtime?: ActiveGameRealtimePort;
 }
 
 export interface AppServices extends SessionApplicationServices {
