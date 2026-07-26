@@ -64,10 +64,10 @@ if (!['pass', 'fail'].includes(openScoreSheetSmoke ?? '')) {
   fail('Open-score-sheet smoke result must be pass or fail.');
 }
 
-let nonSecretCounts = {};
+let counts = {};
 const countsJson = option('counts-json', '{}');
 try {
-  nonSecretCounts = JSON.parse(countsJson);
+  counts = JSON.parse(countsJson);
 } catch {
   fail('The counts JSON is invalid.');
 }
@@ -82,7 +82,7 @@ const evidence = {
   uatUrl,
   signInSmoke,
   openScoreSheetSmoke,
-  nonSecretCounts,
+  counts,
 };
 assertSafeKeys(evidence);
 
