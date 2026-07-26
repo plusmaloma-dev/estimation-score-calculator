@@ -30,12 +30,12 @@ No gameplay migration, Edge Function, environment variable, preview deployment, 
 Create a fully separate environment:
 
 - Supabase project: `estimation-gameplay-uat`;
-- separate Vercel project;
+- separate Vercel project: `estimation-gameplay-uat`;
 - separate Preview or UAT URL;
 - separate Supabase migration history;
 - separate Auth users and workspace membership;
 - separate gameplay tables, active-control records, round state, Realtime channels, and Edge Functions;
-- workspace slug `estimation-gameplay-uat` unless an environment-specific slug is required.
+- fixed workspace slug: `estimation-gameplay-uat`.
 
 The gameplay UAT may use the same repository and shared score-engine source, but it must not reuse the existing score-calculator UAT database or Vercel project.
 
@@ -81,12 +81,12 @@ Required safeguards:
 
 ## Vercel isolation
 
-The gameplay branch must be linked to a new Vercel project rather than the existing score-calculator project.
+The gameplay branch must be linked to the new Vercel project `estimation-gameplay-uat` rather than the existing score-calculator project.
 
 Required safeguards:
 
 1. verify the Vercel account and active team;
-2. create or link a new project named `estimation-gameplay-uat`;
+2. create or link the new project `estimation-gameplay-uat`;
 3. configure only browser-safe variables for that project;
 4. deploy from `feature/online-game-bot-mvp`;
 5. record the resulting gameplay URL and tested commit SHA;
@@ -107,13 +107,13 @@ No database password, service-role key, private server key, or personal token ma
 1. Repair local branch pointers without pushing.
 2. Check out a clean local `feature/online-game-bot-mvp` tracking branch.
 3. Run `npm ci` and `npm run ci`.
-4. Create the separate Supabase project manually in the authenticated Supabase account.
+4. Create the separate Supabase project `estimation-gameplay-uat` manually in the authenticated Supabase account.
 5. Link the local checkout to the new gameplay project.
-6. verify project name and reference.
+6. Verify the project name and reference.
 7. Run migration dry-run, review it, then apply.
 8. Deploy `gameplay-start` and `gameplay-round-command` with JWT verification.
-9. Create separate gameplay UAT users and workspace memberships.
-10. Create or link the separate Vercel project and configure its variables.
+9. Create separate gameplay UAT users and workspace memberships under the fixed slug `estimation-gameplay-uat`.
+10. Create or link the separate Vercel project `estimation-gameplay-uat` and configure its variables.
 11. Deploy the gameplay branch.
 12. Run solo-versus-three-bots and two-browser UAT.
 13. Recheck the original score-calculator UAT URL and database access.
