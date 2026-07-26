@@ -152,7 +152,7 @@ export function GameplayTableScreen({
   async function startGame() {
     if (busy || table === undefined) return;
     const secureService = services.gameplayRound;
-    if (secureService !== undefined) {
+    if (secureService?.startGame !== undefined) {
       setBusy(true);
       setErrors([]);
       try {
