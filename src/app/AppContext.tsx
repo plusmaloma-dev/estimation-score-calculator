@@ -14,6 +14,7 @@ import type {
 import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
 import type { ActiveGameControlService } from '../online/gameplay/ActiveGameControlService.js';
 import type { ActiveGameRealtimeSynchronizer } from '../online/gameplay/ActiveGameRealtimeSynchronizer.js';
+import type { OnlineGameplayRoundService } from '../online/gameplay/OnlineGameplayRoundService.js';
 import type { OnlineGameplayTableService } from '../online/gameplay/OnlineGameplayTableService.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
@@ -86,12 +87,19 @@ export type ActiveGameRealtimePort = Pick<ActiveGameRealtimeSynchronizer,
   | 'runMutation'
 >;
 
+export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
+  | 'getSnapshot'
+  | 'submitBid'
+  | 'playCard'
+>;
+
 export interface SessionApplicationServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
   readonly gameplayTables?: GameplayTablePort;
   readonly activeGameControl?: ActiveGameControlPort;
   readonly activeGameRealtime?: ActiveGameRealtimePort;
+  readonly gameplayRound?: GameplayRoundPort;
 }
 
 export interface AppServices extends SessionApplicationServices {
