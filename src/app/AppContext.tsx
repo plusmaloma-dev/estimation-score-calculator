@@ -11,14 +11,22 @@ import type {
   UiSessionHistoryItem,
   UiValidationResult,
 } from '../index.js';
-import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
-import type { ActiveGameControlService } from '../online/gameplay/ActiveGameControlService.js';
-import type { ActiveGameRealtimeSynchronizer } from '../online/gameplay/ActiveGameRealtimeSynchronizer.js';
-import type { GameplayRoundRealtimeSynchronizer } from '../online/gameplay/GameplayRoundRealtimeSynchronizer.js';
-import type { OnlineGameplayRoundService } from '../online/gameplay/OnlineGameplayRoundService.js';
-import type { OnlineGameplayTableService } from '../online/gameplay/OnlineGameplayTableService.js';
+import type { AuthSessionState } from '../online/auth/types.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
+import {
+  GameplayContextProvider,
+  type ActiveGameControlPort as GameplayActiveGameControlPort,
+  type ActiveGameRealtimePort as GameplayActiveGameRealtimePort,
+  type GameplayApplicationServices,
+  type GameplayAuthPort,
+  type GameplayNavigationController,
+  type GameplayRoundPort as GameplayRoundServicePort,
+  type GameplayRoundRealtimePort as GameplayRoundRealtimeServicePort,
+  type GameplayRoute,
+  type GameplaySessionServices,
+  type GameplayTablePort as GameplayTableServicePort,
+} from './gameplay/GameplayContext.js';
 import { createBrowserServices } from './services/createBrowserServices.js';
 
 export type Awaitable<T> = T | Promise<T>;
@@ -48,70 +56,16 @@ export interface BrowserShellPort {
   forceReleaseGameLock?(scoreSheetId: string): Awaitable<UiValidationResult>;
 }
 
-export interface AuthPort {
-  getSession(): Promise<AuthResult<AuthSessionState | undefined>>;
-  signIn(email: string, password: string): Promise<AuthResult<AuthSessionState>>;
-  signOut(): Promise<AuthResult<void>>;
-}
+export type AuthPort = GameplayAuthPort;
+export type GameplayTablePort = GameplayTableServicePort;
+export type ActiveGameControlPort = GameplayActiveGameControlPort;
+export type ActiveGameRealtimePort = GameplayActiveGameRealtimePort;
+export type GameplayRoundPort = GameplayRoundServicePort;
+export type GameplayRoundRealtimePort = GameplayRoundRealtimeServicePort;
 
-export type GameplayTablePort = Pick<OnlineGameplayTableService,
-  | 'createTable'
-  | 'listLobby'
-  | 'openTable'
-  | 'updateSettings'
-  | 'joinTable'
-  | 'requestJoin'
-  | 'respondJoinRequest'
-  | 'leaveTable'
-  | 'startTable'
->;
-
-export type ActiveGameControlPort = Pick<ActiveGameControlService,
-  | 'initialize'
-  | 'getSnapshot'
-  | 'pause'
-  | 'resume'
-  | 'terminate'
-  | 'disconnect'
-  | 'reconnect'
-  | 'evaluateGrace'
-  | 'evaluateDeadlines'
-  | 'startTurn'
-  | 'beginBotAction'
-  | 'completeActionBoundary'
->;
-
-export type ActiveGameRealtimePort = Pick<ActiveGameRealtimeSynchronizer,
-  | 'connect'
-  | 'disconnect'
-  | 'refresh'
-  | 'runMutation'
->;
-
-export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
-  | 'getSnapshot'
-  | 'submitBid'
-  | 'playCard'
-> & Partial<Pick<OnlineGameplayRoundService,
-  | 'startGame'
-  | 'processBotDirective'
->>;
-
-export type GameplayRoundRealtimePort = Pick<GameplayRoundRealtimeSynchronizer,
-  | 'connect'
-  | 'disconnect'
-  | 'refresh'
-  | 'runMutation'
->;
-
-export interface SessionApplicationServices {
+export interface SessionApplicationServices extends GameplaySessionServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
-  readonly gameplayTables?: GameplayTablePort;
-  readonly activeGameControl?: ActiveGameControlPort;
-  readonly activeGameRealtime?: ActiveGameRealtimePort;
-  readonly gameplayRound?: GameplayRoundPort;
-  readonly gameplayRoundRealtime?: GameplayRoundRealtimePort;
 }
 
 export interface AppServices extends SessionApplicationServices {
@@ -142,6 +96,35 @@ function reducer(state: AppState, action: AppAction): AppState {
   }
 }
 
+function gameplayRoute(route: AppRoute): GameplayRoute {
+  if (route === 'gameplay-lobby' || route === 'gameplay-table' || route === 'active-game') {
+    return route;
+  }
+  return 'gameplay-home';
+}
+
+function selectGameplaySessionServices(
+  services: GameplaySessionServices,
+): GameplaySessionServices {
+  return {
+    gameplayTables: services.gameplayTables,
+    activeGameControl: services.activeGameControl,
+    activeGameRealtime: services.activeGameRealtime,
+    gameplayRound: services.gameplayRound,
+    gameplayRoundRealtime: services.gameplayRoundRealtime,
+  };
+}
+
+function selectGameplayServices(services: AppServices): GameplayApplicationServices {
+  return {
+    auth: services.auth,
+    ...selectGameplaySessionServices(services),
+    onlineSessionFactory: services.onlineSessionFactory === undefined
+      ? undefined
+      : (session) => selectGameplaySessionServices(services.onlineSessionFactory!(session)),
+  };
+}
+
 export function AppProvider({
   children,
   services,
@@ -161,8 +144,28 @@ export function AppProvider({
     openGameplayTable: (tableId) => dispatch({ type: 'open-gameplay-table', tableId }),
     openActiveGame: (tableId) => dispatch({ type: 'open-active-game', tableId }),
   }), [resolvedServices, state]);
+  const gameplayServices = useMemo(
+    () => selectGameplayServices(resolvedServices),
+    [resolvedServices],
+  );
+  const gameplayNavigation = useMemo<GameplayNavigationController>(() => ({
+    route: gameplayRoute(state.route),
+    activeGameplayTableId: state.activeGameplayTableId,
+    navigate: (route) => dispatch({
+      type: 'navigate',
+      route: route === 'gameplay-home' ? 'home' : route,
+    }),
+    openGameplayTable: (tableId) => dispatch({ type: 'open-gameplay-table', tableId }),
+    openActiveGame: (tableId) => dispatch({ type: 'open-active-game', tableId }),
+  }), [state]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      <GameplayContextProvider services={gameplayServices} navigation={gameplayNavigation}>
+        {children}
+      </GameplayContextProvider>
+    </AppContext.Provider>
+  );
 }
 
 export function useApp(): AppContextValue {
