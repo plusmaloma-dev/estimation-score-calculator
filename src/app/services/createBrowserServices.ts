@@ -6,6 +6,10 @@ import {
   type ActiveGameControlDatabase,
 } from '../../online/gameplay/ActiveGameControlService.js';
 import {
+  ActiveGameRealtimeSynchronizer,
+  type GameplayRealtimeClient,
+} from '../../online/gameplay/ActiveGameRealtimeSynchronizer.js';
+import {
   OnlineGameplayTableService,
   type OnlineGameplayTableDatabase,
 } from '../../online/gameplay/OnlineGameplayTableService.js';
@@ -31,21 +35,28 @@ export function createBrowserServices(
   return {
     ...localServices,
     auth: new AuthService(client, config.workspaceSlug),
-    onlineSessionFactory: (session) => ({
-      shell: new OnlineBrowserShellService(client as unknown as OnlineShellDatabase, session),
-      playerDirectory: new PlayerDirectoryService(
-        client as unknown as PlayerDirectoryDatabase,
-        session.membership.workspaceId,
-        session.user.id,
-      ),
-      gameplayTables: new OnlineGameplayTableService(
-        client as unknown as OnlineGameplayTableDatabase,
-        session,
-      ),
-      activeGameControl: new ActiveGameControlService(
+    onlineSessionFactory: (session) => {
+      const activeGameControl = new ActiveGameControlService(
         client as unknown as ActiveGameControlDatabase,
         session,
-      ),
-    }),
+      );
+      return {
+        shell: new OnlineBrowserShellService(client as unknown as OnlineShellDatabase, session),
+        playerDirectory: new PlayerDirectoryService(
+          client as unknown as PlayerDirectoryDatabase,
+          session.membership.workspaceId,
+          session.user.id,
+        ),
+        gameplayTables: new OnlineGameplayTableService(
+          client as unknown as OnlineGameplayTableDatabase,
+          session,
+        ),
+        activeGameControl,
+        activeGameRealtime: new ActiveGameRealtimeSynchronizer(
+          client as unknown as GameplayRealtimeClient,
+          activeGameControl,
+        ),
+      };
+    },
   };
 }
