@@ -1,6 +1,7 @@
 import type { EstimationBid } from '../domain/bid.js';
 import type { Card } from '../domain/card.js';
 import type { MvpRoundResult } from '../services/EstimationMvpService.js';
+import type { GameplayDealAuditRecord } from './session/types.js';
 
 export const SEAT_INDICES = [0, 1, 2, 3] as const;
 export type SeatIndex = (typeof SEAT_INDICES)[number];
@@ -73,6 +74,7 @@ export interface CreateHouseRulesRoundInput {
   readonly firstLeadSeat: SeatIndex;
   readonly roundMultiplier?: number;
   readonly multipleWithMultiplier?: 1 | 2;
+  readonly dealAudit?: GameplayDealAuditRecord;
 }
 
 export interface HouseRulesRoundState {
@@ -93,6 +95,7 @@ export interface HouseRulesRoundState {
   readonly roundMultiplier?: number;
   readonly multipleWithMultiplier?: 1 | 2;
   readonly scoreResult?: MvpRoundResult;
+  readonly dealAudit?: GameplayDealAuditRecord;
 }
 
 export interface GameplayStateTransition {
