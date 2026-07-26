@@ -178,13 +178,15 @@ describe('ActiveGameplayScreen', () => {
       publishSnapshot = onSnapshot;
     });
     const disconnect = vi.fn(async () => undefined);
-    const appServices = services(activeSnapshot()) as AppServices & {
+    const appServices = {
+      ...services(activeSnapshot()),
       activeGameRealtime: {
-        connect: typeof connect;
-        disconnect: typeof disconnect;
-      };
-    };
-    appServices.activeGameRealtime = { connect, disconnect };
+        connect,
+        disconnect,
+        refresh: vi.fn(async () => undefined),
+        runMutation: vi.fn(async (operation: () => Promise<unknown>) => operation()),
+      },
+    } as unknown as AppServices;
 
     const view = renderActive(appServices, 'host-user');
     expect(await screen.findByRole('button', { name: 'Pause game' })).toBeVisible();
