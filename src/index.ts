@@ -45,6 +45,7 @@ export * from './gameplay/control/ActiveGameDeadlineService.js';
 export * from './gameplay/control/ActiveControlCommandProcessor.js';
 export * from './gameplay/control/ActiveControlReplayService.js';
 export * from './online/gameplay/roundTypes.js';
+export * from './online/gameplay/OnlineGameplayRoundService.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';
 export * from './persistence/LocalStorageScoreSheetRepository.js';
