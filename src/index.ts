@@ -29,6 +29,8 @@ export * from './gameplay/GameplayReplayService.js';
 export * from './gameplay/GameplayRoundSnapshotProjector.js';
 export * from './gameplay/roundApplicationTypes.js';
 export * from './gameplay/GameplayRoundApplicationService.js';
+export * from './gameplay/session/types.js';
+export * from './gameplay/session/GameplaySessionBootstrapService.js';
 export * from './gameplay/bot/types.js';
 export * from './gameplay/bot/BotObservationService.js';
 export * from './gameplay/bot/BotBidObservationService.js';
