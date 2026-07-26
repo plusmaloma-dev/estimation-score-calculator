@@ -1,6 +1,14 @@
 import { LifecycleBrowserUiShellService, LocalStorageScoreSheetRepository } from '../../index.js';
 import { AuthService } from '../../online/auth/AuthService.js';
 import { readOnlineConfig, type OnlineEnvironment } from '../../online/config.js';
+import {
+  ActiveGameControlService,
+  type ActiveGameControlDatabase,
+} from '../../online/gameplay/ActiveGameControlService.js';
+import {
+  OnlineGameplayTableService,
+  type OnlineGameplayTableDatabase,
+} from '../../online/gameplay/OnlineGameplayTableService.js';
 import { OnlineBrowserShellService, type OnlineShellDatabase } from '../../online/games/OnlineBrowserShellService.js';
 import { PlayerDirectoryService, type PlayerDirectoryDatabase } from '../../online/players/PlayerDirectoryService.js';
 import { createSupabaseBrowserClient } from '../../online/supabaseClient.js';
@@ -29,6 +37,14 @@ export function createBrowserServices(
         client as unknown as PlayerDirectoryDatabase,
         session.membership.workspaceId,
         session.user.id,
+      ),
+      gameplayTables: new OnlineGameplayTableService(
+        client as unknown as OnlineGameplayTableDatabase,
+        session,
+      ),
+      activeGameControl: new ActiveGameControlService(
+        client as unknown as ActiveGameControlDatabase,
+        session,
       ),
     }),
   };
