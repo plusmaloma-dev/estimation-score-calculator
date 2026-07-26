@@ -1,6 +1,6 @@
 import type { EstimationBid } from '../domain/bid.js';
 import type { Card } from '../domain/card.js';
-import type { MvpRoundResult } from '../services/EstimationMvpService.js';
+import type { GameplayRoundScoringResult } from './scoring/RoundScoringPort.js';
 import type { GameplayDealAuditRecord } from './session/types.js';
 
 export const SEAT_INDICES = [0, 1, 2, 3] as const;
@@ -94,7 +94,7 @@ export interface HouseRulesRoundState {
   readonly actualTricksBySeat: readonly [number, number, number, number];
   readonly roundMultiplier?: number;
   readonly multipleWithMultiplier?: 1 | 2;
-  readonly scoreResult?: MvpRoundResult;
+  readonly scoreResult?: GameplayRoundScoringResult;
   readonly dealAudit?: GameplayDealAuditRecord;
 }
 
