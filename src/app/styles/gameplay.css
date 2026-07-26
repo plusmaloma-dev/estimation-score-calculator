@@ -10,7 +10,8 @@
 }
 
 .gameplay-lobby-actions,
-.gameplay-table-heading {
+.gameplay-table-heading,
+.gameplay-round-heading {
   justify-content: space-between;
 }
 
@@ -24,7 +25,8 @@
 .gameplay-table-settings h3,
 .gameplay-table-heading h2,
 .active-game-screen h2,
-.active-turn-card h3 {
+.active-turn-card h3,
+.gameplay-bid-panel h3 {
   margin: 0;
 }
 
@@ -58,7 +60,8 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
-.gameplay-table-heading {
+.gameplay-table-heading,
+.gameplay-round-heading {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
@@ -173,6 +176,75 @@
   box-shadow: inset 0 0 0 1px #087846, 0 .45rem 1.2rem rgb(0 98 56 / 12%);
 }
 
+.gameplay-bid-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #cbd8d4;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
+}
+
+.gameplay-round-heading {
+  align-items: center;
+}
+
+.gameplay-estimate-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-estimate-list > li {
+  display: grid;
+  gap: .3rem;
+  min-width: 0;
+  border: 1px solid #d9e1df;
+  border-radius: .8rem;
+  background: #fafcfb;
+  padding: .75rem;
+  text-align: center;
+}
+
+.gameplay-estimate-list span {
+  color: #62706c;
+  font-size: .82rem;
+}
+
+.gameplay-estimate-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameplay-estimate--active {
+  border-color: #087846 !important;
+  background: #eef8f4 !important;
+  box-shadow: inset 0 0 0 1px #087846;
+}
+
+.gameplay-bid-form {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid #e0e6e4;
+  padding-top: 1rem;
+}
+
+.gameplay-turn-status {
+  margin: 0;
+  color: #087443;
+  font-weight: 800;
+}
+
+.gameplay-bid-form > .primary-button {
+  justify-self: end;
+  min-width: 10rem;
+}
+
 .active-host-controls {
   justify-content: flex-end;
   border-top: 1px solid #d8e1df;
@@ -201,6 +273,10 @@
   .gameplay-seat-grid,
   .active-seat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gameplay-estimate-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gameplay-table-heading,
@@ -235,12 +311,22 @@
   .gameplay-lobby-actions > button,
   .screen-actions > button,
   .gameplay-request-actions > button,
-  .active-host-controls > button {
+  .active-host-controls > button,
+  .gameplay-bid-form > .primary-button {
     width: 100%;
   }
 
   .gameplay-seat,
   .active-seat-card {
     min-height: 5.5rem;
+  }
+
+  .gameplay-estimate-list {
+    grid-template-columns: 1fr;
+  }
+
+  .gameplay-round-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
