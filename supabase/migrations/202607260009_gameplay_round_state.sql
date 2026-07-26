@@ -51,23 +51,16 @@ alter table public.gameplay_round_states enable row level security;
 alter table public.gameplay_round_commands enable row level security;
 alter table public.gameplay_round_invalidations enable row level security;
 
--- The full aggregate contains all four private hands and has intentionally no
--- authenticated policy or direct grant. Only service-role Edge Function RPCs
--- may load or replace it.
-
-create policy gameplay_round_commands_audit_select
-on public.gameplay_round_commands
-for select to authenticated
-using (public.can_audit_gameplay_table(table_id));
+-- The full aggregate and command ledger contain all four private hands through
+-- deterministic transitions. They intentionally have no authenticated policy
+-- or direct grant. Only service-role Edge Function RPCs may read or write them.
 
 create policy gameplay_round_invalidations_scoped_select
 on public.gameplay_round_invalidations
 for select to authenticated
 using (public.can_view_gameplay_table(table_id));
 
-grant select on public.gameplay_round_commands,
-  public.gameplay_round_invalidations
-  to authenticated;
+grant select on public.gameplay_round_invalidations to authenticated;
 
 -- No authenticated INSERT, UPDATE, or DELETE grant is provided for any round
 -- persistence table. All authoritative writes use service-role RPCs.
