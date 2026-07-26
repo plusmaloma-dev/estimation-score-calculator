@@ -7,10 +7,10 @@ import type {
   OnlineBotActionDirective,
 } from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
-import { useApp } from '../AppContext.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
 import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
 import { GameplayCardPanel } from '../components/GameplayCardPanel.js';
+import { useGameplayApp } from '../gameplay/GameplayContext.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 function commandId(prefix: string): string {
@@ -78,7 +78,7 @@ export function ActiveGameplayScreen({
   readonly tableId: string;
   readonly currentUserId: string;
 }) {
-  const { services, navigate } = useApp();
+  const { services, navigate } = useGameplayApp();
   const { t } = useI18n();
   const [snapshot, setSnapshot] = useState<OnlineActiveGameControlSnapshot | undefined>();
   const [errors, setErrors] = useState<readonly string[]>([]);
