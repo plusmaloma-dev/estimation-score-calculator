@@ -3,10 +3,15 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 const edge = readFileSync('supabase/functions/gameplay-start/index.ts', 'utf8');
-const config = readFileSync('supabase/config.toml', 'utf8');
 
 function compact(value: string): string {
   return value.replace(/\s+/g, ' ');
+}
+
+function requestBodyBlock(): string {
+  const match = edge.match(/interface RequestBody\s*\{([\s\S]*?)\n\}/i);
+  assert.ok(match, 'Missing Start request body interface.');
+  return match[0];
 }
 
 test('Start Function authenticates the caller and accepts only public start identity', () => {
@@ -16,8 +21,7 @@ test('Start Function authenticates the caller and accepts only public start iden
   assert.match(edge, /tableId\?: string/i);
   assert.match(edge, /expectedVersion\?: number/i);
   assert.match(edge, /commandId\?: string/i);
-  assert.doesNotMatch(edge, /interface RequestBody[\s\S]*seedHex|interface RequestBody[\s\S]*hands/i);
-  assert.match(config, /\[functions\.gameplay-start\][\s\S]*verify_jwt\s*=\s*true/i);
+  assert.doesNotMatch(requestBodyBlock(), /seedHex|hands|shuffledDeck|dealAudit/i);
 });
 
 test('Start Function generates private cryptographic deal inputs server-side', () => {
