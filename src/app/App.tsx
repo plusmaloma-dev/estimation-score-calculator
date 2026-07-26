@@ -3,6 +3,7 @@ import type { AuthSessionState } from '../online/auth/types.js';
 import { AppProvider, useApp, type AppServices } from './AppContext.js';
 import { UserSessionMenu } from './components/UserSessionMenu.js';
 import { I18nProvider, useI18n } from './i18n/I18nContext.js';
+import { ActiveGameplayScreen } from './screens/ActiveGameplayScreen.js';
 import { GameplayLobbyScreen } from './screens/GameplayLobbyScreen.js';
 import { GameplayTableScreen } from './screens/GameplayTableScreen.js';
 import { HomeScreen } from './screens/HomeScreen.js';
@@ -57,13 +58,10 @@ function AppContent({
         />
       )}
       {route === 'active-game' && activeGameplayTableId !== undefined && (
-        <section className="screen-stack" aria-labelledby="active-game-heading">
-          <button className="secondary-button" type="button" onClick={() => navigate('gameplay-table')}>
-            {t('backToLobby')}
-          </button>
-          <h2 id="active-game-heading">Active online game</h2>
-          <p>Table {activeGameplayTableId}</p>
-        </section>
+        <ActiveGameplayScreen
+          tableId={activeGameplayTableId}
+          currentUserId={session?.user.id ?? ''}
+        />
       )}
       {route === 'score-sheet' && activeScoreSheetId !== undefined && (
         <ScoreSheetScreen
