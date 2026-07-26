@@ -10,6 +10,10 @@ import {
   type GameplayRealtimeClient,
 } from '../../online/gameplay/ActiveGameRealtimeSynchronizer.js';
 import {
+  GameplayRoundRealtimeSynchronizer,
+  type GameplayRoundRealtimeClient,
+} from '../../online/gameplay/GameplayRoundRealtimeSynchronizer.js';
+import {
   OnlineGameplayRoundService,
   type GameplayRoundFunctionClient,
 } from '../../online/gameplay/OnlineGameplayRoundService.js';
@@ -44,6 +48,9 @@ export function createBrowserServices(
         client as unknown as ActiveGameControlDatabase,
         session,
       );
+      const gameplayRound = new OnlineGameplayRoundService(
+        client as unknown as GameplayRoundFunctionClient,
+      );
       return {
         shell: new OnlineBrowserShellService(client as unknown as OnlineShellDatabase, session),
         playerDirectory: new PlayerDirectoryService(
@@ -60,8 +67,10 @@ export function createBrowserServices(
           client as unknown as GameplayRealtimeClient,
           activeGameControl,
         ),
-        gameplayRound: new OnlineGameplayRoundService(
-          client as unknown as GameplayRoundFunctionClient,
+        gameplayRound,
+        gameplayRoundRealtime: new GameplayRoundRealtimeSynchronizer(
+          client as unknown as GameplayRoundRealtimeClient,
+          gameplayRound,
         ),
       };
     },
