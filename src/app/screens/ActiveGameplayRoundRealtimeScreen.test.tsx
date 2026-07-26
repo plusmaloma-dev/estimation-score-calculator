@@ -147,7 +147,7 @@ describe('ActiveGameplayScreen round Realtime', () => {
       publish = onSnapshot;
     });
     const disconnect = vi.fn(async () => undefined);
-    const realtime = {
+    const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
       connect,
       disconnect,
       refresh: vi.fn(),
@@ -196,8 +196,10 @@ describe('ActiveGameplayScreen round Realtime', () => {
       currentTrick: [{ seat: 0, card: { suit: 'hearts', rank: 'A' } }],
     });
     const playCard = vi.fn(async () => ({ valid: true, errors: [], value: afterPlay }));
-    const runMutation = vi.fn(async (operation: () => Promise<unknown>) => operation());
-    const realtime = {
+    const runMutation: NonNullable<AppServices['gameplayRoundRealtime']>['runMutation'] = vi.fn(
+      async (operation) => operation(),
+    );
+    const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
       connect: vi.fn(async () => undefined),
       disconnect: vi.fn(async () => undefined),
       refresh: vi.fn(),
