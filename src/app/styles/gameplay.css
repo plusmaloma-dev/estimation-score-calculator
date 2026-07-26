@@ -26,7 +26,9 @@
 .gameplay-table-heading h2,
 .active-game-screen h2,
 .active-turn-card h3,
-.gameplay-bid-panel h3 {
+.gameplay-bid-panel h3,
+.gameplay-card-panel h3,
+.gameplay-card-panel h4 {
   margin: 0;
 }
 
@@ -176,7 +178,8 @@
   box-shadow: inset 0 0 0 1px #087846, 0 .45rem 1.2rem rgb(0 98 56 / 12%);
 }
 
-.gameplay-bid-panel {
+.gameplay-bid-panel,
+.gameplay-card-panel {
   display: grid;
   gap: 1rem;
   border: 1px solid #cbd8d4;
@@ -245,6 +248,105 @@
   min-width: 10rem;
 }
 
+.gameplay-current-trick {
+  display: grid;
+  gap: .75rem;
+  border: 1px solid #d8e1df;
+  border-radius: .9rem;
+  background: #f8fbfa;
+  padding: 1rem;
+}
+
+.gameplay-current-trick > p {
+  margin: 0;
+  color: #62706c;
+}
+
+.gameplay-current-trick ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-current-trick li {
+  display: grid;
+  gap: .35rem;
+  border: 1px solid #d8e1df;
+  border-radius: .75rem;
+  background: white;
+  padding: .7rem;
+  text-align: center;
+}
+
+.gameplay-current-trick li span,
+.gameplay-trick-totals {
+  color: #62706c;
+  font-size: .85rem;
+}
+
+.gameplay-current-trick li strong {
+  font-size: 1.3rem;
+}
+
+.gameplay-trick-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+}
+
+.gameplay-trick-totals span {
+  border-radius: .65rem;
+  background: #eef4f2;
+  padding: .55rem;
+  text-align: center;
+}
+
+.gameplay-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .55rem;
+  border-top: 1px solid #e0e6e4;
+  padding-top: 1rem;
+}
+
+.playing-card {
+  display: grid;
+  min-width: 3.15rem;
+  min-height: 4.6rem;
+  place-content: center;
+  gap: .2rem;
+  border: 1px solid #aebbb7;
+  border-radius: .55rem;
+  background: white;
+  color: #17201d;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 .25rem .6rem rgb(20 50 44 / 10%);
+}
+
+.playing-card--red {
+  color: #b42318;
+}
+
+.playing-card--legal:not(:disabled) {
+  border-color: #087846;
+  box-shadow: inset 0 0 0 1px #087846, 0 .35rem .8rem rgb(0 98 56 / 15%);
+  cursor: pointer;
+}
+
+.playing-card--legal:not(:disabled):hover,
+.playing-card--legal:not(:disabled):focus-visible {
+  transform: translateY(-.15rem);
+}
+
+.playing-card:disabled {
+  opacity: .48;
+}
+
 .active-host-controls {
   justify-content: flex-end;
   border-top: 1px solid #d8e1df;
@@ -275,7 +377,9 @@
     grid-template-columns: 1fr;
   }
 
-  .gameplay-estimate-list {
+  .gameplay-estimate-list,
+  .gameplay-current-trick ol,
+  .gameplay-trick-totals {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -321,12 +425,25 @@
     min-height: 5.5rem;
   }
 
-  .gameplay-estimate-list {
+  .gameplay-estimate-list,
+  .gameplay-current-trick ol,
+  .gameplay-trick-totals {
     grid-template-columns: 1fr;
   }
 
   .gameplay-round-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .gameplay-hand {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .4rem;
+  }
+
+  .playing-card {
+    flex: 0 0 3.15rem;
   }
 }
