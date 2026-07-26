@@ -12,6 +12,8 @@ import type {
   UiValidationResult,
 } from '../index.js';
 import type { AuthResult, AuthSessionState } from '../online/auth/types.js';
+import type { ActiveGameControlService } from '../online/gameplay/ActiveGameControlService.js';
+import type { OnlineGameplayTableService } from '../online/gameplay/OnlineGameplayTableService.js';
 import type { PlayerDirectoryPort } from '../online/players/types.js';
 import type { AppAction, AppRoute, AppState } from './appTypes.js';
 import { createBrowserServices } from './services/createBrowserServices.js';
@@ -49,9 +51,38 @@ export interface AuthPort {
   signOut(): Promise<AuthResult<void>>;
 }
 
+export type GameplayTablePort = Pick<OnlineGameplayTableService,
+  | 'createTable'
+  | 'listLobby'
+  | 'openTable'
+  | 'updateSettings'
+  | 'joinTable'
+  | 'requestJoin'
+  | 'respondJoinRequest'
+  | 'leaveTable'
+  | 'startTable'
+>;
+
+export type ActiveGameControlPort = Pick<ActiveGameControlService,
+  | 'initialize'
+  | 'getSnapshot'
+  | 'pause'
+  | 'resume'
+  | 'terminate'
+  | 'disconnect'
+  | 'reconnect'
+  | 'evaluateGrace'
+  | 'evaluateDeadlines'
+  | 'startTurn'
+  | 'beginBotAction'
+  | 'completeActionBoundary'
+>;
+
 export interface SessionApplicationServices {
   readonly shell: BrowserShellPort;
   readonly playerDirectory: PlayerDirectoryPort;
+  readonly gameplayTables?: GameplayTablePort;
+  readonly activeGameControl?: ActiveGameControlPort;
 }
 
 export interface AppServices extends SessionApplicationServices {
@@ -63,6 +94,8 @@ interface AppContextValue extends AppState {
   readonly services: AppServices;
   readonly navigate: (route: AppRoute) => void;
   readonly openScoreSheet: (scoreSheetId: string) => void;
+  readonly openGameplayTable: (tableId: string) => void;
+  readonly openActiveGame: (tableId: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -73,6 +106,10 @@ function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, route: action.route };
     case 'open-score-sheet':
       return { route: 'score-sheet', activeScoreSheetId: action.scoreSheetId };
+    case 'open-gameplay-table':
+      return { route: 'gameplay-table', activeGameplayTableId: action.tableId };
+    case 'open-active-game':
+      return { route: 'active-game', activeGameplayTableId: action.tableId };
   }
 }
 
@@ -92,6 +129,8 @@ export function AppProvider({
     services: resolvedServices,
     navigate: (route) => dispatch({ type: 'navigate', route }),
     openScoreSheet: (scoreSheetId) => dispatch({ type: 'open-score-sheet', scoreSheetId }),
+    openGameplayTable: (tableId) => dispatch({ type: 'open-gameplay-table', tableId }),
+    openActiveGame: (tableId) => dispatch({ type: 'open-active-game', tableId }),
   }), [resolvedServices, state]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
