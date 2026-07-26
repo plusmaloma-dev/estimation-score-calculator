@@ -20,6 +20,7 @@
     "build": "vite build",
     "build:gameplay": "vite build --config vite.gameplay.config.ts",
     "test:gameplay-boundary": "npm run build:gameplay && npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayFrontendImportBoundary.test.js",
+    "verify:gameplay-target": "node scripts/isolation/gameplay-target-guard.mjs",
     "ci:score-engine": "npm run typecheck:score-engine && npm run test:score-engine",
     "ci": "npm run typecheck && npm test && npm run build && npm run build:gameplay"
   },
