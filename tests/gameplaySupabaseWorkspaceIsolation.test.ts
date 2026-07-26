@@ -29,9 +29,9 @@ const forbiddenSql = [
   'create table public.round_scores',
   'create table public.score_overrides',
   'create table public.game_edit_locks',
-  'create or replace function public.create_game',
-  'create or replace function public.save_round',
-  'create or replace function public.get_game_snapshot',
+  'create or replace function public.create_game(',
+  'create or replace function public.save_round(',
+  'create or replace function public.get_game_snapshot(',
 ];
 
 const requiredSql = [
