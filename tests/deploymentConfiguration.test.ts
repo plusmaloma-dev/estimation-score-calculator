@@ -74,6 +74,8 @@ test('timestamped Supabase migrations have deterministic one-way deployment orde
     '202607250004_gameplay_tables.sql',
     '202607250005_gameplay_tables_rls.sql',
     '202607250006_gameplay_table_rpc.sql',
+    '202607250007_active_game_control.sql',
+    '202607250008_active_game_control_rpc.sql',
   ]);
   assert.match(runbook, /supabase_migrations\.schema_migrations/i);
   assert.match(runbook, /Do not edit a migration after it has been applied/i);
