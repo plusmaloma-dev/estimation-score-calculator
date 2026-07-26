@@ -2,6 +2,7 @@ import { GameplayCommandProcessor } from './GameplayCommandProcessor.js';
 import type {
   GameplayCommandRecord,
   GameplayReplayResult,
+  GameplayStateTransition,
   HouseRulesRoundState,
 } from './types.js';
 
@@ -47,7 +48,10 @@ export class GameplayReplayService {
         && replayed.version === record.resultingVersion
         && this.sameValue(replayed.errors, record.errors)
         && replayed.record !== undefined
-        && this.sameValue(replayed.record.transition, record.transition);
+        && this.sameValue(
+          this.coreTransition(replayed.record.transition),
+          this.coreTransition(record.transition),
+        );
 
       if (!transitionMatches) {
         return this.reject(
@@ -68,6 +72,13 @@ export class GameplayReplayService {
       state,
       version,
     };
+  }
+
+  private coreTransition(
+    transition: GameplayStateTransition,
+  ): Omit<GameplayStateTransition, 'metadata'> {
+    const { metadata: _metadata, ...core } = transition;
+    return core;
   }
 
   private sameValue(left: unknown, right: unknown): boolean {
