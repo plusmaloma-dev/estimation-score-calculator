@@ -10,6 +10,10 @@ import {
   type GameplayRealtimeClient,
 } from '../../online/gameplay/ActiveGameRealtimeSynchronizer.js';
 import {
+  OnlineGameplayRoundService,
+  type GameplayRoundFunctionClient,
+} from '../../online/gameplay/OnlineGameplayRoundService.js';
+import {
   OnlineGameplayTableService,
   type OnlineGameplayTableDatabase,
 } from '../../online/gameplay/OnlineGameplayTableService.js';
@@ -55,6 +59,9 @@ export function createBrowserServices(
         activeGameRealtime: new ActiveGameRealtimeSynchronizer(
           client as unknown as GameplayRealtimeClient,
           activeGameControl,
+        ),
+        gameplayRound: new OnlineGameplayRoundService(
+          client as unknown as GameplayRoundFunctionClient,
         ),
       };
     },
