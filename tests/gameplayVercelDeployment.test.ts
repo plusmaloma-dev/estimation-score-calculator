@@ -232,6 +232,7 @@ test('Build Output config and Vercel deployment command are deterministic', asyn
     'deploy',
     '--prebuilt',
     '--prod',
+    '--archive=tgz',
     '--scope',
     'plusmaloma-6068s-projects',
     '--logs',
@@ -255,7 +256,7 @@ test('Windows command shims launch through cmd.exe', async () => {
 
 test('gameplay Vite config disables env-file loading', () => {
   const source = readFileSync(resolve('vite.gameplay.config.ts'), 'utf8');
-  assert.match(source, /envFile\s*:\s*false/);
+  assert.match(source, /envDir\s*:\s*false/);
   assert.match(source, /dist-gameplay/);
   assert.equal(basename(resolve('vite.gameplay.config.ts')), 'vite.gameplay.config.ts');
 });
