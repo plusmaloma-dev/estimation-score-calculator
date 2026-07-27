@@ -10,7 +10,7 @@ const vercel = JSON.parse(readFileSync('vercel.gameplay.json', 'utf8')) as {
   readonly buildCommand?: string;
   readonly outputDirectory?: string;
 };
-const supabase = readFileSync('supabase-gameplay/config.toml', 'utf8');
+const supabase = readFileSync('supabase-gameplay/supabase/config.toml', 'utf8');
 const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8');
 
 function script(name: string): string {

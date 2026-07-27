@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import { join } from 'node:path';
 
-const workspace = 'supabase-gameplay';
+const workspace = join('supabase-gameplay', 'supabase');
 const migrationsDirectory = join(workspace, 'migrations');
 const configPath = join(workspace, 'config.toml');
 

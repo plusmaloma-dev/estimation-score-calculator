@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8').replace(/\r\n/g, '\n');
+const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8').replaceAll('\r\n', '\n');
 const exampleEnvironment = readFileSync('.env.example', 'utf8');
-const startFunction = readFileSync('supabase-gameplay/functions/gameplay-start/index.ts', 'utf8');
-const roundFunction = readFileSync('supabase-gameplay/functions/gameplay-round-command/index.ts', 'utf8');
+const startFunction = readFileSync('supabase-gameplay/supabase/functions/gameplay-start/index.ts', 'utf8');
+const roundFunction = readFileSync('supabase-gameplay/supabase/functions/gameplay-round-command/index.ts', 'utf8');
 
 function expectText(value: string): RegExp {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');

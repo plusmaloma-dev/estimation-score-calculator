@@ -8,7 +8,7 @@ const EXPECTED_VERCEL_PROJECT = 'estimation-gameplay-uat';
 const PROHIBITED_SUPABASE_REFS = new Set(['lexewcehptnmikwfizhj']);
 const ALLOWED_LINK_METADATA = [
   '.vercel/',
-  'supabase-gameplay/.temp/',
+  'supabase-gameplay/supabase/.temp/',
 ];
 
 function fail(message) {
@@ -78,7 +78,7 @@ function verifySupabase(root, allowedRef) {
     fail(`Supabase project reference ${normalizedAllowedRef} is prohibited.`);
   }
 
-  const projectRefPath = join(root, 'supabase-gameplay', '.temp', 'project-ref');
+  const projectRefPath = join(root, 'supabase-gameplay', 'supabase', '.temp', 'project-ref');
   if (!existsSync(projectRefPath)) {
     fail(`Missing Supabase project-ref file: ${projectRefPath}.`);
   }
