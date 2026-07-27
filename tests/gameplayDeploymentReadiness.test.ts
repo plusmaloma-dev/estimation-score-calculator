@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8').replaceAll('\r\n', '\n');
 const exampleEnvironment = readFileSync('.env.example', 'utf8');
-const startFunction = readFileSync('supabase-gameplay/supabase/functions/gameplay-start/index.ts', 'utf8');
-const roundFunction = readFileSync('supabase-gameplay/supabase/functions/gameplay-round-command/index.ts', 'utf8');
+const startFunctionPath = 'supabase-gameplay/supabase/functions/gameplay-start/index.ts';
+const roundFunctionPath = 'supabase-gameplay/supabase/functions/gameplay-round-command/index.ts';
+const startFunction = readFileSync(startFunctionPath, 'utf8');
+const roundFunction = readFileSync(roundFunctionPath, 'utf8');
 
 function expectText(value: string): RegExp {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}
+
+function relativeImports(source: string): readonly string[] {
+  return Array.from(
+    source.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g),
+    (match) => match[1],
+  );
 }
 
 test('gameplay deployment runbook requires the dedicated checkout and complete validation gates', () => {
@@ -25,6 +35,33 @@ test('gameplay deployment runbook requires the dedicated checkout and complete v
   }
   assert.match(runbook, /never run.*score-calculator checkout/is);
   assert.match(runbook, /lexewcehptnmikwfizhj/i);
+});
+
+test('gameplay Functions have deployable dependency maps and resolvable local imports', () => {
+  for (const functionPath of [startFunctionPath, roundFunctionPath]) {
+    const functionDirectory = dirname(functionPath);
+    const denoPath = resolve(functionDirectory, 'deno.json');
+    assert.equal(existsSync(denoPath), true, `Missing per-Function deno.json: ${denoPath}`);
+
+    const deno = JSON.parse(readFileSync(denoPath, 'utf8')) as {
+      readonly imports?: Readonly<Record<string, string>>;
+    };
+    assert.match(
+      deno.imports?.['@supabase/supabase-js'] ?? '',
+      /^npm:@supabase\/supabase-js@2(?:\.|$)/,
+      `${functionPath} must map @supabase/supabase-js to an npm specifier.`,
+    );
+
+    const source = readFileSync(functionPath, 'utf8');
+    for (const specifier of relativeImports(source)) {
+      const importedPath = resolve(functionDirectory, specifier);
+      assert.equal(
+        existsSync(importedPath),
+        true,
+        `${functionPath} imports missing local module ${specifier} (${importedPath}).`,
+      );
+    }
+  }
 });
 
 test('runbook guards and applies only the gameplay migration workspace before deploying functions', () => {
