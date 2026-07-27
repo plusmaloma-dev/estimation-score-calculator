@@ -92,8 +92,17 @@ export function validateInputs(input) {
 }
 
 export function createBuildEnvironment(baseEnvironment, input) {
+  const environment = {};
+  for (const [name, value] of Object.entries(baseEnvironment)) {
+    const normalizedName = name.toUpperCase();
+    if (normalizedName.startsWith('VITE_')) continue;
+    if (normalizedName === 'GAMEPLAY_UAT_PUBLISHABLE_KEY') continue;
+    if (PROHIBITED_SECRET_NAMES.includes(normalizedName)) continue;
+    environment[name] = value;
+  }
+
   return {
-    ...baseEnvironment,
+    ...environment,
     VITE_SUPABASE_URL: input.supabaseUrl,
     VITE_SUPABASE_ANON_KEY: input.publishableKey,
     VITE_UAT_WORKSPACE_SLUG: input.workspaceSlug,
