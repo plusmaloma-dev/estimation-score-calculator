@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import test from 'node:test';
 
 const guard = resolve('scripts/isolation/gameplay-target-guard.mjs');
 const expectedBranch = 'feature/online-game-bot-mvp';
@@ -39,7 +39,7 @@ function fixture(name = 'estimation-gameplay-uat'): Fixture {
 }
 
 function writeSupabaseRef(root: string, ref: string): void {
-  const path = join(root, 'supabase-gameplay', '.temp');
+  const path = join(root, 'supabase-gameplay', 'supabase', '.temp');
   mkdirSync(path, { recursive: true });
   writeFileSync(join(path, 'project-ref'), `${ref}\n`);
 }
