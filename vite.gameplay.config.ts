@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  envFile: false,
+  envDir: false,
   root: resolve(process.cwd(), 'gameplay-app'),
   plugins: [react()],
   build: {
