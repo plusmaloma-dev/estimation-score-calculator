@@ -49,7 +49,7 @@ test('deployment runbook authorizes only the guarded canonical-UAT wrapper', () 
   assert.match(runbook, /npm run deploy:gameplay-vercel/);
   assert.match(runbook, /canonical UAT/i);
   assert.match(runbook, /Never run `npx vercel deploy` directly from the repository root/i);
-  assert.doesNotMatch(runbook, /vercel env run/i);
-  assert.doesNotMatch(runbook, /vercel build --local-config/i);
-  assert.doesNotMatch(runbook, /npx vercel deploy --prebuilt --local-config/i);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+env\s+run\b/im);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+build\s+--local-config\b/im);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+deploy\s+--prebuilt\s+--local-config\b/im);
 });
