@@ -1,187 +1,123 @@
 # Online Gameplay MVP — Fully Isolated UAT Deployment
 
-This runbook deploys `feature/online-game-bot-mvp` as a gameplay-only application using a new Supabase project and a new Vercel project, both named `estimation-gameplay-uat`.
+This runbook deploys `feature/online-game-bot-mvp` as a gameplay-only UAT application using dedicated Supabase and Vercel projects named `estimation-gameplay-uat`.
 
-It must not change the existing score-calculator UAT branch, Supabase project, Vercel project, URL, users, data, or deployment artifact. **Do not merge** PR #14 as part of this procedure.
+It must not change the existing score-calculator UAT branch, Supabase project, Vercel project, URL, users, data, or deployment artifact. PR #14 remains draft and unmerged throughout deployment and UAT.
 
 ## Non-negotiable targets
 
-| Resource | Existing score-calculator UAT | New gameplay UAT |
+| Resource | Existing score-calculator UAT | Gameplay UAT |
 |---|---|---|
 | Git branch | `feature/react-vite-frontend-prototype` | `feature/online-game-bot-mvp` |
-| Local checkout | Existing repository directory | `C:\Users\rjamm\estimation-gameplay-uat` |
+| Local checkout | Existing score checkout | `C:\Users\rjamm\estimation-gameplay-uat` |
 | Supabase project | `estimation-score-calculator-uat` | `estimation-gameplay-uat` |
-| Supabase reference | `lexewcehptnmikwfizhj` — prohibited target | New explicitly allow-listed reference |
-| Vercel project | Existing score-calculator project | `estimation-gameplay-uat` |
+| Supabase reference | `lexewcehptnmikwfizhj` — prohibited | `stedjwppoanbmhxsfhcg` |
+| Vercel project | `estimation-score-calculator` | `estimation-gameplay-uat` |
 | Browser artifact | Existing score calculator | `dist-gameplay` only |
-| Workspace slug | `estimation-uat` | `estimation-gameplay-uat` |
+| Workspace slug | Existing score workspace | `estimation-gameplay-uat` |
+| UAT URL | Existing score UAT URL | `https://estimation-gameplay-uat.vercel.app` |
 
-Never run `supabase link`, a database write, an Edge Function deployment, `vercel link`, or a Vercel deployment from the score-calculator checkout.
-
-Do not record passwords, tokens, keys, or database credentials. Do not record private hands, seeds, nonces, or deck order.
+Never run a gameplay Supabase or Vercel write from the score checkout. Never record passwords, tokens, private keys, service-role credentials, database credentials, private hands, seeds, nonces, or deck order.
 
 ---
 
-## 1. Preserve and repair the original checkout
+## 1. Verify the dedicated gameplay checkout
 
-Run this only from the existing directory:
-
-```powershell
-Set-Location C:\Users\rjamm\estimation-score-calculator\estimation-score-calculator
-
-# Preserve every local modification and untracked file. Do not pop this stash yet.
-git stash push --include-untracked -m "safety-before-gameplay-isolation-2026-07-26"
-git fetch origin
-
-# Preserve the known UAT point from before the accidental gameplay pull.
-git branch backup/local-uat-before-gameplay-isolation b84ecf322752d3a60d0f7124ad2cf07bdacd94c0
-
-# The current local UAT branch was accidentally fast-forwarded. Detach first,
-# restore its pointer to the untouched remote branch, then check it out again.
-git switch --detach origin/feature/react-vite-frontend-prototype
-git branch -f feature/react-vite-frontend-prototype origin/feature/react-vite-frontend-prototype
-git switch feature/react-vite-frontend-prototype
-
-git status --short --branch
-git stash list
-```
-
-Expected:
-
-- no push occurs;
-- `feature/react-vite-frontend-prototype` matches its remote branch;
-- the safety stash remains present;
-- the existing `.vercel` and `supabase/.temp` links stay only in this original checkout.
-
-Stop if the remote UAT branch has moved unexpectedly or if any command proposes a push.
-
-## 2. Create the dedicated gameplay checkout
-
-Still from the original repository directory:
-
-```powershell
-$gameplayPath = 'C:\Users\rjamm\estimation-gameplay-uat'
-if (Test-Path $gameplayPath) {
-    throw "Gameplay checkout already exists: $gameplayPath"
-}
-
-git fetch origin
-
-git show-ref --verify --quiet refs/heads/feature/online-game-bot-mvp
-if ($LASTEXITCODE -eq 0) {
-    git branch -f feature/online-game-bot-mvp origin/feature/online-game-bot-mvp
-    git worktree add $gameplayPath feature/online-game-bot-mvp
-} else {
-    git worktree add -b feature/online-game-bot-mvp $gameplayPath origin/feature/online-game-bot-mvp
-}
-
-Set-Location $gameplayPath
-if ((git branch --show-current) -ne 'feature/online-game-bot-mvp') {
-    throw 'Wrong gameplay branch.'
-}
-if ((git rev-parse HEAD) -ne (git rev-parse origin/feature/online-game-bot-mvp)) {
-    throw 'Gameplay checkout is not at the remote head.'
-}
-if (Test-Path .vercel) {
-    throw 'Gameplay checkout inherited a Vercel project link.'
-}
-if (Test-Path supabase-gameplay\.temp) {
-    throw 'Gameplay checkout inherited a Supabase project link.'
-}
-
-git status --short --branch
-```
-
-Do not copy `.vercel`, `supabase/.temp`, `.env`, or credentials from the score-calculator checkout.
-
-## 3. Validate the exact gameplay commit
-
-From now on, every command in this runbook runs from:
+Run only from:
 
 ```powershell
 Set-Location C:\Users\rjamm\estimation-gameplay-uat
 ```
 
-Install and run every repository boundary:
+Verify the branch and remote state:
+
+```powershell
+git fetch origin
+
+git branch --show-current
+git rev-parse HEAD
+git rev-parse origin/feature/online-game-bot-mvp
+git status --short
+```
+
+Required:
+
+- branch is `feature/online-game-bot-mvp`;
+- local HEAD equals the intended remote commit;
+- checkout is clean;
+- `.vercel/project.json` belongs to `estimation-gameplay-uat`;
+- `supabase-gameplay/supabase/.temp/project-ref` contains `stedjwppoanbmhxsfhcg`.
+
+Do not copy `.vercel`, `.env*`, Supabase metadata, or credentials from the score checkout.
+
+## 2. Validate and record the exact deployment commit
 
 ```powershell
 npm ci
 npm run ci
-npm run ci:score-engine
-npm run test:gameplay-boundary
-```
+npm run ci:isolation
 
-Record the commit that passed those commands:
+if ($LASTEXITCODE -ne 0) {
+  throw 'Repository validation failed. Stop.'
+}
 
-```powershell
 $testedSha = git rev-parse HEAD
-$testedSha
+Write-Host "Tested SHA:" $testedSha
 ```
 
-The value must be a full 40-character commit SHA. Do not continue after any failed command or with an uncommitted change.
+Both GitHub Actions steps must also pass on that exact SHA:
 
-## 4. Record the existing score-calculator UAT baseline
+```text
+Validate package: success
+Validate isolation boundaries: success
+```
 
-Before creating or deploying gameplay resources, verify the existing score UAT manually:
+Do not deploy a newer commit, a dirty checkout, or a SHA with pending or failed checks.
 
-1. Record the remote SHA of `origin/feature/react-vite-frontend-prototype`.
-2. Confirm Supabase project `estimation-score-calculator-uat` still has reference `lexewcehptnmikwfizhj`.
-3. Record the existing Vercel project name and current UAT HTTPS URL.
-4. Sign in to the existing score UAT.
-5. Open a saved score sheet successfully.
-6. Where practical, record non-sensitive counts for existing games, rounds, and users.
+## 3. Preserve the existing score-UAT baseline
 
-Write only non-secret evidence:
+The before-state evidence must already confirm:
+
+- score-UAT branch SHA;
+- Supabase project/reference `estimation-score-calculator-uat` / `lexewcehptnmikwfizhj`;
+- existing score Vercel project and URL;
+- successful sign-in;
+- successful opening of a saved score sheet;
+- practical non-sensitive counts where available.
+
+Write only non-secret evidence under ignored `deployment-evidence/`:
 
 ```powershell
 node scripts/isolation/score-uat-baseline.mjs before `
   --uat-branch-sha (git rev-parse origin/feature/react-vite-frontend-prototype) `
-  --vercel-project '<EXISTING_SCORE_UAT_VERCEL_PROJECT_NAME>' `
-  --uat-url 'https://<EXISTING_SCORE_UAT_URL>' `
+  --vercel-project 'estimation-score-calculator' `
+  --uat-url 'https://estimation-score-calculator-uat.vercel.app/' `
   --sign-in pass `
   --open-score-sheet pass `
-  --counts-json '{"games":0,"rounds":0}'
+  --counts-json '{}'
 ```
 
-Use actual non-sensitive counts or `{}`. The output stays under ignored `deployment-evidence/`.
+Do not rerun this if the verified before-state evidence already exists and matches the protected score-UAT state.
 
-## 5. Create the new Supabase project
-
-In the authenticated Supabase account, create a new non-production project named exactly:
-
-```text
-estimation-gameplay-uat
-```
-
-Use a unique database password stored in a password manager. Do not paste the password into source code, command arguments, screenshots, issue comments, or chat.
-
-Copy only the new project reference. It must not be:
-
-```text
-lexewcehptnmikwfizhj
-```
-
-Set it in the current PowerShell session:
+## 4. Verify the isolated Supabase target
 
 ```powershell
-$newGameplayRef = '<NEW_GAMEPLAY_PROJECT_REF>'
-if ($newGameplayRef -eq 'lexewcehptnmikwfizhj') {
-    throw 'The score-calculator UAT project is prohibited.'
+$newGameplayRef = 'stedjwppoanbmhxsfhcg'
+
+node scripts/isolation/gameplay-target-guard.mjs `
+  supabase $newGameplayRef `
+  --expected-sha $testedSha
+
+if ($LASTEXITCODE -ne 0) {
+  throw 'Gameplay Supabase target guard failed. Stop.'
 }
 ```
 
-## 6. Link and verify the isolated Supabase workspace
+The guard must reject `lexewcehptnmikwfizhj` and any checkout other than the dedicated gameplay checkout.
 
-Link the dedicated `supabase-gameplay` work directory, not the repository's original `supabase` directory:
+## 5. Verify the nine gameplay migrations
 
-```powershell
-npx supabase --workdir supabase-gameplay link --project-ref $newGameplayRef
-node scripts/isolation/gameplay-target-guard.mjs supabase $newGameplayRef --expected-sha $testedSha
-```
-
-The guard must report both the expected gameplay branch/SHA and the allow-listed reference. Stop if it reports a missing, mismatched, or prohibited target.
-
-Confirm the migration history contains exactly these files:
+The linked gameplay project must contain exactly these applied migrations:
 
 1. `202607260001_gameplay_identity.sql`
 2. `202607260002_gameplay_identity_rls.sql`
@@ -193,168 +129,207 @@ Confirm the migration history contains exactly these files:
 8. `202607260008_gameplay_round_state.sql`
 9. `202607260009_gameplay_round_rpc.sql`
 
-This workspace must not create score-sheet player directories, score-sheet games, score-sheet rounds, scores, overrides, edit locks, or score-calculator RPCs.
-
-## 7. Dry-run and apply gameplay migrations
-
-Run the guard and migration preview:
+Read-only verification:
 
 ```powershell
-node scripts/isolation/gameplay-target-guard.mjs supabase $newGameplayRef --expected-sha $testedSha
-npx supabase --workdir supabase-gameplay db push --dry-run
+npx supabase --workdir supabase-gameplay migration list --linked
 ```
 
-Review the complete output. It must show only the nine gameplay-workspace migrations above. Stop on:
+Stop if any score-sheet persistence object, unexpected migration, destructive change, or mismatched target appears.
 
-- any destructive operation;
-- any previously applied migration mismatch;
-- any score-calculator persistence object;
-- any target other than `estimation-gameplay-uat`.
+## 6. Verify the authenticated gameplay Functions
 
-After review, verify the target again and apply:
+The dedicated project must list:
+
+- `gameplay-start`
+- `gameplay-round-command`
+
+Both must keep JWT verification enabled. Never use `--no-verify-jwt`.
+
+For future Function updates, use only the guarded wrapper:
 
 ```powershell
-node scripts/isolation/gameplay-target-guard.mjs supabase $newGameplayRef --expected-sha $testedSha
-npx supabase --workdir supabase-gameplay db push
+node scripts/isolation/deploy-gameplay-function.mjs `
+  gameplay-start $newGameplayRef `
+  --expected-sha $testedSha
+
+node scripts/isolation/deploy-gameplay-function.mjs `
+  gameplay-round-command $newGameplayRef `
+  --expected-sha $testedSha
 ```
 
-Confirm all nine timestamps under `supabase_migrations.schema_migrations` before continuing.
+Do not use direct Function deployment commands from the repository root.
 
-## 8. Deploy the authenticated gameplay Functions
+## 7. Verify the isolated Auth users and workspace
 
-Both Functions require JWT verification. Never use `--no-verify-jwt`.
+The gameplay Supabase project must contain:
 
-Run the target guard immediately before the Function writes:
+- one confirmed host user;
+- one confirmed assigned tester;
+- one confirmed negative-access user with no membership.
 
-```powershell
-node scripts/isolation/gameplay-target-guard.mjs supabase $newGameplayRef --expected-sha $testedSha
-npx supabase --workdir supabase-gameplay functions deploy gameplay-start
-npx supabase --workdir supabase-gameplay functions deploy gameplay-round-command
-```
+The workspace `estimation-gameplay-uat` must have exactly two membership rows:
 
-After the first invocation, review Function logs and verify they contain no authorization headers, credentials, private hands, seeds, nonces, or deck order.
+- host role `admin`;
+- tester role `tester`.
 
-## 9. Create isolated gameplay users and workspace
+The negative-access user must not appear in `workspace_memberships`.
 
-In the new Supabase project only:
+Do not record passwords or access tokens in the repository, evidence, screenshots, or chat.
 
-1. Keep public email signup and anonymous sign-in disabled.
-2. Create a host user and a second tester under **Authentication → Users**.
-3. Enable automatic email confirmation for these UAT users.
-4. Copy their Auth user UUIDs without recording passwords.
-5. Create one additional Auth user without membership for the negative-access test.
-
-Run this transaction in the new project's SQL Editor, replacing UUID placeholders:
-
-```sql
-begin;
-
-insert into public.workspaces (slug, name)
-values ('estimation-gameplay-uat', 'Estimation Gameplay UAT')
-on conflict (slug) do update
-set name = excluded.name;
-
-insert into public.profiles (user_id, display_name)
-values
-  ('<HOST_AUTH_USER_UUID>'::uuid, 'Gameplay Host'),
-  ('<TESTER_AUTH_USER_UUID>'::uuid, 'Gameplay Tester')
-on conflict (user_id) do update
-set display_name = excluded.display_name;
-
-insert into public.workspace_memberships (
-  workspace_id,
-  user_id,
-  role,
-  created_by,
-  updated_by
-)
-select workspace.id, member.user_id, member.role, member.user_id, member.user_id
-from public.workspaces workspace
-cross join (
-  values
-    ('<HOST_AUTH_USER_UUID>'::uuid, 'admin'::text),
-    ('<TESTER_AUTH_USER_UUID>'::uuid, 'tester'::text)
-) as member(user_id, role)
-where workspace.slug = 'estimation-gameplay-uat'
-on conflict (workspace_id, user_id) do update
-set role = excluded.role,
-    updated_by = excluded.updated_by;
-
-commit;
-```
-
-Confirm exactly two membership rows exist for `estimation-gameplay-uat`. Do not add the negative-access user.
-
-## 10. Create and verify the separate Vercel project
-
-From the dedicated gameplay checkout:
+## 8. Verify the dedicated Vercel project
 
 ```powershell
 npx vercel whoami
-npx vercel link --project estimation-gameplay-uat
-node scripts/isolation/gameplay-target-guard.mjs vercel --expected-sha $testedSha
+
+node scripts/isolation/gameplay-target-guard.mjs `
+  vercel `
+  --expected-sha $testedSha
+
+if ($LASTEXITCODE -ne 0) {
+  throw 'Gameplay Vercel target guard failed. Stop.'
+}
+
+npx vercel project inspect estimation-gameplay-uat `
+  --scope plusmaloma-6068s-projects
 ```
 
-If Vercel asks whether to create a project, create `estimation-gameplay-uat`. Never select or relink the existing score-calculator project.
+Expected project settings:
 
-Inspect `.vercel/project.json`; `projectName` must equal `estimation-gameplay-uat`.
+```text
+Name              estimation-gameplay-uat
+Root Directory    .
+Framework Preset  Vite
+Build Command     npm run build:gameplay
+Output Directory  dist-gameplay
+Install Command   npm ci
+```
 
-## 11. Configure browser-safe Preview variables
+The guarded deployment wrapper does not depend on the dashboard build command, but the project settings must remain gameplay-specific for clarity and future safety.
 
-Obtain the URL and browser-safe publishable/anon key from the new gameplay Supabase project.
+## 9. Canonical UAT environment decision
 
-Add only these Preview values through hidden prompts:
+The dedicated Vercel project `estimation-gameplay-uat` is UAT-only. Vercel labels its canonical environment as Production because it owns the canonical project URL, but this does not make it the score-calculator production environment.
+
+The only authorized gameplay UAT deployment target is:
+
+```text
+https://estimation-gameplay-uat.vercel.app
+```
+
+Do not use Vercel Preview-variable injection, `vercel env run`, direct root deployment, or the repository root `vercel.json` for gameplay UAT.
+
+## 10. Run one guarded dry-run
+
+The wrapper reads the browser-safe publishable/anon key only from `GAMEPLAY_UAT_PUBLISHABLE_KEY`. Set it through a hidden prompt and never print it:
 
 ```powershell
-npx vercel env add VITE_SUPABASE_URL preview
-npx vercel env add VITE_SUPABASE_ANON_KEY preview
-npx vercel env add VITE_UAT_WORKSPACE_SLUG preview
+$secureKey = Read-Host 'Gameplay Supabase publishable key' -AsSecureString
+$keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
+try {
+  $env:GAMEPLAY_UAT_PUBLISHABLE_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
+  Remove-Variable secureKey, keyPointer -ErrorAction SilentlyContinue
+}
+
+try {
+  npm run deploy:gameplay-vercel -- `
+    --expected-sha $testedSha `
+    --supabase-url https://stedjwppoanbmhxsfhcg.supabase.co `
+    --workspace-slug estimation-gameplay-uat `
+    --dry-run
+
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Gameplay Vercel dry-run failed. Stop.'
+  }
+} finally {
+  Remove-Item Env:GAMEPLAY_UAT_PUBLISHABLE_KEY -ErrorAction SilentlyContinue
+}
 ```
 
-Use:
+Expected non-secret output includes:
 
-- the new gameplay Supabase URL for `VITE_SUPABASE_URL`;
-- the new project's client-safe publishable/anon key for `VITE_SUPABASE_ANON_KEY`;
-- `estimation-gameplay-uat` for `VITE_UAT_WORKSPACE_SLUG`.
+```text
+Gameplay Vercel target verified: estimation-gameplay-uat
+Expected Supabase URL embedded: true
+Expected workspace slug embedded: true
+Expected publishable key embedded: true
+Prohibited secret values detected: false
+Dry run complete. No Vercel deployment was started.
+```
 
-Never create a `VITE_` variable for a database password, service-role credential, secret key, or personal access token.
+The dry-run must:
 
-## 12. Build and deploy only the gameplay artifact
+- run the target guard before and after staging;
+- build only `npm run build:gameplay`;
+- disable `.env*` loading through Vite `envDir: false`;
+- stage only `.vercel/project.json` and `.vercel/output/**` under ignored `vercel-gameplay-deploy/`;
+- reject root `vercel.json`, `dist-app`, source files, env files, and exact prohibited secret values;
+- contact no Vercel deployment endpoint.
 
-Build locally first:
+Any failed guard, build, staging, bundle, secret, or allow-list check means no deployment occurred. Stop and investigate.
+
+## 11. Run one guarded canonical-UAT deployment
+
+Only after the exact dry-run passes and both GitHub Actions checks are green on `$testedSha`, enter the browser-safe key again:
 
 ```powershell
-npm run build:gameplay
+$secureKey = Read-Host 'Gameplay Supabase publishable key' -AsSecureString
+$keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
+try {
+  $env:GAMEPLAY_UAT_PUBLISHABLE_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
+  Remove-Variable secureKey, keyPointer -ErrorAction SilentlyContinue
+}
+
+try {
+  npm run deploy:gameplay-vercel -- `
+    --expected-sha $testedSha `
+    --supabase-url https://stedjwppoanbmhxsfhcg.supabase.co `
+    --workspace-slug estimation-gameplay-uat
+
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Gameplay Vercel deployment failed. Stop.'
+  }
+} finally {
+  Remove-Item Env:GAMEPLAY_UAT_PUBLISHABLE_KEY -ErrorAction SilentlyContinue
+}
 ```
 
-The output directory must be `dist-gameplay`. It must not expose score-sheet creation, history, editing, or score-sheet routes.
+The wrapper deploys from `vercel-gameplay-deploy/` using the prebuilt Build Output API artifact and the dedicated project link. It intentionally uses `--prod` because this entire Vercel project is UAT-only.
 
-Then build and deploy the linked gameplay Vercel project:
+Never run `npx vercel deploy` directly from the repository root.
 
-```powershell
-node scripts/isolation/gameplay-target-guard.mjs vercel --expected-sha $testedSha
-npx vercel build --local-config vercel.gameplay.json
-node scripts/isolation/gameplay-target-guard.mjs vercel --expected-sha $testedSha
-npx vercel deploy --prebuilt --local-config vercel.gameplay.json
+## 12. Configure Supabase Auth URLs
+
+After a successful deployment, update only the gameplay Supabase project:
+
+**Authentication → URL Configuration**
+
+Set or add:
+
+```text
+Site URL: https://estimation-gameplay-uat.vercel.app
+Redirect URL: https://estimation-gameplay-uat.vercel.app/**
 ```
 
-Record the returned gameplay HTTPS URL, commit SHA, and UTC deployment time.
-
-Add the gameplay URL under the new Supabase project's **Authentication → URL Configuration**. Do not change the existing score-calculator project's authentication URLs.
+Do not change the score-calculator Supabase project’s Auth URLs.
 
 ## 13. Database and access smoke checks
 
 Before playing:
 
 1. Sign in with the host account and confirm the gameplay lobby loads.
-2. Sign in as the second assigned tester in a second browser profile.
-3. Confirm the unassigned Auth user is rejected because it has no gameplay workspace membership.
+2. Sign in as the assigned tester in a separate browser profile.
+3. Confirm the negative-access user is rejected because it has no gameplay workspace membership.
 4. Create and reopen a private table.
 5. Create and reopen a public open-join table.
 6. Create and reopen a public approval-required table.
 7. Confirm another workspace cannot read gameplay tables or active rounds.
 
-Record pass/fail evidence without private response payloads.
+Record pass/fail evidence without credentials, private response payloads, or hidden game data.
 
 ## 14. Required solo-versus-three-bots smoke test
 
@@ -365,23 +340,23 @@ Use the host account in one clean browser profile.
 3. Press **Start Game**.
 4. Confirm three clearly labelled Standard bots fill the vacancies.
 5. Confirm the host sees exactly thirteen cards and never sees another hand.
-6. Record the public deal commitment; confirm no seed or nonce is displayed during play.
+6. Record only the public deal commitment; confirm no seed or nonce is displayed during play.
 7. Complete all four estimates and confirm the total cannot equal 13.
 8. Confirm a bot first bidder acts without waiting for a human timeout.
 9. Complete all 52 card actions and confirm follow-suit enforcement.
 10. Confirm thirteen completed tricks and a scored round are displayed.
-11. Reload during bidding and card play; confirm the authoritative state and own hand recover.
+11. Reload during bidding and card play; confirm authoritative state and own hand recover.
 12. Confirm duplicate clicks or retries do not create a second deal, estimate, card action, or turn.
 
-A solo test passes only after one complete Start-to-score round succeeds on the hosted gameplay environment.
+The solo test passes only after one complete Start-to-score round succeeds on the hosted gameplay environment.
 
 ## 15. Required multi-browser gameplay UAT
 
-Use the host account in one browser profile and the second tester in a second browser profile.
+Use the host account in one browser profile and the assigned tester in another.
 
 1. Join the same public table and verify seat updates synchronize.
 2. Start with two humans and two permanent bots.
-3. Submit an estimate in one browser and confirm the second browser updates without manual refresh.
+3. Submit an estimate in one browser and confirm the other updates without manual refresh.
 4. Play a card and confirm the public trick updates in both browsers while each retains only its own hand.
 5. Allow one connected human timer to expire; confirm exactly one assistant action and human control on the next turn.
 6. Disconnect the second browser and confirm disconnect grace begins.
@@ -392,52 +367,62 @@ Use the host account in one browser profile and the second tester in a second br
 11. Open termination, cancel once, then confirm terminate.
 12. Confirm the partial history is preserved as read-only and excluded from formal completion statistics.
 
-Record the second browser profile, table ID, commit SHA, UTC timestamps, and pass/fail evidence without credentials or hidden game data.
+Record browser profiles, table ID, commit SHA, UTC timestamps, and pass/fail evidence without credentials or hidden game data.
 
-## 16. Prove the score-calculator UAT was unaffected
+## 16. Prove score-UAT remained unchanged
 
-After gameplay deployment and UAT, repeat the original score-calculator checks:
+Repeat the protected score-UAT checks after gameplay UAT:
 
-1. remote UAT branch SHA;
-2. Supabase project name/reference;
-3. Vercel project name and existing URL;
-4. successful sign-in;
-5. successful opening of a saved score sheet;
-6. the same practical non-secret table counts.
+- branch SHA;
+- Supabase project name/reference;
+- Vercel project name and URL;
+- successful sign-in;
+- successful opening of a saved score sheet;
+- the same practical non-secret counts.
 
-Write the after evidence:
+Write the after-state evidence:
 
 ```powershell
 node scripts/isolation/score-uat-baseline.mjs after `
   --uat-branch-sha (git rev-parse origin/feature/react-vite-frontend-prototype) `
-  --vercel-project '<EXISTING_SCORE_UAT_VERCEL_PROJECT_NAME>' `
-  --uat-url 'https://<EXISTING_SCORE_UAT_URL>' `
+  --vercel-project 'estimation-score-calculator' `
+  --uat-url 'https://estimation-score-calculator-uat.vercel.app/' `
   --sign-in pass `
   --open-score-sheet pass `
-  --counts-json '{"games":0,"rounds":0}'
+  --counts-json '{}'
 ```
 
-Compare `deployment-evidence/score-uat-before.json` and `score-uat-after.json`. Any unexplained change fails the isolation gate.
+Compare `deployment-evidence/score-uat-before.json` and `score-uat-after.json`. Any unexplained difference fails the isolation gate.
 
-## 17. Final repository verification
+## 17. Rollback and stop rules
 
-At the deployed commit SHA:
+- A wrapper failure before the Vercel command means no deployment occurred; do not retry blindly.
+- If an incorrect artifact is ever deployed, remove only its exact unique deployment URL. Never pass the project name to `vercel remove`.
+- Do not relink either Vercel project.
+- Do not edit the protected score-UAT Supabase project.
+- Do not bypass JWT verification.
+- Do not merge PR #14 as part of deployment or UAT.
+
+## 18. Final evidence
+
+Record only:
+
+- gameplay Supabase project name and non-secret reference;
+- gameplay Vercel project name and canonical UAT URL;
+- deployed commit SHA;
+- deployment time in UTC;
+- host/tester/non-member access results;
+- solo and multi-browser UAT results;
+- score-UAT before/after protection result;
+- remaining product gaps.
+
+At the deployed SHA, rerun:
 
 ```powershell
 npm ci
 npm run ci
-npm run ci:score-engine
-npm run test:gameplay-boundary
+npm run ci:isolation
+git status --short
 ```
 
-Record:
-
-- gameplay Supabase project name and non-secret reference;
-- gameplay Vercel project name and URL;
-- deployed commit SHA;
-- deployment time in UTC;
-- solo and multi-browser results;
-- score-UAT before/after protection result;
-- remaining product gaps.
-
-PR #14 remains draft and unmerged until explicit merge approval is given.
+PR #14 must remain open, draft, and unmerged until explicit merge approval is given.
