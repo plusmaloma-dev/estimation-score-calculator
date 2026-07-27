@@ -69,6 +69,18 @@ test('gameplay Function deployment wrapper is fail-closed and API based', () => 
   assert.match(source, /lexewcehptnmikwfizhj/i);
 });
 
+test('gameplay Function deployment launches Windows command shims through cmd.exe', () => {
+  const source = readFileSync(deployScript, 'utf8');
+  assert.match(source, /process\.env\.ComSpec\s*\?\?\s*['"]cmd\.exe['"]/i);
+  assert.match(source, /['"]\/d['"]/i);
+  assert.match(source, /['"]\/s['"]/i);
+  assert.match(source, /['"]\/c['"]/i);
+  assert.doesNotMatch(
+    source,
+    /process\.platform\s*===\s*['"]win32['"]\s*\?\s*['"]npx\.cmd['"]/i,
+  );
+});
+
 test('package scripts and ignore rules expose only the generated deployment workspace', () => {
   assert.match(packageJson.scripts?.['prepare:gameplay-functions'] ?? '', /prepare-gameplay-functions\.mjs/i);
   assert.match(packageJson.scripts?.['deploy:gameplay-function'] ?? '', /deploy-gameplay-function\.mjs/i);
