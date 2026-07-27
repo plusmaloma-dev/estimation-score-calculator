@@ -35,6 +35,9 @@ jobs:
           cat ci-output.log
           exit "$status"
 
+      - name: Validate isolation boundaries
+        run: npm run ci:isolation
+
       - name: Upload failed validation log
         if: failure()
         uses: actions/upload-artifact@v4
