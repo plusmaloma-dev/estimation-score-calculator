@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-app/
 dist-gameplay/
+dist-score-engine/
 coverage/
 deployment-evidence/
 .env
