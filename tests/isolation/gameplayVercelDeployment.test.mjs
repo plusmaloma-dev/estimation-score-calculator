@@ -78,14 +78,24 @@ test('prohibited secret collection ignores empty values and the allowed publisha
   assert.equal(values.some((value) => value.value === validInput.publishableKey), false);
 });
 
-test('staging allow-list rejects source, env, score output, and root vercel config', () => {
+test('staging allow-list rejects repository, env, source-map, and score output names at any depth', () => {
   assert.doesNotThrow(() => assertAllowedWorkspaceEntries([
     '.vercel/project.json',
     '.vercel/output/config.json',
     '.vercel/output/static/index.html',
     '.vercel/output/static/assets/app.js',
   ]));
-  for (const forbidden of ['vercel.json', 'dist-app/index.html', '.env.local', 'src/index.ts']) {
+  for (const forbidden of [
+    'vercel.json',
+    'dist-app/index.html',
+    '.env.local',
+    'src/index.ts',
+    '.vercel/output/static/.env.local',
+    '.vercel/output/static/vercel.json',
+    '.vercel/output/static/assets/source.ts',
+    '.vercel/output/static/assets/app.js.map',
+    '.vercel/output/static/../outside.txt',
+  ]) {
     assert.throws(() => assertAllowedWorkspaceEntries([forbidden]), /not allowed/i);
   }
 });
