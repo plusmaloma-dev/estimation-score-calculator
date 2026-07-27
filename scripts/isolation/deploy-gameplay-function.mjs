@@ -26,6 +26,14 @@ function run(command, args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
+function runNpx(args) {
+  if (process.platform === 'win32') {
+    run(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', 'npx.cmd', ...args]);
+    return;
+  }
+  run('npx', args);
+}
+
 const functionName = process.argv[2];
 const projectRef = process.argv[3]?.trim();
 const expectedSha = argument('--expected-sha');
@@ -70,8 +78,7 @@ if (!functionSection.test(config)) {
   fail(`${functionName} must keep JWT verification enabled.`);
 }
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-run(npx, [
+runNpx([
   'supabase',
   '--workdir',
   'supabase-gameplay-deploy',
