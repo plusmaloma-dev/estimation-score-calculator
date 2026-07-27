@@ -6,6 +6,7 @@ import { join } from 'node:path';
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as {
   readonly scripts?: Readonly<Record<string, string>>;
 };
+const gitIgnore = readFileSync('.gitignore', 'utf8').replaceAll('\r\n', '\n');
 
 const scoreConfigPath = 'tsconfig.score-engine.json';
 const forbiddenImportTokens = ['/gameplay/', '/online/', '/app/', '@supabase/', 'react', 'vercel'];
@@ -29,6 +30,10 @@ test('package exposes independent score-engine commands', () => {
   assert.equal(typeof packageJson.scripts?.['typecheck:score-engine'], 'string');
   assert.equal(typeof packageJson.scripts?.['test:score-engine'], 'string');
   assert.equal(typeof packageJson.scripts?.['ci:score-engine'], 'string');
+});
+
+test('score-engine build output is ignored so validation keeps the checkout clean', () => {
+  assert.match(gitIgnore, /^dist-score-engine\/$/m);
 });
 
 test('score-engine TypeScript project excludes gameplay and delivery layers', () => {
