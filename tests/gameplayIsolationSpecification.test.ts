@@ -15,7 +15,9 @@ const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8');
 
 function script(name: string): string {
   const value = packageJson.scripts?.[name];
-  assert.equal(typeof value, 'string', `Missing package script ${name}.`);
+  if (typeof value !== 'string') {
+    throw new Error(`Missing package script ${name}.`);
+  }
   return value;
 }
 
