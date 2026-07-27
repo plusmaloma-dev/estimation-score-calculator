@@ -22,7 +22,7 @@
     "prepare:gameplay-functions": "node scripts/isolation/prepare-gameplay-functions.mjs",
     "deploy:gameplay-function": "node scripts/isolation/deploy-gameplay-function.mjs",
     "test:gameplay-boundary": "npm run build:gameplay && npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayFrontendImportBoundary.test.js",
-    "test:isolation-static": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayIsolationSpecification.test.js dist/tests/gameplaySupabaseWorkspaceIsolation.test.js dist/tests/gameplayTargetGuard.test.js dist/tests/gameplayEdgeFunctionDeploymentWorkspace.test.js dist/tests/scoreUatBaseline.test.js dist/tests/scoreEngineImportBoundary.test.js",
+    "test:isolation-static": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayIsolationSpecification.test.js dist/tests/gameplaySupabaseWorkspaceIsolation.test.js dist/tests/gameplayTargetGuard.test.js dist/tests/gameplayEdgeFunctionDeploymentWorkspace.test.js dist/tests/gameplayVercelDeployment.test.js dist/tests/scoreUatBaseline.test.js dist/tests/scoreEngineImportBoundary.test.js",
     "verify:gameplay-target": "node scripts/isolation/gameplay-target-guard.mjs",
     "ci:score-engine": "npm run typecheck:score-engine && npm run test:score-engine",
     "ci:isolation": "npm run ci:score-engine && npm run test:gameplay-boundary && npm run test:isolation-static",
