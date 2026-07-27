@@ -132,7 +132,16 @@ export function assertAllowedWorkspaceEntries(relativePaths) {
   ];
   for (const value of relativePaths) {
     const path = value.replaceAll('\\', '/');
-    if (!allowed.some((pattern) => pattern.test(path))) {
+    const segments = path.split('/');
+    const fileName = segments.at(-1)?.toLowerCase() ?? '';
+    const forbiddenName = fileName === 'vercel.json'
+      || fileName === '.env'
+      || fileName.startsWith('.env.')
+      || /\.(?:ts|tsx|jsx|map)$/i.test(fileName);
+    const forbiddenPath = segments.includes('..')
+      || /(^|\/)dist-app(\/|$)/i.test(path);
+
+    if (forbiddenName || forbiddenPath || !allowed.some((pattern) => pattern.test(path))) {
       fail(`Staged path is not allowed: ${path}`);
     }
   }
