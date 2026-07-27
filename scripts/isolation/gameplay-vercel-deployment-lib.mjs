@@ -58,6 +58,22 @@ function javascriptAssets(root) {
     .filter((path) => lstatSync(path).isFile() && path.toLowerCase().endsWith('.js'));
 }
 
+function legacyJwtRole(value) {
+  const parts = value.split('.');
+  if (parts.length !== 3) return undefined;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    return typeof payload.role === 'string' ? payload.role : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isBrowserSafePublishableKey(value) {
+  if (value.startsWith('sb_publishable_')) return true;
+  return legacyJwtRole(value) === 'anon';
+}
+
 export function validateInputs(input) {
   const expectedSha = input.expectedSha?.trim();
   const supabaseUrl = input.supabaseUrl?.trim();
@@ -79,8 +95,8 @@ export function validateInputs(input) {
   if (typeof publishableKey !== 'string' || publishableKey.length < 20) {
     fail('GAMEPLAY_UAT_PUBLISHABLE_KEY is required and must be a browser-safe publishable key.');
   }
-  if (/^(sb_secret_|service_role)/i.test(publishableKey) || publishableKey.toLowerCase().includes('service_role')) {
-    fail('The supplied key is not browser-safe.');
+  if (!isBrowserSafePublishableKey(publishableKey)) {
+    fail('The supplied key is not browser-safe. Use an sb_publishable_ key or a legacy anon JWT.');
   }
 
   return Object.freeze({
