@@ -13,5 +13,6 @@ deployment-evidence/
 supabase/.temp/
 supabase-gameplay/.temp/
 supabase-gameplay/supabase/.temp/
+supabase-gameplay-deploy/
 .DS_Store
 npm-debug.log*
