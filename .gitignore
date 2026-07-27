@@ -14,5 +14,6 @@ supabase/.temp/
 supabase-gameplay/.temp/
 supabase-gameplay/supabase/.temp/
 supabase-gameplay-deploy/
+vercel-gameplay-deploy/
 .DS_Store
 npm-debug.log*
