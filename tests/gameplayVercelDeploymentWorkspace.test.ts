@@ -21,6 +21,8 @@ test('gameplay Vercel deployment entry point is guarded and canonical-UAT explic
   assert.match(combined, /GAMEPLAY_UAT_PUBLISHABLE_KEY/);
   assert.match(wrapper, /build:gameplay/);
   assert.match(wrapper, /vercel-gameplay-deploy/);
+  assert.match(wrapper, /options\.dryRun/);
+  assert.match(wrapper, /No Vercel deployment was started/);
   assert.match(library, /--prebuilt/);
   assert.match(library, /--prod/);
   assert.match(library, /--archive=tgz/);
@@ -40,4 +42,14 @@ test('gameplay Vite build refuses implicit env-file loading', () => {
   const source = readFileSync('vite.gameplay.config.ts', 'utf8');
   assert.match(source, /envDir\s*:\s*false/);
   assert.doesNotMatch(source, /envFile\s*:/);
+});
+
+test('deployment runbook authorizes only the guarded canonical-UAT wrapper', () => {
+  const runbook = readFileSync('docs/GAMEPLAY_UAT_DEPLOYMENT.md', 'utf8');
+  assert.match(runbook, /npm run deploy:gameplay-vercel/);
+  assert.match(runbook, /canonical UAT/i);
+  assert.match(runbook, /Never run `npx vercel deploy` directly from the repository root/i);
+  assert.doesNotMatch(runbook, /vercel env run/i);
+  assert.doesNotMatch(runbook, /vercel build --local-config/i);
+  assert.doesNotMatch(runbook, /npx vercel deploy --prebuilt --local-config/i);
 });
