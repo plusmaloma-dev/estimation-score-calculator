@@ -29,20 +29,34 @@ test('input validation rejects missing, malformed, or score-UAT values', () => {
   assert.throws(() => validateInputs({ ...validInput, publishableKey: 'sb_secret_not_browser_safe' }), /browser-safe/i);
 });
 
-test('build environment explicitly overwrites all three VITE values', () => {
+test('build environment exposes only the three approved VITE values and strips known secrets', () => {
   const environment = createBuildEnvironment(
     {
       PATH: 'fixture-path',
+      HOME: '/fixture-home',
+      GAMEPLAY_UAT_PUBLISHABLE_KEY: validInput.publishableKey,
       VITE_SUPABASE_URL: 'trap-url',
       VITE_SUPABASE_ANON_KEY: 'trap-key',
       VITE_UAT_WORKSPACE_SLUG: 'trap-slug',
+      VITE_EXTRA_SECRET: 'must-not-survive',
+      VERCEL_OIDC_TOKEN: 'must-not-survive',
+      DATABASE_URL: 'must-not-survive',
     },
     validInput,
   );
   assert.equal(environment.PATH, 'fixture-path');
+  assert.equal(environment.HOME, '/fixture-home');
   assert.equal(environment.VITE_SUPABASE_URL, validInput.supabaseUrl);
   assert.equal(environment.VITE_SUPABASE_ANON_KEY, validInput.publishableKey);
   assert.equal(environment.VITE_UAT_WORKSPACE_SLUG, validInput.workspaceSlug);
+  assert.equal(environment.VITE_EXTRA_SECRET, undefined);
+  assert.equal(environment.GAMEPLAY_UAT_PUBLISHABLE_KEY, undefined);
+  assert.equal(environment.VERCEL_OIDC_TOKEN, undefined);
+  assert.equal(environment.DATABASE_URL, undefined);
+  assert.deepEqual(
+    Object.keys(environment).filter((name) => name.startsWith('VITE_')).sort(),
+    ['VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_URL', 'VITE_UAT_WORKSPACE_SLUG'],
+  );
 });
 
 test('bundle validation requires expected public values and rejects exact prohibited values', () => {
