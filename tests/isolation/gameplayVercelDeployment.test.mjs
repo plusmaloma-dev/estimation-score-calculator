@@ -10,6 +10,12 @@ import {
   validateInputs,
 } from '../../scripts/isolation/gameplay-vercel-deployment-lib.mjs';
 
+function jwtWithRole(role) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ role })).toString('base64url');
+  return `${header}.${payload}.fixture-signature`;
+}
+
 const validInput = {
   expectedSha: '0123456789abcdef0123456789abcdef01234567',
   supabaseUrl: 'https://stedjwppoanbmhxsfhcg.supabase.co',
@@ -17,8 +23,12 @@ const validInput = {
   publishableKey: 'sb_publishable_test_value_12345',
 };
 
-test('input validation rejects missing, malformed, or score-UAT values', () => {
+test('input validation accepts only browser-safe Supabase key classes', () => {
   assert.deepEqual(validateInputs(validInput), validInput);
+  assert.equal(
+    validateInputs({ ...validInput, publishableKey: jwtWithRole('anon') }).publishableKey,
+    jwtWithRole('anon'),
+  );
   assert.throws(() => validateInputs({ ...validInput, expectedSha: 'bad' }), /sha/i);
   assert.throws(
     () => validateInputs({ ...validInput, supabaseUrl: 'https://lexewcehptnmikwfizhj.supabase.co' }),
@@ -27,6 +37,18 @@ test('input validation rejects missing, malformed, or score-UAT values', () => {
   assert.throws(() => validateInputs({ ...validInput, workspaceSlug: 'wrong-workspace' }), /workspace/i);
   assert.throws(() => validateInputs({ ...validInput, publishableKey: '' }), /publishable/i);
   assert.throws(() => validateInputs({ ...validInput, publishableKey: 'sb_secret_not_browser_safe' }), /browser-safe/i);
+  assert.throws(
+    () => validateInputs({ ...validInput, publishableKey: jwtWithRole('service_role') }),
+    /browser-safe/i,
+  );
+  assert.throws(
+    () => validateInputs({ ...validInput, publishableKey: jwtWithRole('supabase_admin') }),
+    /browser-safe/i,
+  );
+  assert.throws(
+    () => validateInputs({ ...validInput, publishableKey: 'long-but-unknown-key-format-12345' }),
+    /browser-safe/i,
+  );
 });
 
 test('build environment exposes only the three approved VITE values and strips known secrets', () => {
