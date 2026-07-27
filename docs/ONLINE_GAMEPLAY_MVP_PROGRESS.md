@@ -23,13 +23,14 @@
 - Bot observations and decisions remain server-side; directives contain public work identity only.
 - Realtime changes invalidate client state; clients reload authoritative snapshots.
 - Secure Start uses a dedicated authenticated Edge Function with deterministic retry identities.
-- Gameplay UAT is deployed only from a dedicated checkout to dedicated Supabase and Vercel projects.
-- Deployment guards fail closed on the wrong directory, branch, SHA, Supabase reference, Vercel project, or dirty checkout.
+- Gameplay UAT uses a dedicated checkout, Supabase project, Vercel project, Auth users, and workspace.
+- The dedicated Vercel project’s canonical environment is UAT-only even though Vercel labels it Production.
+- Gameplay UAT deployment is allowed only through the fail-closed `deploy:gameplay-vercel` wrapper.
 
-## Completed milestones
+## Completed product milestones
 
-| Milestone | Status | CI evidence |
-| --- | --- | --- |
+| Milestone | Status | Evidence |
+|---|---|---|
 | Gameplay engine, scoring, commands, replay | Complete | #663–#695 |
 | Standard bot and full-round simulation | Complete | #699–#720 |
 | Table/lobby domain, joining, bots, Supabase definitions | Complete | #735–#755 |
@@ -43,52 +44,61 @@
 | Authenticated retry-safe Start orchestration | Complete | RED #913 / GREEN #915 |
 | Typed Start client and waiting-room routing | Complete | RED #917 / GREEN #922 |
 | Opening bot kickoff and reconnect regression | Complete | GREEN #923 |
-| Deployment-readiness runbook and checks | Complete | RED #929 / GREEN #931 |
-| Standalone score-engine boundary and gameplay scoring port | Complete | Verified in isolation CI |
-| Gameplay-only React/Vite artifact | Complete | Verified in isolation CI |
-| Dedicated gameplay-only Supabase workspace | Complete | Task 6 GREEN by #969 |
-| Fail-closed target guards and non-secret evidence handling | Complete | Verified in isolation CI |
-| Aggregate isolation gates in GitHub Actions | Complete | CI #984 |
+
+## Completed isolation and hosted-provisioning milestones
+
+- Standalone score-engine boundary and gameplay-owned scoring adapter.
+- Gameplay-only React/Vite artifact under `dist-gameplay`.
+- Dedicated Supabase project `estimation-gameplay-uat` with ref `stedjwppoanbmhxsfhcg`.
+- Nine gameplay-only migrations applied and verified.
+- Authenticated `gameplay-start` and `gameplay-round-command` Functions deployed with JWT verification enabled.
+- Three isolated Auth users created: host, assigned tester, and non-member negative-access tester.
+- Workspace `estimation-gameplay-uat` created with exactly two memberships: host/admin and tester/tester.
+- Existing score-UAT before-state evidence recorded and protected.
+- Dedicated Vercel project `estimation-gameplay-uat` created, linked, and guarded.
+- Gameplay-specific Vercel project settings verified: `npm run build:gameplay`, `dist-gameplay`, and `npm ci`.
+- Two incorrect initial Vercel deployments were removed by their exact deployment URLs.
+- Corrective Vercel deployment design and detailed implementation plan approved.
+- Guarded canonical-UAT deployment wrapper implemented and enforced by package and isolation tests.
+
+## Corrected Vercel deployment control
+
+The deployment wrapper now owns the complete browser rollout:
+
+1. requires the exact tested SHA, gameplay Supabase URL, workspace slug, and a hidden browser-safe publishable key;
+2. invokes the existing Vercel target guard before any build;
+3. runs only `npm run build:gameplay`;
+4. disables implicit Vite `.env*` loading with `envDir: false`;
+5. injects only the three required `VITE_` values through the child-process environment;
+6. stages only `.vercel/project.json` and `.vercel/output/**` under ignored `vercel-gameplay-deploy/`;
+7. rejects source files, root `vercel.json`, `dist-app`, environment files, symlinks, and non-allow-listed paths;
+8. confirms the expected public URL, workspace slug, and publishable key are embedded;
+9. rejects exact prohibited secret values without printing their values;
+10. reruns the target guard before deployment;
+11. supports a no-contact dry-run;
+12. deploys the prebuilt artifact from the isolated workspace with `--prod --archive=tgz` only because the entire project is UAT-only.
+
+No direct `vercel deploy` command from the repository root is authorized.
 
 ## Secure Start behavior
 
-The configured Start action now:
+The configured Start action:
 
 1. starts and locks the table and fills vacant seats with permanent bots;
 2. initializes active control and seat ownership;
 3. generates a fresh secure seed, deal ID, nonce, deterministic dealer/caller, and public commitment on the server;
-4. deals thirteen private cards to every seat and stores the verification record privately;
+4. deals thirteen private cards to every seat and stores verification material privately;
 5. initializes the first House Rules V1 round and bidding timer;
-6. returns only the authenticated player's hand and public state;
+6. returns only the authenticated player’s hand and public state;
 7. immediately processes a permanent-bot first bidder through the existing directive pipeline;
 8. resumes safely after partial retries or reconnects.
 
 The caller is the bid owner and first bidder. The next seat in table order has the first card lead after bidding.
 
-## Isolation delivery checkpoint
-
-Isolation-plan Tasks 1–8 are complete.
-
-Delivered protections include:
-
-- an independently buildable and testable score engine;
-- an explicit gameplay-owned scoring port and production adapter;
-- a gameplay-only browser artifact written to `dist-gameplay`;
-- a dedicated `supabase-gameplay` workspace with nine ordered migrations;
-- authenticated `gameplay-start` and `gameplay-round-command` functions only;
-- no score-sheet persistence tables, score override tables, score locks, or score-calculator RPCs in the gameplay workspace;
-- fail-closed Supabase and Vercel target verification;
-- explicit rejection of the existing score-calculator Supabase reference `lexewcehptnmikwfizhj`;
-- tested-SHA, clean-checkout, correct-branch, and correct-project enforcement;
-- ignored, non-secret before/after deployment evidence;
-- `ci:isolation` execution in GitHub Actions.
-
-CI #984 completed successfully on commit `56228297f8cac2aaf1670d3c2766eecfc46e7189`. The normal package validation and the independent isolation-boundary validation both passed.
-
 ## Current progress
 
 | Area | Progress |
-| --- | ---: |
+|---|---:|
 | Engine and scoring | 100% |
 | Standard bot | 100% |
 | Lobby and table lifecycle | 100% |
@@ -96,48 +106,43 @@ CI #984 completed successfully on commit `56228297f8cac2aaf1670d3c2766eecfc46e71
 | Active-round backend and UI | 100% |
 | Secure Start bootstrap | 100% |
 | Isolation engineering, Tasks 1–8 | 100% |
-| Full isolation/deployment plan | 80% |
-| Multi-round progression and final deal verification UI | 35% |
-| Dedicated Supabase/Vercel provisioning, Task 9 | 0% |
+| Supabase hosted provisioning | 100% |
+| Dedicated Vercel project provisioning | 100% |
+| Guarded Vercel deployment correction | 100% |
+| Task 9 hosted environment provisioning | 96% |
 | Hosted solo and multi-browser UAT, Task 10 | 0% |
+| Multi-round progression and final deal verification UI | 35% |
 | **Overall gameplay MVP implementation** | **96%** |
 
-## Verification and release gates
+## Remaining release gates
 
-CI **#984** passed:
+Task 9 remaining steps:
 
-- repository typechecking;
-- engine and React tests;
-- score-engine-only typecheck and tests;
-- gameplay-only build and import-boundary verification;
-- gameplay Supabase workspace isolation checks;
-- fail-closed target-guard tests;
-- production score-calculator and gameplay builds.
+1. verify both GitHub Actions checks on the final correction SHA;
+2. pull that exact SHA into `C:\Users\rjamm\estimation-gameplay-uat`;
+3. enter the browser-safe publishable key through a hidden local prompt;
+4. run the guarded wrapper once with `--dry-run`;
+5. review only the non-secret boolean and file-count output;
+6. run the same wrapper once without `--dry-run`;
+7. add `https://estimation-gameplay-uat.vercel.app` only to the gameplay Supabase Auth URL configuration.
 
-The migrations and Edge Function contracts are statically validated but have not yet been executed against a live gameplay-only Supabase project.
+Task 10 acceptance gates:
 
-Remaining Task 9 operational gates require authenticated, interactive Supabase and Vercel access:
+- host and assigned tester can sign in;
+- non-member user is rejected;
+- private, public open-join, and public approval-required tables reopen correctly;
+- one hosted solo-versus-three-bots Start-to-score round completes;
+- two-browser Realtime, private-hand, timeout, disconnect, takeover, reclaim, pause/resume, and termination checks pass;
+- score-UAT after-state matches the protected before-state with no unexplained change;
+- repository validation passes again at the deployed SHA.
 
-1. record the existing score-calculator UAT baseline without secrets;
-2. create `estimation-gameplay-uat` in Supabase;
-3. link the dedicated checkout and verify the new reference with the target guard;
-4. dry-run and review all nine migrations;
-5. apply migrations and deploy both authenticated Edge Functions;
-6. create isolated Auth users, profiles, memberships, and the `estimation-gameplay-uat` workspace;
-7. create and link the dedicated `estimation-gameplay-uat` Vercel project;
-8. configure preview-safe environment variables and deploy only `dist-gameplay`.
+## Documentation
 
-Remaining Task 10 acceptance gates are:
-
-- a hosted solo-versus-three-bots Start-to-score complete-round smoke test;
-- two-browser Realtime, private-hand, timeout, disconnect, takeover, reclaim, pause/resume, and termination UAT;
-- a score-calculator UAT before/after comparison proving no unexplained branch, project, URL, access, or data change;
-- final repository verification at the deployed SHA.
-
-Detailed plans and runbooks:
-
-- `docs/superpowers/plans/2026-07-26-gameplay-uat-full-isolation.md`
-- `docs/GAMEPLAY_UAT_DEPLOYMENT.md`
-- `docs/superpowers/reports/2026-07-26-start-game-bootstrap-delivery.md`
+- Product design: `docs/superpowers/specs/2026-07-25-online-game-bot-mvp-design.md`
+- Full isolation plan: `docs/superpowers/plans/2026-07-26-gameplay-uat-full-isolation.md`
+- Vercel correction design: `docs/superpowers/specs/2026-07-27-gameplay-uat-vercel-deployment-correction-design.md`
+- Vercel correction plan: `docs/superpowers/plans/2026-07-27-gameplay-uat-vercel-deployment-correction.md`
+- Deployment runbook: `docs/GAMEPLAY_UAT_DEPLOYMENT.md`
+- Start delivery: `docs/superpowers/reports/2026-07-26-start-game-bootstrap-delivery.md`
 
 PR #14 remains draft and must not be merged as part of deployment or UAT.
