@@ -127,7 +127,10 @@ test('deployment options accept only the exact gameplay UAT target and hidden ke
     '--supabase-url', supabaseUrl,
     '--workspace-slug', 'estimation-score-calculator',
   ], validEnvironment()), /workspace/i);
-  assert.throws(() => library.parseDeploymentOptions([...validArgv(), '--unknown']), /unknown/i);
+  assert.throws(
+    () => library.parseDeploymentOptions([...validArgv(), '--unknown'], validEnvironment()),
+    /unknown/i,
+  );
 });
 
 test('gameplay build environment overrides only the three required VITE values', async () => {
