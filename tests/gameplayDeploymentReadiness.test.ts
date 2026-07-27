@@ -27,13 +27,12 @@ test('gameplay deployment runbook requires the dedicated checkout and complete v
     'feature/online-game-bot-mvp',
     'npm ci',
     'npm run ci',
-    'npm run ci:score-engine',
-    'npm run test:gameplay-boundary',
+    'npm run ci:isolation',
     'Do not merge',
   ]) {
     assert.match(runbook, expectText(phrase), `Missing isolation phrase: ${phrase}`);
   }
-  assert.match(runbook, /never run.*score-calculator checkout/is);
+  assert.match(runbook, /never run.*score checkout/is);
   assert.match(runbook, /lexewcehptnmikwfizhj/i);
 });
 
@@ -64,19 +63,13 @@ test('gameplay Functions have deployable dependency maps and resolvable local im
   }
 });
 
-test('runbook guards and applies only the gameplay migration workspace before deploying functions', () => {
-  const guard = 'node scripts/isolation/gameplay-target-guard.mjs supabase';
-  const dryRun = runbook.indexOf('npx supabase --workdir supabase-gameplay db push --dry-run');
-  const apply = runbook.indexOf('\nnpx supabase --workdir supabase-gameplay db push\n', dryRun + 1);
-  const startDeploy = runbook.indexOf('npx supabase --workdir supabase-gameplay functions deploy gameplay-start');
-  const roundDeploy = runbook.indexOf('npx supabase --workdir supabase-gameplay functions deploy gameplay-round-command');
-
-  assert.match(runbook, expectText(guard));
-  assert.ok(dryRun >= 0, 'Missing gameplay migration dry-run command.');
-  assert.ok(apply > dryRun, 'Gameplay migration apply must follow the dry-run.');
-  assert.ok(startDeploy > apply, 'Start Function deployment must follow migration apply.');
-  assert.ok(roundDeploy > apply, 'Round Function deployment must follow migration apply.');
-  assert.doesNotMatch(runbook, /npx supabase db push/i);
+test('runbook verifies only the isolated gameplay migration workspace and guarded Functions', () => {
+  assert.match(runbook, /gameplay-target-guard\.mjs[\s\S]*supabase \$newGameplayRef/i);
+  assert.match(runbook, /supabase --workdir supabase-gameplay migration list --linked/i);
+  assert.match(runbook, /deploy-gameplay-function\.mjs[\s\S]*gameplay-start/i);
+  assert.match(runbook, /deploy-gameplay-function\.mjs[\s\S]*gameplay-round-command/i);
+  assert.doesNotMatch(runbook, /^\s*npx\s+supabase\s+db\s+push/im);
+  assert.doesNotMatch(runbook, /^\s*npx\s+supabase[^\r\n]*functions\s+deploy/im);
 
   for (const migration of [
     '202607260001_gameplay_identity.sql',
@@ -102,11 +95,18 @@ test('runbook guards and applies only the gameplay migration workspace before de
   }
 });
 
-test('runbook links a separate Vercel project and exposes only browser-safe variables', () => {
-  assert.match(runbook, /vercel link --project estimation-gameplay-uat/i);
-  assert.match(runbook, /gameplay-target-guard\.mjs vercel/i);
-  assert.match(runbook, /vercel build --local-config vercel\.gameplay\.json/i);
-  assert.match(runbook, /vercel deploy --prebuilt --local-config vercel\.gameplay\.json/i);
+test('runbook uses the separate Vercel project and guarded canonical-UAT deployment', () => {
+  assert.match(runbook, /project inspect estimation-gameplay-uat/i);
+  assert.match(runbook, /gameplay-target-guard\.mjs[\s\S]*vercel/i);
+  assert.match(runbook, /npm run deploy:gameplay-vercel/i);
+  assert.match(runbook, /GAMEPLAY_UAT_PUBLISHABLE_KEY/);
+  assert.match(runbook, /--dry-run/);
+  assert.match(runbook, /canonical-UAT|canonical UAT/i);
+  assert.match(runbook, /--prod/);
+  assert.match(runbook, /--archive=tgz/);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+env\s+run\b/im);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+build\s+--local-config\b/im);
+  assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+deploy\b/im);
 
   for (const variable of [
     'VITE_SUPABASE_URL',
@@ -114,7 +114,6 @@ test('runbook links a separate Vercel project and exposes only browser-safe vari
     'VITE_UAT_WORKSPACE_SLUG',
   ]) {
     assert.match(exampleEnvironment, new RegExp(`^${variable}=`, 'm'));
-    assert.match(runbook, new RegExp(`vercel env add ${variable} preview`, 'i'));
   }
   assert.doesNotMatch(runbook, /vercel env add\s+VITE_[A-Z0-9_]*SERVICE/i);
   assert.doesNotMatch(runbook, /^VITE_[A-Z0-9_]*SERVICE[A-Z0-9_]*=/im);
@@ -132,7 +131,7 @@ test('runbook includes before-after protection evidence and hosted gameplay acce
     'four estimates',
     '52 card actions',
     'scored round',
-    'second browser profile',
+    'separate browser profile',
     'disconnect',
     'temporary bot takeover',
     'reclaim',
@@ -143,5 +142,5 @@ test('runbook includes before-after protection evidence and hosted gameplay acce
   ]) {
     assert.match(runbook, new RegExp(phrase, 'i'), `Missing smoke-test phrase: ${phrase}`);
   }
-  assert.match(runbook, /Do not record passwords, tokens, keys, or database credentials/i);
+  assert.match(runbook, /Never record passwords, tokens,[^\n]*database credentials/i);
 });
