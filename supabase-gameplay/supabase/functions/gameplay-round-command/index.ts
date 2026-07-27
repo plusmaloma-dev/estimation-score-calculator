@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import { GameplayRoundApplicationService } from '../../../src/gameplay/GameplayRoundApplicationService.ts';
-import { GameplayBotDirectiveService } from '../../../src/gameplay/bot/GameplayBotDirectiveService.ts';
+import { GameplayRoundApplicationService } from '../../../../src/gameplay/GameplayRoundApplicationService.ts';
+import { GameplayBotDirectiveService } from '../../../../src/gameplay/bot/GameplayBotDirectiveService.ts';
 import type {
   GameplayRoundAggregate,
   GameplayRoundCommitInput,
   GameplayRoundCommitResult,
   GameplayRoundRepository,
-} from '../../../src/gameplay/roundApplicationTypes.ts';
-import type { BotActionDirective } from '../../../src/gameplay/control/types.ts';
-import type { EstimationBid } from '../../../src/domain/bid.ts';
-import type { Card } from '../../../src/domain/card.ts';
-import type { OnlineGameplayRoundSnapshot } from '../../../src/online/gameplay/roundTypes.ts';
+} from '../../../../src/gameplay/roundApplicationTypes.ts';
+import type { BotActionDirective } from '../../../../src/gameplay/control/types.ts';
+import type { EstimationBid } from '../../../../src/domain/bid.ts';
+import type { Card } from '../../../../src/domain/card.ts';
+import type { OnlineGameplayRoundSnapshot } from '../../../../src/online/gameplay/roundTypes.ts';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',

@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import { GameplayRoundApplicationService } from '../../../src/gameplay/GameplayRoundApplicationService.ts';
+import { GameplayRoundApplicationService } from '../../../../src/gameplay/GameplayRoundApplicationService.ts';
 import type {
   GameplayRoundActor,
   GameplayRoundAggregate,
   GameplayRoundCommitInput,
   GameplayRoundCommitResult,
   GameplayRoundRepository,
-} from '../../../src/gameplay/roundApplicationTypes.ts';
-import { GameplaySessionBootstrapService } from '../../../src/gameplay/session/GameplaySessionBootstrapService.ts';
-import type { GameplaySeatPlayers, HouseRulesRoundState, SeatIndex } from '../../../src/gameplay/types.ts';
+} from '../../../../src/gameplay/roundApplicationTypes.ts';
+import { GameplaySessionBootstrapService } from '../../../../src/gameplay/session/GameplaySessionBootstrapService.ts';
+import type { GameplaySeatPlayers, HouseRulesRoundState, SeatIndex } from '../../../../src/gameplay/types.ts';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
