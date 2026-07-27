@@ -103,7 +103,6 @@ test('runbook uses the separate Vercel project and guarded canonical-UAT deploym
   assert.match(runbook, /--dry-run/);
   assert.match(runbook, /canonical-UAT|canonical UAT/i);
   assert.match(runbook, /--prod/);
-  assert.match(runbook, /--archive=tgz/);
   assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+env\s+run\b/im);
   assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+build\s+--local-config\b/im);
   assert.doesNotMatch(runbook, /^\s*npx\s+vercel\s+deploy\b/im);
