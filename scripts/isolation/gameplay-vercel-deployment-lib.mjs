@@ -13,14 +13,14 @@ import { dirname, join, relative, resolve } from 'node:path';
 const EXPECTED_SUPABASE_URL = 'https://stedjwppoanbmhxsfhcg.supabase.co';
 const EXPECTED_WORKSPACE_SLUG = 'estimation-gameplay-uat';
 const EXPECTED_VERCEL_PROJECT = 'estimation-gameplay-uat';
-const EXPECTED_VERCEL_SCOPE = 'plusmaloma-6068s-projects';
+const VERCEL_SCOPE = 'plusmaloma-6068s-projects';
 const PROHIBITED_SUPABASE_REF = 'lexewcehptnmikwfizhj';
 const REQUIRED_ARGUMENTS = new Set([
   '--expected-sha',
   '--supabase-url',
   '--workspace-slug',
 ]);
-const PROHIBITED_SECRET_ENV_NAMES = [
+const PROHIBITED_SECRET_NAMES = [
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_SECRET_KEY',
   'SUPABASE_DB_PASSWORD',
@@ -30,6 +30,7 @@ const PROHIBITED_SECRET_ENV_NAMES = [
   'POSTGRES_URL_NON_POOLING',
   'VERCEL_OIDC_TOKEN',
   'VERCEL_TOKEN',
+  'GITHUB_TOKEN',
   'OPENAI_API_KEY',
 ];
 
@@ -55,6 +56,109 @@ function javascriptAssets(root) {
   if (!existsSync(root)) return [];
   return walk(root)
     .filter((path) => lstatSync(path).isFile() && path.toLowerCase().endsWith('.js'));
+}
+
+export function validateInputs(input) {
+  const expectedSha = input.expectedSha?.trim();
+  const supabaseUrl = input.supabaseUrl?.trim();
+  const workspaceSlug = input.workspaceSlug?.trim();
+  const publishableKey = input.publishableKey?.trim();
+
+  if (!/^[0-9a-f]{40}$/i.test(expectedSha ?? '')) {
+    fail('A tested 40-hex SHA is required.');
+  }
+  if (supabaseUrl !== EXPECTED_SUPABASE_URL) {
+    if ((supabaseUrl ?? '').includes(PROHIBITED_SUPABASE_REF)) {
+      fail('The score-UAT Supabase ref is prohibited.');
+    }
+    fail(`Supabase URL must target ${EXPECTED_SUPABASE_URL}.`);
+  }
+  if (workspaceSlug !== EXPECTED_WORKSPACE_SLUG) {
+    fail(`Workspace slug must be ${EXPECTED_WORKSPACE_SLUG}.`);
+  }
+  if (typeof publishableKey !== 'string' || publishableKey.length < 20) {
+    fail('GAMEPLAY_UAT_PUBLISHABLE_KEY is required and must be a browser-safe publishable key.');
+  }
+  if (/^(sb_secret_|service_role)/i.test(publishableKey) || publishableKey.toLowerCase().includes('service_role')) {
+    fail('The supplied key is not browser-safe.');
+  }
+
+  return Object.freeze({
+    expectedSha: expectedSha.toLowerCase(),
+    supabaseUrl,
+    workspaceSlug,
+    publishableKey,
+  });
+}
+
+export function createBuildEnvironment(baseEnvironment, input) {
+  return {
+    ...baseEnvironment,
+    VITE_SUPABASE_URL: input.supabaseUrl,
+    VITE_SUPABASE_ANON_KEY: input.publishableKey,
+    VITE_UAT_WORKSPACE_SLUG: input.workspaceSlug,
+  };
+}
+
+export function collectProhibitedSecretValues(environment) {
+  return PROHIBITED_SECRET_NAMES.flatMap((name) => {
+    const value = environment[name]?.trim();
+    return typeof value === 'string' && value.length > 0 ? [{ name, value }] : [];
+  });
+}
+
+export function validateBundle(bundleText, input, prohibitedSecrets) {
+  if (!bundleText.includes(input.supabaseUrl)) {
+    fail('Expected gameplay Supabase URL is missing from the bundle.');
+  }
+  if (!bundleText.includes(input.workspaceSlug)) {
+    fail('Expected gameplay workspace slug is missing from the bundle.');
+  }
+  if (!bundleText.includes(input.publishableKey)) {
+    fail('Expected browser-safe publishable key is missing from the bundle.');
+  }
+  for (const secret of prohibitedSecrets) {
+    if (bundleText.includes(secret.value)) {
+      fail(`Bundle contains prohibited value from ${secret.name}.`);
+    }
+  }
+}
+
+export function assertAllowedWorkspaceEntries(relativePaths) {
+  const allowed = [
+    /^\.vercel\/project\.json$/,
+    /^\.vercel\/output\/config\.json$/,
+    /^\.vercel\/output\/static\/.+/,
+  ];
+  for (const value of relativePaths) {
+    const path = value.replaceAll('\\', '/');
+    if (!allowed.some((pattern) => pattern.test(path))) {
+      fail(`Staged path is not allowed: ${path}`);
+    }
+  }
+}
+
+export function createDeploymentConfig() {
+  return {
+    version: 3,
+    routes: [
+      { handle: 'filesystem' },
+      { src: '/.*', dest: '/index.html' },
+    ],
+  };
+}
+
+export function createVercelDeployCommand() {
+  return [
+    'vercel',
+    'deploy',
+    '--prebuilt',
+    '--prod',
+    '--archive=tgz',
+    '--scope',
+    VERCEL_SCOPE,
+    '--logs',
+  ];
 }
 
 export function parseDeploymentOptions(argv, environment) {
@@ -86,53 +190,22 @@ export function parseDeploymentOptions(argv, environment) {
     }
   }
 
-  const expectedSha = values.get('--expected-sha');
-  const supabaseUrl = values.get('--supabase-url');
-  const workspaceSlug = values.get('--workspace-slug');
-  const publishableKey = environment.GAMEPLAY_UAT_PUBLISHABLE_KEY?.trim();
+  const validated = validateInputs({
+    expectedSha: values.get('--expected-sha'),
+    supabaseUrl: values.get('--supabase-url'),
+    workspaceSlug: values.get('--workspace-slug'),
+    publishableKey: environment.GAMEPLAY_UAT_PUBLISHABLE_KEY,
+  });
 
-  if (!/^[0-9a-f]{40}$/i.test(expectedSha)) {
-    fail('The tested commit SHA must contain exactly 40 hexadecimal characters.');
-  }
-  if (supabaseUrl !== EXPECTED_SUPABASE_URL || supabaseUrl.includes(PROHIBITED_SUPABASE_REF)) {
-    fail('The Supabase URL must target the isolated gameplay UAT project.');
-  }
-  if (workspaceSlug !== EXPECTED_WORKSPACE_SLUG || workspaceSlug.includes('score-calculator')) {
-    fail('The workspace slug must be estimation-gameplay-uat.');
-  }
-  if (publishableKey === undefined || publishableKey.length < 20) {
-    fail('A browser-safe publishable key is required through GAMEPLAY_UAT_PUBLISHABLE_KEY.');
-  }
-  if (publishableKey.startsWith('sb_secret_') || publishableKey.toLowerCase().includes('service_role')) {
-    fail('GAMEPLAY_UAT_PUBLISHABLE_KEY must not contain a secret or service-role credential.');
-  }
-
-  return {
-    expectedSha,
-    supabaseUrl,
-    workspaceSlug,
-    publishableKey,
-    dryRun,
-  };
+  return { ...validated, dryRun };
 }
 
 export function createGameplayBuildEnv(baseEnvironment, options) {
-  return {
-    ...baseEnvironment,
-    VITE_SUPABASE_URL: options.supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: options.publishableKey,
-    VITE_UAT_WORKSPACE_SLUG: options.workspaceSlug,
-  };
+  return createBuildEnvironment(baseEnvironment, options);
 }
 
 export function createBuildOutputConfig() {
-  return {
-    version: 3,
-    routes: [
-      { handle: 'filesystem' },
-      { src: '/.*', dest: '/index.html' },
-    ],
-  };
+  return createDeploymentConfig();
 }
 
 export function stageGameplayDeployment({ checkoutRoot, stagingRoot }) {
@@ -168,7 +241,7 @@ export function stageGameplayDeployment({ checkoutRoot, stagingRoot }) {
   cpSync(sourceArtifact, staticRoot, { recursive: true });
   writeFileSync(
     join(outputRoot, 'config.json'),
-    `${JSON.stringify(createBuildOutputConfig(), null, 2)}\n`,
+    `${JSON.stringify(createDeploymentConfig(), null, 2)}\n`,
     'utf8',
   );
 }
@@ -177,26 +250,25 @@ export function validateStagedPaths(stagingRoot) {
   const resolvedRoot = resolve(stagingRoot);
   if (!existsSync(resolvedRoot)) fail('The Vercel gameplay deployment workspace is missing.');
 
+  const relativeFiles = [];
   for (const absolute of walk(resolvedRoot)) {
     const relativePath = normalizeRelative(resolvedRoot, absolute);
     const stat = lstatSync(absolute);
     if (stat.isSymbolicLink()) fail('A symbolic link is not allowed in the staged workspace.');
 
-    const isAllowedDirectory = stat.isDirectory() && (
-      relativePath === '.vercel'
-      || relativePath === '.vercel/output'
-      || relativePath === '.vercel/output/static'
-      || relativePath.startsWith('.vercel/output/static/')
-    );
-    const isAllowedFile = stat.isFile() && (
-      relativePath === '.vercel/project.json'
-      || relativePath === '.vercel/output/config.json'
-      || relativePath.startsWith('.vercel/output/static/')
-    );
-    if (!isAllowedDirectory && !isAllowedFile) {
-      fail('A path outside the gameplay deployment allow-list was detected.');
+    if (stat.isDirectory()) {
+      const allowedDirectory = relativePath === '.vercel'
+        || relativePath === '.vercel/output'
+        || relativePath === '.vercel/output/static'
+        || relativePath.startsWith('.vercel/output/static/');
+      if (!allowedDirectory) fail(`Staged path is not allowed: ${relativePath}`);
+    } else if (stat.isFile()) {
+      relativeFiles.push(relativePath);
+    } else {
+      fail(`Staged path is not allowed: ${relativePath}`);
     }
   }
+  assertAllowedWorkspaceEntries(relativeFiles);
 
   const projectPath = join(resolvedRoot, '.vercel', 'project.json');
   const configPath = join(resolvedRoot, '.vercel', 'output', 'config.json');
@@ -210,7 +282,7 @@ export function validateStagedPaths(stagingRoot) {
   }
 
   const config = JSON.parse(readFileSync(configPath, 'utf8'));
-  if (JSON.stringify(config) !== JSON.stringify(createBuildOutputConfig())) {
+  if (JSON.stringify(config) !== JSON.stringify(createDeploymentConfig())) {
     fail('The staged Build Output API configuration is invalid.');
   }
 }
@@ -223,23 +295,7 @@ export function validateGameplayBundle({ stagingRoot, options, environment }) {
   const assets = javascriptAssets(staticRoot);
   if (assets.length === 0) fail('The staged gameplay bundle has no JavaScript assets.');
   const bundleText = assets.map((path) => readFileSync(path, 'utf8')).join('\n');
-
-  if (!bundleText.includes(options.supabaseUrl)) {
-    fail('The expected gameplay Supabase URL is missing from the bundle.');
-  }
-  if (!bundleText.includes(options.workspaceSlug)) {
-    fail('The expected gameplay workspace slug is missing from the bundle.');
-  }
-  if (!bundleText.includes(options.publishableKey)) {
-    fail('The expected browser publishable key is missing from the bundle.');
-  }
-
-  for (const name of PROHIBITED_SECRET_ENV_NAMES) {
-    const secretValue = environment[name]?.trim();
-    if (secretValue !== undefined && secretValue.length > 0 && bundleText.includes(secretValue)) {
-      fail('A prohibited secret value was detected in the gameplay bundle.');
-    }
-  }
+  validateBundle(bundleText, options, collectProhibitedSecretValues(environment));
 
   return { javascriptAssetCount: assets.length };
 }
@@ -255,13 +311,5 @@ export function createNpxLaunch(platform, args, comspec) {
 }
 
 export function createVercelDeployArgs() {
-  return [
-    'vercel',
-    'deploy',
-    '--prebuilt',
-    '--prod',
-    '--scope',
-    EXPECTED_VERCEL_SCOPE,
-    '--logs',
-  ];
+  return createVercelDeployCommand();
 }
