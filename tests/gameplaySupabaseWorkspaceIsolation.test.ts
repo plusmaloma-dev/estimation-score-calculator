@@ -17,6 +17,7 @@ const expectedMigrations = [
   '202607260007_active_game_control_rpc.sql',
   '202607260008_gameplay_round_state.sql',
   '202607260009_gameplay_round_rpc.sql',
+  '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
 ];
 
 const forbiddenSql = [
@@ -70,6 +71,21 @@ test('gameplay migration history contains gameplay objects and excludes score-sh
   for (const forbidden of forbiddenSql) {
     assert.equal(sql.includes(forbidden), false, `Forbidden score-sheet SQL: ${forbidden}`);
   }
+});
+
+test('gameplay Start migration disambiguates the bot-seat loop variable', () => {
+  const correctionPath = join(
+    migrationsDirectory,
+    '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
+  );
+  assert.equal(existsSync(correctionPath), true, 'Missing gameplay Start ambiguity correction migration.');
+
+  const sql = compact(readFileSync(correctionPath, 'utf8'));
+  assert.ok(sql.includes('target_seat_number smallint'), 'Missing disambiguated Start loop variable.');
+  assert.ok(sql.includes('for target_seat_number in 1..4 loop'));
+  assert.ok(sql.includes('seat.seat_number = target_seat_number'));
+  assert.equal(sql.includes('for seat_number in 1..4 loop'), false);
+  assert.equal(sql.includes('seat.seat_number = seat_number'), false);
 });
 
 test('gameplay Supabase config is isolated and both functions require JWTs', () => {
