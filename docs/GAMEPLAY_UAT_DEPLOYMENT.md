@@ -335,6 +335,21 @@ Record pass/fail evidence without credentials, private response payloads, or hid
 
 Use the host account in one clean browser profile.
 
+### Preserve the failed Start table
+
+`Solo UAT Start Retest 1` is retained as partial-commit evidence. Its table
+Start and active-control initialization committed, while round-state
+initialization and the first turn did not. Do not mutate, manually repair,
+terminate, delete, or reuse this table for hosted retesting.
+
+After a separately authorized deployment of the corrected `gameplay-start`
+Function, create a new table for the hosted Start retest. The browser does not
+retain the original Start command identity after this partial failure, and the
+committed active lifecycle removes the table from the normal Start path. The
+Function remains safe when the exact original request is replayed: it loads and
+returns a persisted round before generating any new private deal material. This
+does not authorize an arbitrary active-table repair command.
+
 1. Create a private House Rules V1 table.
 2. Leave three seats vacant.
 3. Press **Start Game**.

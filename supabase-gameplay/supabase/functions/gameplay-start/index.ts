@@ -178,14 +178,16 @@ async function initializeRound(
   const initialized = await rpc(client, 'initialize_gameplay_round_state', {
     p_table_id: tableId,
     p_actor_user_id: actorUserId,
-    p_initial_aggregate: bootstrap.state,
+    p_round_number: bootstrap.state.roundNumber,
+    p_phase: bootstrap.state.phase,
+    p_aggregate: bootstrap.state,
     p_occurred_at: occurredAt,
   });
-  if (initialized.valid !== true || initialized.aggregate === undefined) {
+  if (initialized.valid !== true) {
     const errors = stringArray(initialized.errors);
     throw new Error(errors[0] ?? 'Gameplay round state could not be initialized.');
   }
-  return initialized.aggregate;
+  return bootstrap.state;
 }
 
 function firstTurnFromState(state: HouseRulesRoundState): {
