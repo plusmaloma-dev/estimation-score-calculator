@@ -194,16 +194,19 @@ async function loadIssuedDirective(
 
   const { data: directiveData, error: directiveError } = await client
     .from('gameplay_active_control_commands')
-    .select('directives')
+    .select('id,directives')
     .eq('table_id', tableId)
-    .contains('directives', [{ directiveId }])
     .order('id', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(64);
   if (directiveError !== null) throw new Error(directiveError.message);
-  const directiveRows = object(directiveData)?.directives;
-  const directive = Array.isArray(directiveRows)
-    ? directiveRows.map(parseDirective).find((item) => item?.directiveId === directiveId)
+  const directive = Array.isArray(directiveData)
+    ? directiveData
+      .flatMap((value) => {
+        const rows = object(value)?.directives;
+        return Array.isArray(rows) ? rows : [];
+      })
+      .map(parseDirective)
+      .find((item) => item?.directiveId === directiveId)
     : undefined;
   if (directive === undefined || directive.tableId !== tableId) return undefined;
 
