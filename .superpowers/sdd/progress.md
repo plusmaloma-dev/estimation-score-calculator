@@ -27,3 +27,15 @@
 | Migration decision | Complete; no migration required | 100% |
 | Full validation | `npm run ci` green: 188 engine, 100 UI, production build | 100% |
 | Publication and UAT | Draft PR update and preview smoke test pending | 70% |
+
+## House Rules Under zero-estimate follow-up - 2026-07-28
+
+| Activity | Status | Completion |
+|---|---|---:|
+| Approved rule design and plan | Complete | 100% |
+| RED/GREEN scoring modifier | Complete: normal `0` receives `+10` or `-10` in House Rules Under | 100% |
+| Modifier ordering and exclusions | Complete: Risk, winner/loser, carry, Multiple WITH, Dash Call, Over, exact-13, Federation, and all-loser covered | 100% |
+| Online persistence and reopen | Complete: calculated/applied equality, no override, x2/x4 reopen covered | 100% |
+| Migration decision | Complete; no migration or schema change required | 100% |
+| Full validation | `npm run ci` green: 196 engine, 100 UI, production build | 100% |
+| Publication and stable UAT | Push, deploy, stable-alias verification, and live smoke test pending | 70% |

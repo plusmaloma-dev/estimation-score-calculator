@@ -32,7 +32,7 @@
 - Consumes: `ScoreContext.roundType`, `ScoreContext.playerBid`, `ScoreContext.evaluation`, and `ScoreContext.profile.ruleSet`
 - Produces: `ConfigurableScoringStrategy.applyUnderZeroEstimateAdjustment(score, context, notes): number`
 
-- [ ] **Step 1: Write failing success and failure tests**
+- [x] **Step 1: Write failing success and failure tests**
 
 Create `tests/underZeroEstimateAdjustment.test.ts` with a helper that calls
 `ScoreCalculationService.calculateRoundScore` using
@@ -104,7 +104,7 @@ test('House Rules Under subtracts 10 from a failed normal zero estimate', () => 
 });
 ```
 
-- [ ] **Step 2: Run the focused engine test and verify RED**
+- [x] **Step 2: Run the focused engine test and verify RED**
 
 Run:
 
@@ -117,7 +117,7 @@ node --test dist/tests/underZeroEstimateAdjustment.test.js
 Expected: both assertions fail because the current scores are `10` and `-2`
 and no adjustment notes exist.
 
-- [ ] **Step 3: Implement the isolated modifier**
+- [x] **Step 3: Implement the isolated modifier**
 
 Import `HOUSE_RULES_V1` in `ConfigurableScoringStrategy.ts` and call the new
 method immediately after normal success/failure role scoring and before
@@ -151,12 +151,12 @@ private applyUnderZeroEstimateAdjustment(
 }
 ```
 
-- [ ] **Step 4: Run the focused engine test and verify GREEN**
+- [x] **Step 4: Run the focused engine test and verify GREEN**
 
 Run the same compile/test commands. Expected: 2 tests pass and the exact notes
 are present.
 
-- [ ] **Step 5: Commit the scoring unit**
+- [x] **Step 5: Commit the scoring unit**
 
 ```text
 git add src/scoring/ConfigurableScoringStrategy.ts tests/underZeroEstimateAdjustment.test.ts
@@ -173,7 +173,7 @@ git commit -m "feat: score under-round zero estimates"
 - Consumes: the Task 1 scoring modifier through `ScoreCalculationService` and `EstimationMvpService`
 - Produces: regression evidence for modifier order, exclusions, all-loser precedence, and online calculated/applied equality
 
-- [ ] **Step 1: Add modifier-order coverage**
+- [x] **Step 1: Add modifier-order coverage**
 
 Add a test whose normal zero estimator is the only winner, the Risk taker, and
 is subject to both `roundMultiplier: 2` and `multipleWithMultiplier: 2`.
@@ -211,7 +211,7 @@ test('zero adjustment precedes Risk, Only Winner, carry, and Multiple WITH', () 
 });
 ```
 
-- [ ] **Step 2: Add exclusion and precedence coverage**
+- [x] **Step 2: Add exclusion and precedence coverage**
 
 Add separate assertions proving:
 
@@ -228,7 +228,7 @@ Use four-player fixtures whose actual tricks sum to 13. Assert both the numeric
 score and the absence of notes containing `Under zero estimate` for every
 excluded case.
 
-- [ ] **Step 3: Run focused engine coverage**
+- [x] **Step 3: Run focused engine coverage**
 
 Run:
 
@@ -240,7 +240,7 @@ node --test dist/tests/underZeroEstimateAdjustment.test.js
 
 Expected: all new engine tests pass.
 
-- [ ] **Step 4: Add online save/reopen coverage**
+- [x] **Step 4: Add online save/reopen coverage**
 
 In `OnlineBrowserShellService.test.ts`, add a mutable House Rules snapshot with
 four players and no overrides. Open it to seed the service's complete-game
@@ -268,7 +268,7 @@ expect(reopened.scoreSheet?.scoreOverrides).toEqual([]);
 Also assert that the stored p4 row has
 `calculated_score === applied_score === 20`.
 
-- [ ] **Step 5: Run focused online and engine suites**
+- [x] **Step 5: Run focused online and engine suites**
 
 Run:
 
@@ -280,7 +280,7 @@ npm run test:engine
 Expected: the online tests pass, all engine tests pass, and no existing carry or
 override assertion regresses.
 
-- [ ] **Step 6: Commit integration coverage**
+- [x] **Step 6: Commit integration coverage**
 
 ```text
 git add tests/underZeroEstimateAdjustment.test.ts src/online/games/OnlineBrowserShellService.test.ts
@@ -297,7 +297,7 @@ git commit -m "test: cover under-zero rule boundaries"
 - Consumes: final CI output, draft PR branch, Vercel deployment URL, and stable UAT observations
 - Produces: traceable delivery evidence and a verified stable shared UAT
 
-- [ ] **Step 1: Run the complete CI gate**
+- [x] **Step 1: Run the complete CI gate**
 
 Run:
 
@@ -314,7 +314,7 @@ Require:
 
 Record the existing bundle-size advisory separately; it is not a test failure.
 
-- [ ] **Step 2: Review scope, migrations, and secrets**
+- [x] **Step 2: Review scope, migrations, and secrets**
 
 Run:
 
@@ -332,7 +332,7 @@ Confirm:
 - Federation and Dash Call production paths changed only through shared
   regression tests, not behavior.
 
-- [ ] **Step 3: Update delivery evidence**
+- [x] **Step 3: Update delivery evidence**
 
 Document:
 

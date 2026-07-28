@@ -3,7 +3,7 @@
 **Date:** 2026-07-26
 **Branch:** `fix/uat-round-2-findings`
 **Source:** `feature/react-vite-frontend-prototype` at `b84ecf3`
-**Status:** Follow-up implementation locally verified; draft PR #15 update and manual UAT pending
+**Status:** House Rules zero-estimate follow-up locally verified; publication, deployment, and manual UAT pending
 **Draft PR:** https://github.com/plusmaloma-dev/estimation-score-calculator/pull/15
 
 ## Delivered behavior
@@ -142,8 +142,9 @@ The build retains the pre-existing chunk-size advisory. Current main JS output i
 - For a round/player without an explicit override audit, the engine score is used as
   the current applied score. This repairs legacy x2/x4 rows that were stored before
   the authoritative full-game save fix.
-- For a round/player with an explicit audit, the persisted applied score remains
-  authoritative, preserving genuine manual edits.
+- An explicit override remains active only while its persisted applied score differs
+  from the calculated score. Restoring the calculated value retains immutable audit
+  history without preserving a stale override state.
 - Restored overrides retain immutable audit history but no longer show `Edited` when
   their current applied score equals the calculated score.
 - No data migration is required and no audit records are synthesized.
@@ -163,6 +164,56 @@ Follow-up GREEN evidence:
 
 The current bundle is 514.91 kB minified and 145.24 kB gzip. The existing Vite
 chunk-size advisory remains non-blocking.
+
+## House Rules Under zero-estimate adjustment
+
+### Approved behavior
+
+- House Rules V1 adds `+10` after normal role scoring when a player estimates
+  normal `0` in an Under round and takes `0` actual tricks.
+- House Rules V1 adds `-10` after normal role scoring when that player takes
+  more than `0` actual tricks.
+- The adjustment is applied before Risk, Only Winner/Loser, the chronological
+  all-loser carry multiplier, and Multiple WITH.
+- Dash Call, Dash, Over rounds, invalid exact-13 rounds, and Federation 2026
+  are excluded.
+- All-loser precedence remains authoritative: all four players score `0` and
+  the multiplier carries to the next eligible round.
+- The rule is derived from existing bids and results. It adds no UI toggle,
+  schema field, migration, override audit, or `Edited` marker.
+
+### Verification evidence
+
+The focused RED test observed the previous normal scores of `10` instead of
+`20` and `-2` instead of `-12`. After the scoring modifier was implemented,
+eight focused engine cases passed, covering success, failure, modifier order,
+Dash Call, Over, exact-13, Federation 2026, and all-loser precedence.
+
+The online integration fixture persists a carried successful zero estimate as
+`calculated_score === applied_score === 40`, reopens it as `40`, and creates no
+override. The x4 follow-up reopens the same player at `80`. Focused online and
+view-model verification passed 10 tests across two files.
+
+Full validation:
+
+```text
+npm run ci
+```
+
+Result:
+
+- engine typecheck: passed;
+- React/app typecheck: passed;
+- engine tests: 196 passed;
+- UI tests: 100 passed across 24 files;
+- production Vite build: passed.
+
+The current main JS output is 515.41 kB minified and 145.40 kB gzip. The
+pre-existing chunk-size advisory remains non-blocking.
+
+No Supabase migration changed. The existing four timestamped migrations remain
+in their deterministic order, and no environment file, credential, token, or
+generated Vercel metadata is part of this change.
 
 ## Manual UAT
 
@@ -184,4 +235,4 @@ chunk-size advisory remains non-blocking.
 
 - The optional additive `riskTypes` field is normalized from legacy `riskType` and stored bids; old documents without bid metadata cannot recover a classification they never stored.
 - The Vite bundle remains above the default 500 kB advisory threshold; this predates Round 2 and does not block the build.
-- Hosted CI and manual UAT against the deployed preview remain pending.
+- Publication, deployment, and manual UAT of the zero-estimate adjustment remain pending.
