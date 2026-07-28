@@ -303,7 +303,7 @@ describe('OnlineBrowserShellService', () => {
       ],
       actualResults: [
         { playerId: 'p1', actualTricks: 5 }, { playerId: 'p2', actualTricks: 4 },
-        { playerId: 'p3', actualTricks: 2 }, { playerId: 'p4', actualTricks: 2 },
+        { playerId: 'p3', actualTricks: 4 }, { playerId: 'p4', actualTricks: 0 },
       ],
     } as const;
     const result = await service.saveRound('game-carry', scoredInput);
@@ -314,14 +314,20 @@ describe('OnlineBrowserShellService', () => {
     const payload = saveCall?.[1]?.p_round_payload as any;
     expect(payload.roundResult.carriedAllLoserMultiplier).toBe(2);
     expect(payload.roundResult.carryConsumed).toBe(true);
-    expect(payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([50, 28, 24, -24]);
+    expect(payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([50, 28, -24, 40]);
+    expect(payload.roundResult.scoreResult.playerScores[3].notes)
+      .toContain('Under zero estimate successful: +10 adjustment applied.');
     expect(snapshot.overrides).toEqual([]);
 
     const reopened = await service.openSession('game-carry');
-    expect(reopened.roundHistory?.[1]?.playerScores.map((score) => score.score)).toEqual([50, 28, 24, -24]);
+    expect(reopened.roundHistory?.[1]?.playerScores.map((score) => score.score)).toEqual([50, 28, -24, 40]);
     expect((snapshot.rounds[1] as any).scores.every(
       (score: any) => score.calculated_score === score.applied_score,
     )).toBe(true);
+    expect((snapshot.rounds[1] as any).scores[3]).toEqual(expect.objectContaining({
+      calculated_score: 40,
+      applied_score: 40,
+    }));
 
     const storedCarryRound = snapshot.rounds[1] as any;
     storedCarryRound.scores = storedCarryRound.scores.map((score: any) => ({
@@ -331,7 +337,7 @@ describe('OnlineBrowserShellService', () => {
     }));
     const legacyReopened = await service.openSession('game-carry');
     expect(legacyReopened.roundHistory?.[1]?.playerScores.map((score) => score.score))
-      .toEqual([50, 28, 24, -24]);
+      .toEqual([50, 28, -24, 40]);
     expect(legacyReopened.scoreSheet?.scoreOverrides).toEqual([]);
 
     (snapshot.overrides as any[]).push({
@@ -348,7 +354,7 @@ describe('OnlineBrowserShellService', () => {
     storedCarryRound.scores[0].applied_score = 7;
     const activelyOverridden = await service.openSession('game-carry');
     expect(activelyOverridden.roundHistory?.[1]?.playerScores.map((score) => score.score))
-      .toEqual([7, 28, 24, -24]);
+      .toEqual([7, 28, -24, 40]);
     expect(activelyOverridden.scoreSheet?.scoreOverrides).toHaveLength(1);
 
     (snapshot.overrides as any[]).push({
@@ -365,7 +371,7 @@ describe('OnlineBrowserShellService', () => {
     storedCarryRound.scores[0].applied_score = 25;
     const restored = await service.openSession('game-carry');
     expect(restored.roundHistory?.[1]?.playerScores.map((score) => score.score))
-      .toEqual([50, 28, 24, -24]);
+      .toEqual([50, 28, -24, 40]);
     expect(restored.scoreSheet?.scoreOverrides).toHaveLength(2);
 
     const allLoserInput = {
@@ -389,7 +395,7 @@ describe('OnlineBrowserShellService', () => {
     const finalSaveCall = rpcCalls.filter(([name]) => name === 'save_game_round').at(-1);
     const x4Payload = finalSaveCall?.[1].p_round_payload as any;
     expect(x4Payload.roundResult.carriedAllLoserMultiplier).toBe(4);
-    expect(x4Payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([100, 56, 48, -48]);
+    expect(x4Payload.roundResult.scoreResult.playerScores.map((score: any) => score.score)).toEqual([100, 56, -48, 80]);
     expect(snapshot.overrides).toHaveLength(2);
   });
 });
