@@ -75,11 +75,24 @@ for (const copy of functionCopies) {
     assert.match(block, /return bootstrap\.state;/);
   });
 
+  test(`gameplay Start round initialization returns one consistent state shape in the ${copy.label}`, () => {
+    const block = initializeRoundBlock(copy.source);
+
+    assert.match(block, /\): Promise<HouseRulesRoundState>\s*\{/);
+    assert.match(block, /if\s*\(existing !== undefined\) return existing\.state;/);
+    assert.match(
+      copy.source,
+      /const roundState = await initializeRound\(serviceClient, body\.tableId, actor\.userId\);/,
+    );
+    assert.match(copy.source, /firstTurnFromState\(roundState\)/);
+    assert.doesNotMatch(copy.source, /firstTurnFromState\([^)]*\.state\)/);
+  });
+
   test(`gameplay Start RPC contract loads a persisted round before private deal generation in the ${copy.label}`, () => {
     const block = initializeRoundBlock(copy.source);
     const loadIndex = block.indexOf('repository.load(tableId)');
     const existingReturnIndex = block.indexOf(
-      'if (existing !== undefined) return existing;',
+      'if (existing !== undefined) return existing.state;',
     );
     const seatsIndex = block.indexOf('loadStartedPlayers(client, tableId)');
     const randomIndex = block.indexOf(
@@ -87,7 +100,7 @@ for (const copy of functionCopies) {
     );
 
     assert.ok(loadIndex >= 0, 'Missing persisted round lookup.');
-    assert.ok(existingReturnIndex > loadIndex, 'Missing persisted round early return.');
+    assert.ok(existingReturnIndex > loadIndex, 'Missing persisted round state early return.');
     assert.ok(seatsIndex > existingReturnIndex, 'Seats loaded before persisted round return.');
     assert.ok(randomIndex > existingReturnIndex, 'Private deal generated before persisted round return.');
   });
