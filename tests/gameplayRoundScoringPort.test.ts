@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Card } from '../src/domain/card.js';
 import { HouseRulesRoundEngine } from '../src/gameplay/HouseRulesRoundEngine.js';
+import { ScoreEngineRoundScoringAdapter } from '../src/gameplay/scoring/ScoreEngineRoundScoringAdapter.js';
 import type {
   GameplayRoundScoringInput,
   GameplayRoundScoringResult,
@@ -145,4 +146,30 @@ test('HouseRulesRoundEngine delegates final scoring through the injected port', 
     roundMultiplier: 2,
     multipleWithMultiplier: 1,
   });
+});
+
+test('gameplay score adapter consumes the standalone Under zero-estimate rule', () => {
+  const result = new ScoreEngineRoundScoringAdapter().scoreRound({
+    roundNumber: 1,
+    bids: [
+      { playerId: 'p1', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
+      { playerId: 'p2', bidType: 'normal', tricks: 3 },
+      { playerId: 'p3', bidType: 'normal', tricks: 2 },
+      { playerId: 'p4', bidType: 'normal', tricks: 0 },
+    ],
+    actualResults: [
+      { playerId: 'p1', actualTricks: 5 },
+      { playerId: 'p2', actualTricks: 3 },
+      { playerId: 'p3', actualTricks: 5 },
+      { playerId: 'p4', actualTricks: 0 },
+    ],
+    bidOwnerPlayerId: 'p1',
+    riskPlayerId: 'p3',
+  });
+
+  assert.equal(result.valid, true, result.errors.join('; '));
+  const zeroEstimator = result.scoreResult?.playerScores.find(
+    (score) => score.playerId === 'p4',
+  );
+  assert.equal(zeroEstimator?.score, 20);
 });
