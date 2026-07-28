@@ -4,7 +4,7 @@
 
 **Goal:** Show the authenticated viewer’s complete private hand throughout bidding as non-interactive cards while preserving existing legal-card interaction during play.
 
-**Architecture:** Extract the existing card rendering into a reusable `GameplayHand` component with explicit `read-only` and `play` modes. `GameplayBidPanel` renders `snapshot.ownHand` in read-only mode; `GameplayCardPanel` delegates its existing playing behavior to the same component. No API, Function, or database change is required.
+**Architecture:** Extract the existing card rendering into a reusable `GameplayHand` component with explicit `read-only` and `play` modes. `GameplayBidPanel` renders `snapshot.ownHand` in read-only mode; `GameplayCardPanel` delegates its existing playing behavior to the same component. No API, Edge Function, or database change is required.
 
 **Tech Stack:** React 19, TypeScript, Vitest, Testing Library, CSS, Vite gameplay build, guarded Vercel deployment.
 
@@ -15,9 +15,9 @@
 - Keep PR #14 open, draft, unmerged, and unauthorized for merge.
 - Do not change Supabase Functions, migrations, database objects, or score UAT.
 - Render only `snapshot.ownHand`; never derive or expose another seat’s private cards.
-- Bidding cards must remain disabled and must never receive the legal-card style.
+- Bidding cards must remain disabled and must never receive legal-card styling.
 - Existing playing-phase legal-card interaction must remain unchanged.
-- Deploy only `estimation-gameplay-uat`, only after explicit approval, through the guarded Vercel wrapper.
+- Deploy only the Vercel project `estimation-gameplay-uat`, only after explicit approval, through the guarded wrapper.
 - Never print or share the browser-safe publishable key; enter it only through a hidden prompt.
 - Commit and push only after focused GREEN, `npm run ci`, and `npm run ci:isolation` pass.
 
@@ -53,9 +53,9 @@ it('shows all viewer cards as read-only while bidding', async () => {
 });
 ```
 
-The exact names come from `CARD_SUITS[0] === 'spades'` and the canonical rank order `2` through `A`.
+The fixture uses `createCanonicalDeck().slice(0, 13)`. `CARD_SUITS[0]` is `spades`, and the canonical rank sequence is `2` through `A`, so those two accessible names are deterministic in this test.
 
-- [ ] **Step 2: Add the reusable component RED test**
+- [ ] **Step 2: Add the reusable-component RED test**
 
 Create `src/app/components/GameplayHand.test.tsx`:
 
@@ -160,7 +160,7 @@ git commit -m "test: reproduce hidden hand during bidding"
 - Test: `src/app/components/GameplayCardPanel.test.tsx`
 
 **Interfaces:**
-- Consumes: viewer cards, legal cards, `read-only`/`play` mode, active state, busy state, and `onPlay`.
+- Consumes: viewer cards, legal cards, mode, active/busy state, and `onPlay`.
 - Produces: one accessible hand renderer shared by bidding and card play.
 
 - [ ] **Step 1: Create `GameplayHand.tsx`**
@@ -235,7 +235,7 @@ export function GameplayHand({
 
 - [ ] **Step 2: Use it from `GameplayCardPanel`**
 
-Keep `compactCardName()` and current-trick rendering local. Remove the hand-only accessible-name and button rendering. Import `GameplayHand` and replace the existing hand block with:
+Keep `compactCardName()` and current-trick rendering local. Remove the hand-only accessible-name and button rendering. Import `GameplayHand` and replace the current hand block with:
 
 ```tsx
 <GameplayHand
@@ -254,7 +254,7 @@ Keep `compactCardName()` and current-trick rendering local. Remove the hand-only
 npx vitest run src/app/components/GameplayHand.test.tsx src/app/components/GameplayCardPanel.test.tsx
 ```
 
-Expected: all tests pass; legal card submission remains one call with the selected card.
+Expected: all tests pass and legal card submission remains exactly one call.
 
 - [ ] **Step 4: Commit**
 
@@ -270,7 +270,7 @@ git commit -m "refactor: share gameplay hand rendering"
 
 ---
 
-### Task 3: Render the read-only hand during bidding
+### Task 3: Render the hand during bidding
 
 **Files:**
 - Modify: `src/app/components/GameplayBidPanel.tsx`
@@ -279,9 +279,9 @@ git commit -m "refactor: share gameplay hand rendering"
 
 **Interfaces:**
 - Consumes: `snapshot.ownHand`.
-- Produces: 13 fully visible disabled cards during both acting and waiting bidding states.
+- Produces: 13 fully visible disabled cards during acting and waiting bidding states.
 
-- [ ] **Step 1: Render the hand in `GameplayBidPanel`**
+- [ ] **Step 1: Render `GameplayHand` in `GameplayBidPanel`**
 
 Import:
 
@@ -297,7 +297,7 @@ After the bidding form/waiting branch, add:
 )}
 ```
 
-- [ ] **Step 2: Keep bidding cards fully visible**
+- [ ] **Step 2: Preserve full opacity for read-only cards**
 
 Immediately after `.playing-card:disabled`, add:
 
@@ -398,13 +398,28 @@ try {
 }
 ```
 
-Required output includes `Prohibited secret values detected: false` and `Dry run complete. No Vercel deployment was started.`
+Required output includes:
+
+```text
+Gameplay Vercel target verified: estimation-gameplay-uat
+Expected Supabase URL embedded: true
+Expected workspace slug embedded: true
+Expected publishable key embedded: true
+Prohibited secret values detected: false
+Dry run complete. No Vercel deployment was started.
+```
 
 - [ ] **Step 5: Run the guarded canonical UAT deployment**
 
-Re-enter the key through the hidden prompt and run:
-
 ```powershell
+$secureKey = Read-Host 'Gameplay Supabase publishable key' -AsSecureString
+$keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
+try {
+  $env:GAMEPLAY_UAT_PUBLISHABLE_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
+  Remove-Variable secureKey, keyPointer -ErrorAction SilentlyContinue
+}
 try {
   npm run deploy:gameplay-vercel -- `
     --expected-sha $testedSha `
@@ -415,14 +430,13 @@ try {
 }
 ```
 
-Before this block, repeat the hidden-key initialization from Step 4 so `GAMEPLAY_UAT_PUBLISHABLE_KEY` is set only for the guarded command.
-
 - [ ] **Step 6: Run hosted bidding-hand UAT**
 
-Create a fresh private table:
+Create:
 
 ```text
 Name: Solo UAT Bidding Hand Retest 6
+Visibility: Private
 Turn timer: 45 seconds
 Disconnect grace: 60 seconds
 ```
@@ -431,11 +445,10 @@ Without refreshing, stop at the first human estimate turn and verify:
 
 ```text
 13 viewer cards visible
-all 13 cards disabled
-2 of spades and Ace of spades present in the viewer hand
+all 13 viewer cards disabled
 estimate control usable
 no other private hand visible
 no legal-card styling before playing phase
 ```
 
-Submit one estimate and confirm the hand remains visible while waiting. Continue only to the first human card turn and confirm legal-card interaction still works.
+The exact card identities are deal-dependent and are not acceptance criteria. Submit one estimate, confirm the hand remains visible while waiting, then continue only to the first human card turn and confirm legal-card interaction still works.
