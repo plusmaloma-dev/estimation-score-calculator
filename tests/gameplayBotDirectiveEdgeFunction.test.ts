@@ -2,7 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const edge = readFileSync('supabase/functions/gameplay-round-command/index.ts', 'utf8');
+const edgeCopies = [
+  {
+    label: 'repository gameplay round command source',
+    source: readFileSync('supabase/functions/gameplay-round-command/index.ts', 'utf8'),
+  },
+  {
+    label: 'isolated gameplay deployment source',
+    source: readFileSync(
+      'supabase-gameplay/supabase/functions/gameplay-round-command/index.ts',
+      'utf8',
+    ),
+  },
+] as const;
+const edge = edgeCopies[0].source;
 const botService = readFileSync('src/gameplay/bot/GameplayBotDirectiveService.ts', 'utf8');
 
 function compact(value: string): string {
@@ -26,6 +39,19 @@ test('issued directive and authoritative control state are loaded with service-r
   assert.match(edge, /directive\.seat[\s\S]*turn_seat/i);
   assert.match(edge, /directive\.actionKind[\s\S]*turn_action_kind/i);
 });
+
+for (const copy of edgeCopies) {
+  test(`bot directive lookup avoids fragile JSON containment filters in the ${copy.label}`, () => {
+    const source = copy.source;
+
+    assert.doesNotMatch(source, /\.contains\(\s*['"]directives['"]/);
+    assert.match(source, /\.select\(\s*['"]id,directives['"]\s*\)/);
+    assert.match(source, /\.eq\(\s*['"]table_id['"],\s*tableId\s*\)/);
+    assert.match(source, /\.order\(\s*['"]id['"],\s*\{\s*ascending:\s*false\s*\}\s*\)/);
+    assert.match(source, /\.limit\(\s*64\s*\)/);
+    assert.match(source, /flatMap\([\s\S]*parseDirective[\s\S]*directiveId/);
+  });
+}
 
 test('bot execution uses deterministic active-control and round command identities', () => {
   const normalized = compact(edge);
