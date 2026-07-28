@@ -159,10 +159,10 @@ async function initializeRound(
   client: ServiceClient,
   tableId: string,
   actorUserId: string,
-): Promise<GameplayRoundAggregate> {
+): Promise<HouseRulesRoundState> {
   const repository = new ReadOnlyGameplayRoundRepository(client);
   const existing = await repository.load(tableId);
-  if (existing !== undefined) return existing;
+  if (existing !== undefined) return existing.state;
 
   const players = await loadStartedPlayers(client, tableId);
   const seedHex = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
@@ -292,8 +292,8 @@ Deno.serve(async (request) => {
       });
     }
 
-    const aggregate = await initializeRound(serviceClient, body.tableId, actor.userId);
-    const firstTurn = firstTurnFromState(aggregate.state);
+    const roundState = await initializeRound(serviceClient, body.tableId, actor.userId);
+    const firstTurn = firstTurnFromState(roundState);
     if (firstTurn !== undefined && (control.turn === null || control.turn === undefined)) {
       const turnCommandId = `turn-start:${commandId}`;
       const existingExpectedVersion = await existingCommandExpectedVersion(
