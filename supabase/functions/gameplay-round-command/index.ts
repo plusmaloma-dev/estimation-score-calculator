@@ -10,7 +10,14 @@ import type {
 import type { BotActionDirective } from '../../../src/gameplay/control/types.ts';
 import type { EstimationBid } from '../../../src/domain/bid.ts';
 import type { Card } from '../../../src/domain/card.ts';
-import type { OnlineGameplayRoundSnapshot } from '../../../src/online/gameplay/roundTypes.ts';
+import {
+  coordinateHumanRoundAction,
+  nextAuthoritativeTurn,
+  type HumanActionBoundaryPort,
+  type HumanActionKind,
+  type HumanBoundaryCompletionInput,
+  type HumanBoundaryResolution,
+} from '../../../src/online/gameplay/HumanActionBoundaryCoordinator.ts';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -288,19 +295,176 @@ async function userRpc(
   return result;
 }
 
-function nextTurn(snapshot: OnlineGameplayRoundSnapshot): Readonly<Record<string, unknown>> | null {
-  const seat = snapshot.phase === 'bidding'
-    ? snapshot.nextBidSeat
-    : snapshot.phase === 'playing'
-      ? snapshot.currentTurnSeat
-      : undefined;
-  if (seat === undefined) return null;
-  const actionKind = snapshot.phase === 'bidding' ? 'bid' : 'card';
-  return {
-    turnId: `round-${snapshot.roundNumber}:${actionKind}:${snapshot.version}:${seat}`,
-    seat,
-    actionKind,
-  };
+class SupabaseHumanActionBoundaryPort
+  implements HumanActionBoundaryPort {
+  constructor(
+    private readonly serviceClient: ServiceClient,
+    private readonly authClient: ServiceClient,
+  ) {}
+
+  async resolve(input: {
+    readonly tableId: string;
+    readonly actorUserId: string;
+    readonly roundCommandId: string;
+    readonly actionKind: HumanActionKind;
+  }): Promise<HumanBoundaryResolution> {
+    const completionId = `human-complete:${input.roundCommandId}`;
+
+    const completedCommand = await commandRecord(
+      this.serviceClient,
+      input.tableId,
+      completionId,
+    );
+
+    if (completedCommand?.accepted === true) {
+      return { valid: true, completed: true };
+    }
+
+    const { data: tableData, error: tableError } =
+      await this.serviceClient
+        .from('gameplay_tables')
+        .select('workspace_id')
+        .eq('id', input.tableId)
+        .single();
+
+    if (tableError !== null) {
+      return { valid: false, errors: [tableError.message] };
+    }
+
+    const workspaceId = object(tableData)?.workspace_id;
+
+    if (typeof workspaceId !== 'string') {
+      return {
+        valid: false,
+        errors: ['Gameplay workspace could not be resolved.'],
+      };
+    }
+
+    const { data: controlData, error: controlError } =
+      await this.serviceClient
+        .from('gameplay_active_controls')
+        .select(
+          'version,lifecycle,turn_seat,turn_action_kind,turn_status',
+        )
+        .eq('table_id', input.tableId)
+        .single();
+
+    if (controlError !== null) {
+      return { valid: false, errors: [controlError.message] };
+    }
+
+    const control = object(controlData);
+
+    const controlVersion =
+      typeof control?.version === 'number'
+        ? control.version
+        : undefined;
+
+    const lifecycle =
+      typeof control?.lifecycle === 'string'
+        ? control.lifecycle
+        : undefined;
+
+    const turnSeat =
+      typeof control?.turn_seat === 'number'
+        ? control.turn_seat
+        : undefined;
+
+    const turnActionKind =
+      typeof control?.turn_action_kind === 'string'
+        ? control.turn_action_kind
+        : undefined;
+
+    const turnStatus =
+      typeof control?.turn_status === 'string'
+        ? control.turn_status
+        : undefined;
+
+    const { data: seatData, error: seatError } =
+      await this.serviceClient
+        .from('gameplay_active_seat_controls')
+        .select('seat_number,control_owner')
+        .eq('table_id', input.tableId)
+        .eq('human_user_id', input.actorUserId)
+        .single();
+
+    if (seatError !== null) {
+      return { valid: false, errors: [seatError.message] };
+    }
+
+    const seat = object(seatData);
+
+    const seatNumber =
+      typeof seat?.seat_number === 'number'
+        ? seat.seat_number
+        : undefined;
+
+    const controlOwner =
+      typeof seat?.control_owner === 'string'
+        ? seat.control_owner
+        : undefined;
+
+    const recoverableStatuses = ['running', 'assistant-pending', 'bot-processing'];
+
+    if (
+      controlVersion === undefined
+      || lifecycle !== 'active'
+      || seatNumber === undefined
+      || controlOwner !== 'human'
+      || turnSeat !== seatNumber
+      || turnActionKind !== input.actionKind
+      || turnStatus === undefined
+      || !recoverableStatuses.includes(turnStatus)
+    ) {
+      return {
+        valid: false,
+        errors: [
+          'Human action does not match the authoritative active-control turn.',
+        ],
+      };
+    }
+
+    return {
+      valid: true,
+      completed: false,
+      workspaceId,
+      expectedVersion: controlVersion,
+    };
+  }
+
+  async complete(
+    input: HumanBoundaryCompletionInput,
+  ): Promise<{
+    readonly valid: boolean;
+    readonly errors: readonly string[];
+  }> {
+    const completed = await userRpc(
+      this.authClient,
+      'complete_active_action_boundary',
+      {
+        p_table_id: input.tableId,
+        p_workspace_id: input.workspaceId,
+        p_actor_user_id: input.actorUserId,
+        p_command_id: input.commandId,
+        p_expected_version: input.expectedVersion,
+        p_next_turn: input.nextTurn,
+        p_occurred_at: input.occurredAt,
+      },
+    );
+
+    if (completed.valid === true) {
+      return { valid: true, errors: [] };
+    }
+
+    const errors = stringArray(completed.errors);
+
+    return {
+      valid: false,
+      errors: errors.length > 0
+        ? errors
+        : ['Human action boundary could not complete.'],
+    };
+  }
 }
 
 Deno.serve(async (request) => {
@@ -344,6 +508,10 @@ Deno.serve(async (request) => {
   const repository = new SupabaseGameplayRoundRepository(serviceClient);
   const service = new GameplayRoundApplicationService(repository);
   const botService = new GameplayBotDirectiveService(repository);
+  const humanBoundary = new SupabaseHumanActionBoundaryPort(
+    serviceClient,
+    authClient,
+  );
   const actor = { userId: authData.user.id };
 
   try {
@@ -354,25 +522,41 @@ Deno.serve(async (request) => {
       if (!validCommandInput(body) || body.bid === undefined) {
         return json({ valid: false, errors: ['Bid command is incomplete.'] }, 400);
       }
-      return json(await service.submitBid(
-        body.tableId,
-        actor,
-        body.commandId!,
-        body.expectedVersion!,
-        body.bid,
-      ));
+      return json(await coordinateHumanRoundAction({
+        tableId: body.tableId,
+        actorUserId: actor.userId,
+        roundCommandId: body.commandId!,
+        actionKind: 'bid',
+        boundary: humanBoundary,
+        occurredAt: new Date().toISOString(),
+        executeRound: () => service.submitBid(
+          body.tableId,
+          actor,
+          body.commandId!,
+          body.expectedVersion!,
+          body.bid!,
+        ),
+      }));
     }
     if (body.action === 'play-card') {
       if (!validCommandInput(body) || body.card === undefined) {
         return json({ valid: false, errors: ['Card command is incomplete.'] }, 400);
       }
-      return json(await service.playCard(
-        body.tableId,
-        actor,
-        body.commandId!,
-        body.expectedVersion!,
-        body.card,
-      ));
+      return json(await coordinateHumanRoundAction({
+        tableId: body.tableId,
+        actorUserId: actor.userId,
+        roundCommandId: body.commandId!,
+        actionKind: 'card',
+        boundary: humanBoundary,
+        occurredAt: new Date().toISOString(),
+        executeRound: () => service.playCard(
+          body.tableId,
+          actor,
+          body.commandId!,
+          body.expectedVersion!,
+          body.card!,
+        ),
+      }));
     }
     if (body.action === 'process-bot-directive') {
       const directiveId = typeof body.directiveId === 'string' ? body.directiveId.trim() : '';
@@ -414,7 +598,7 @@ Deno.serve(async (request) => {
         return json({ ...botResult, terminal: true });
       }
 
-      const next = nextTurn(botResult.value);
+      const next = nextAuthoritativeTurn(botResult.value);
       const completeExpectedVersion = context.completeExpectedVersion ?? begin.version;
       const completedAt = new Date().toISOString();
       const completed = await userRpc(authClient, 'complete_active_action_boundary', {

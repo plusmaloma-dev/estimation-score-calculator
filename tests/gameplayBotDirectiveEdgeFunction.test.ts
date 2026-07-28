@@ -17,7 +17,10 @@ const edgeCopies = [
 ] as const;
 const edge = edgeCopies[0].source;
 const botService = readFileSync('src/gameplay/bot/GameplayBotDirectiveService.ts', 'utf8');
-
+const humanBoundaryCoordinator = readFileSync(
+  'src/online/gameplay/HumanActionBoundaryCoordinator.ts',
+  'utf8',
+);
 function compact(value: string): string {
   return value.replace(/\s+/g, ' ');
 }
@@ -64,10 +67,12 @@ test('bot execution uses deterministic active-control and round command identiti
 });
 
 test('next authoritative turn is derived from the committed scoped round snapshot', () => {
-  assert.match(edge, /nextBidSeat/i);
-  assert.match(edge, /currentTurnSeat/i);
-  assert.match(edge, /roundNumber/i);
-  assert.match(edge, /actionKind/i);
+  assert.match(edge, /nextAuthoritativeTurn/);
+  assert.match(edge, /nextAuthoritativeTurn\(botResult\.value\)/);
+  assert.match(humanBoundaryCoordinator, /nextBidSeat/i);
+  assert.match(humanBoundaryCoordinator, /currentTurnSeat/i);
+  assert.match(humanBoundaryCoordinator, /roundNumber/i);
+  assert.match(humanBoundaryCoordinator, /actionKind/i);
   assert.match(edge, /terminal:\s*true/i);
   assert.match(edge, /terminal:\s*false/i);
 });
