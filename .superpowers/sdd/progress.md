@@ -38,4 +38,4 @@
 | Online persistence and reopen | Complete: calculated/applied equality, no override, x2/x4 reopen covered | 100% |
 | Migration decision | Complete; no migration or schema change required | 100% |
 | Full validation | `npm run ci` green: 196 engine, 100 UI, production build | 100% |
-| Publication and stable UAT | Push, deploy, stable-alias verification, and live smoke test pending | 70% |
+| Publication and stable UAT | Published on stable alias; live success, failure, Dash Call exclusion, all-loser zero, x2 carry, persistence, and no-override smoke checks passed | 100% |

@@ -343,7 +343,7 @@ Document:
 - the Preview deployment and stable alias target;
 - live success, failure, exclusion, persistence, and no-`Edited` observations.
 
-- [ ] **Step 4: Commit and push the feature branch**
+- [x] **Step 4: Commit and push the feature branch**
 
 ```text
 git add docs/superpowers/reports/2026-07-26-uat-round-2-delivery.md .superpowers/sdd/progress.md
@@ -353,7 +353,7 @@ git push origin fix/uat-round-2-findings
 
 Keep PR #15 draft and do not merge.
 
-- [ ] **Step 5: Deploy the exact pushed branch**
+- [x] **Step 5: Deploy the exact pushed branch**
 
 Run from the worktree already linked to the existing
 `estimation-score-calculator` Vercel project:
@@ -365,7 +365,7 @@ npx --yes vercel@latest deploy --target=preview --yes --force
 Require a READY deployment under
 `plusmaloma-6068s-projects/estimation-score-calculator`.
 
-- [ ] **Step 6: Update and verify the stable alias**
+- [x] **Step 6: Update and verify the stable alias**
 
 Run:
 
@@ -378,7 +378,7 @@ npx --yes vercel@latest inspect estimation-score-calculator-uat.vercel.app
 Require the inspection output to identify the newly created READY deployment,
 not an earlier Preview.
 
-- [ ] **Step 7: Smoke-test the stable UAT**
+- [x] **Step 7: Smoke-test the stable UAT**
 
 Open:
 

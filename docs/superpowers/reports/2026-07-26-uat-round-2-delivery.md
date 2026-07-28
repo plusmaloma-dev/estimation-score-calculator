@@ -3,7 +3,7 @@
 **Date:** 2026-07-26
 **Branch:** `fix/uat-round-2-findings`
 **Source:** `feature/react-vite-frontend-prototype` at `b84ecf3`
-**Status:** House Rules zero-estimate follow-up locally verified; publication, deployment, and manual UAT pending
+**Status:** House Rules zero-estimate follow-up published, deployed, and verified on stable shared UAT
 **Draft PR:** https://github.com/plusmaloma-dev/estimation-score-calculator/pull/15
 
 ## Delivered behavior
@@ -215,6 +215,30 @@ No Supabase migration changed. The existing four timestamped migrations remain
 in their deterministic order, and no environment file, credential, token, or
 generated Vercel metadata is part of this change.
 
+### Stable UAT evidence
+
+- Verified source revision: `763bdaf8e3380aa54fcfc5ce30ede8b80e0765a7`.
+- READY deployment: `dpl_93EfikjNX6PcmiEaJp5oAtdbDq8D`.
+- Deployment URL:
+  `https://estimation-score-calculator-jzhpnxr68-plusmaloma-6068s-projects.vercel.app`.
+- Stable alias:
+  `https://estimation-score-calculator-uat.vercel.app`.
+- Authenticated test game: `UAT Under Zero 763bdaf`, House Rules V1.
+- Normal Under `0`, actual `0`: displayed and persisted `+20`.
+- Normal Under `0`, actual `2`: displayed and persisted `-12`.
+- Under Dash Call `0`, actual `0`: displayed `+35`, proving the normal-zero
+  adjustment is excluded.
+- An all-loser Under round displayed four `0` scores and left running totals
+  unchanged.
+- The next eligible round consumed the carried x2 multiplier and displayed
+  `+50`, `+26`, `+40`, and `-46`; the zero estimator's base `+20` was therefore
+  multiplied to `+40`.
+- Every save completed through the online RPC and reloaded the authoritative
+  game snapshot. No `Edited` marker or override state appeared on any
+  system-calculated row.
+- Final fresh `npm run ci` result: 196 engine tests, 100 UI tests, both
+  typechecks, and the production build passed.
+
 ## Manual UAT
 
 1. Open a fresh House Rules V1 game.
@@ -234,5 +258,6 @@ generated Vercel metadata is part of this change.
 ## Remaining risks
 
 - The optional additive `riskTypes` field is normalized from legacy `riskType` and stored bids; old documents without bid metadata cannot recover a classification they never stored.
-- The Vite bundle remains above the default 500 kB advisory threshold; this predates Round 2 and does not block the build.
-- Publication, deployment, and manual UAT of the zero-estimate adjustment remain pending.
+- The Vite bundle remains above the default 500 kB advisory threshold:
+  515.41 kB minified and 145.40 kB gzip. This predates Round 2 and does not
+  block the build.
