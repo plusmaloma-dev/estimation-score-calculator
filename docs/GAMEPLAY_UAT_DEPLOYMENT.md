@@ -350,6 +350,11 @@ Function remains safe when the exact original request is replayed: it loads and
 returns a persisted round before generating any new private deal material. This
 does not authorize an arbitrary active-table repair command.
 
+### Preserve the split-state human-boundary table
+
+Solo UAT Bot Retest 4 is preserved as split-state evidence. Do not refresh,
+repair, pause, terminate, delete, or reuse it. Human-boundary retesting must
+use a new table because its round and active-control ledgers have diverged.
 1. Create a private House Rules V1 table.
 2. Leave three seats vacant.
 3. Press **Start Game**.
