@@ -2,6 +2,7 @@ import { AnalyticsViewService } from '../analytics/AnalyticsViewService.js';
 import type { PersistedScoreSheet } from '../../persistence/types.js';
 import { EstimationMvpService, type MvpGameResult, type MvpRoundResult } from '../../services/EstimationMvpService.js';
 import type { GameSummaryAction, GameSummaryLeaderboardRow, GameSummaryModel, GameSummaryRecentRoundRow } from './GameSummaryModel.js';
+import { normalizedRiskTypes } from '../../scoring/types.js';
 
 export type { GameSummaryModel } from './GameSummaryModel.js';
 
@@ -61,9 +62,7 @@ export class GameSummaryViewService {
     const winnerPlayerIds = highestScore === undefined ? [] : playerScores
       .filter((score) => score.score === highestScore)
       .map((score) => score.playerId);
-    const riskTypes = [...new Set(playerScores
-      .map((score) => score.riskType)
-      .filter((riskType) => riskType !== 'none'))];
+    const riskTypes = [...new Set(playerScores.flatMap((score) => normalizedRiskTypes(score)))];
 
     return {
       roundNumber: round.roundNumber,

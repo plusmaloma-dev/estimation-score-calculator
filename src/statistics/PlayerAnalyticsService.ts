@@ -1,5 +1,5 @@
 import type { MvpGameResult } from '../services/EstimationMvpService.js';
-import type { PlayerScoreResult } from '../scoring/types.js';
+import { normalizedRiskTypes, type PlayerScoreResult } from '../scoring/types.js';
 import type { PlayerAnalyticsEntry, PlayerAnalyticsSummary } from './playerAnalyticsTypes.js';
 
 interface MutableAnalytics {
@@ -117,6 +117,7 @@ export class PlayerAnalyticsService {
   }
 
   private applyPlayerScore(statistics: MutableAnalytics, playerScore: PlayerScoreResult, allLoserRound: boolean): void {
+    const riskTypes = normalizedRiskTypes(playerScore);
     statistics.totalScore += playerScore.score;
     statistics.roundsPlayed += 1;
     statistics.bestRoundScore = Math.max(statistics.bestRoundScore, playerScore.score);
@@ -128,14 +129,14 @@ export class PlayerAnalyticsService {
       statistics.failedRounds += 1;
     }
 
-    if (playerScore.riskType === 'dash') {
+    if (riskTypes.includes('dash')) {
       statistics.dashAttempts += 1;
       if (playerScore.didMatchBid) {
         statistics.dashSuccesses += 1;
       }
     }
 
-    if (playerScore.riskType === 'dash-call') {
+    if (riskTypes.includes('dash-call')) {
       statistics.dashCallAttempts += 1;
       if (playerScore.didMatchBid) {
         statistics.dashCallSuccesses += 1;
@@ -156,7 +157,7 @@ export class PlayerAnalyticsService {
       }
     }
 
-    if (playerScore.riskType === 'with' || playerScore.role === 'with-player') {
+    if (riskTypes.includes('with') || playerScore.role === 'with-player') {
       statistics.withRounds += 1;
     }
 

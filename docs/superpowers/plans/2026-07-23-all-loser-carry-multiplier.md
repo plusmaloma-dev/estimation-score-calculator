@@ -1,5 +1,7 @@
 # All-Loser Carry Multiplier Implementation Plan
 
+> **Historical note:** The approved 2026-07-26 UAT Round 2 instruction supersedes this plan where it conflicts. Existing high-contract carry exclusions remain unchanged.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Implement skipped all-loser rounds with a linear carried multiplier of ×2, ×4, ×6, and so on, consumed by the next scored round and stacked multiplicatively with Multiple WITH.

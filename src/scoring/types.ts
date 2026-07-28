@@ -96,6 +96,7 @@ export interface PlayerScoreResult {
   readonly didMatchBid: boolean;
   readonly role: PlayerRoundRole;
   readonly riskType: RiskType;
+  readonly riskTypes?: readonly RiskType[];
   readonly isRiskTaker: boolean;
   readonly riskModifier: number;
   readonly isHighContract: boolean;
@@ -104,6 +105,11 @@ export interface PlayerScoreResult {
   readonly status: ScoreStatus;
   readonly score: number;
   readonly notes: readonly string[];
+}
+
+export function normalizedRiskTypes(playerScore: Pick<PlayerScoreResult, 'riskType' | 'riskTypes'>): readonly RiskType[] {
+  const classifications = playerScore.riskTypes ?? [playerScore.riskType];
+  return [...new Set(classifications.filter((riskType) => riskType !== 'none'))];
 }
 
 export interface RoundScoreInput {

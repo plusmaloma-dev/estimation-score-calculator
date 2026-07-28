@@ -1,5 +1,6 @@
 import type { ContractSuit } from '../../index.js';
 import {
+  announceDashCall,
   confirmBidding,
   createBiddingState,
   resolveActiveWithPlayerIds,
@@ -25,6 +26,7 @@ export interface CurrentRoundDraft {
 }
 
 export type CurrentRoundAction =
+  | { readonly type: 'announce-dash-call'; readonly playerId: string }
   | { readonly type: 'set-estimate'; readonly playerId: string; readonly value: number | undefined }
   | { readonly type: 'set-actual'; readonly playerId: string; readonly value: number | undefined }
   | { readonly type: 'set-trump'; readonly suit: ContractSuit }
@@ -91,6 +93,10 @@ export function resolveAutomaticRiskPlayerId(draft: CurrentRoundDraft): string |
   return resolveRiskPlayerId(draft.bidding);
 }
 
+export function resolveDashCallPlayerId(draft: CurrentRoundDraft): string | undefined {
+  return draft.bidding.dashCallPlayerId;
+}
+
 export function validateAcceptedEstimates(draft: CurrentRoundDraft): readonly string[] {
   return confirmBidding(draft.bidding).errors;
 }
@@ -112,6 +118,10 @@ export function validateActualTricks(draft: CurrentRoundDraft): readonly string[
 
 export function currentRoundReducer(draft: CurrentRoundDraft, action: CurrentRoundAction): CurrentRoundDraft {
   switch (action.type) {
+    case 'announce-dash-call':
+      return draft.phase === 'estimating'
+        ? withBidding(draft, announceDashCall(draft.bidding, action.playerId))
+        : draft;
     case 'set-estimate':
       if (draft.phase !== 'estimating') return draft;
       return withBidding(draft, setBiddingEstimate(draft.bidding, action.playerId, action.value));

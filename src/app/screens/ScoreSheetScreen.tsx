@@ -180,7 +180,13 @@ export function ScoreSheetScreen({
         profile: isFederation ? federationProfile : houseRulesV1ScoringProfile,
         bids: players.map((player) => {
           const status = draft.bidding.statusByPlayerId[player.id] ?? 'normal';
-          const bidType = status === 'with' ? 'with' as const : status === 'hold' ? 'hold' as const : 'normal' as const;
+          const bidType = !isFederation && draft.bidding.dashCallPlayerId === player.id
+            ? 'dash-call' as const
+            : status === 'with'
+              ? 'with' as const
+              : status === 'hold'
+                ? 'hold' as const
+                : 'normal' as const;
           return {
             playerId: player.id,
             bidType,
@@ -353,6 +359,7 @@ export function ScoreSheetScreen({
             roundNumber={currentRoundNumber}
             players={players}
             existingTotals={existingTotals}
+            allowDashCall={!isFederation}
             onSave={saveCurrentRound}
           />
         )}

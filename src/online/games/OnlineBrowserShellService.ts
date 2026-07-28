@@ -2,7 +2,7 @@ import type { EstimationBid } from '../../domain/bid.js';
 import type { PersistedScoreSheet, ScoreOverrideAuditRecord } from '../../persistence/types.js';
 import { houseRulesV1ScoringProfile } from '../../scoring/houseRulesV1Profile.js';
 import { FEDERATION_2026, resolveScoringRuleSetId, type ScoringRuleSetId } from '../../scoring/ruleSets.js';
-import type { PlayerScoreResult, RiskType, ScoringProfile } from '../../scoring/types.js';
+import { normalizedRiskTypes, type PlayerScoreResult, type RiskType, type ScoringProfile } from '../../scoring/types.js';
 import { EstimationMvpService, type MvpGameInput, type MvpRoundInput } from '../../services/EstimationMvpService.js';
 import { LeaderboardService } from '../../services/LeaderboardService.js';
 import type {
@@ -152,6 +152,7 @@ export class OnlineBrowserShellService {
   private readonly mvpService = new EstimationMvpService();
   private readonly leaderboardService = new LeaderboardService();
   private readonly versions = new Map<string, number>();
+  private readonly gameInputs = new Map<string, MvpGameInput>();
   private readonly pendingOpens = new Map<string, Promise<UiOpenSessionResult>>();
 
   constructor(
@@ -206,6 +207,7 @@ export class OnlineBrowserShellService {
     const nowIso = input.nowIso ?? new Date().toISOString();
     const scoreSheet = this.emptyScoreSheet(result.value.gameId, input, ruleSet, nowIso);
     this.versions.set(scoreSheet.id, 1);
+    this.gameInputs.set(scoreSheet.id, scoreSheet.gameInput);
     return { valid: true, errors: [], scoreSheet };
   }
 
@@ -255,7 +257,21 @@ export class OnlineBrowserShellService {
   }
 
   async saveRound(scoreSheetId: string, input: UiRoundEntryInput): Promise<UiSaveRoundResult> {
-    const calculated = this.mvpService.calculateRound(input);
+    let gameInput = this.gameInputs.get(scoreSheetId);
+    if (gameInput === undefined) {
+      const opened = await this.openSession(scoreSheetId);
+      if (!opened.valid || opened.scoreSheet === undefined) return { valid: false, errors: opened.errors };
+      gameInput = opened.scoreSheet.gameInput;
+    }
+    const calculatedGame = this.mvpService.calculateGame({
+      ...gameInput,
+      rounds: [...gameInput.rounds.filter((round) => round.roundNumber !== input.roundNumber), input]
+        .sort((left, right) => left.roundNumber - right.roundNumber),
+    });
+    const calculated = calculatedGame.rounds.find((round) => round.roundNumber === input.roundNumber);
+    if (calculated === undefined) {
+      return { valid: false, errors: ['The calculated round was not returned.'] };
+    }
     if (!calculated.valid || calculated.scoreResult === undefined) {
       return { valid: false, errors: calculated.errors };
     }
@@ -404,8 +420,31 @@ export class OnlineBrowserShellService {
       })),
     };
     const calculatedGame = this.mvpService.calculateGame(gameInput);
+    this.gameInputs.set(snapshot.game.id, gameInput);
+    const latestOverrideByScore = new Map<string, SnapshotOverrideRow>();
+    for (const override of snapshot.overrides ?? []) {
+      const key = `${override.round_number}:${override.player_id}`;
+      const current = latestOverrideByScore.get(key);
+      if (current === undefined || current.changed_at <= override.changed_at) {
+        latestOverrideByScore.set(key, override);
+      }
+    }
     const roundHistory = orderedRounds.map((round): UiRoundHistoryEntry => {
       const input = gameInput.rounds.find((candidate) => candidate.roundNumber === round.round_number);
+      const bidsByPlayerId = new Map((input?.bids ?? []).map((bid) => [bid.playerId, bid]));
+      const calculatedScoresByPlayerId = new Map(
+        (calculatedGame.rounds.find((candidate) => candidate.roundNumber === round.round_number)
+          ?.scoreResult?.playerScores ?? []).map((score) => [score.playerId, score.score]),
+      );
+      const playerScores = round.scores.map((score) => {
+        const latestOverride = latestOverrideByScore.get(`${round.round_number}:${score.player_id}`);
+        const hasActiveOverride = latestOverride !== undefined
+          && latestOverride.new_applied_score !== latestOverride.calculated_score;
+        const appliedScore = hasActiveOverride
+          ? score.applied_score
+          : calculatedScoresByPlayerId.get(score.player_id) ?? score.applied_score;
+        return this.mapPlayerScore(score, appliedScore, bidsByPlayerId.get(score.player_id)?.bidType);
+      });
       return {
         roundNumber: round.round_number,
         roundType: round.round_type,
@@ -413,8 +452,8 @@ export class OnlineBrowserShellService {
         errors: [],
         bids: input?.bids ?? [],
         actualResults: input?.actualResults ?? [],
-        playerScores: round.scores.map((score) => this.mapPlayerScore(score, score.applied_score)),
-        riskTypes: [...new Set(round.scores.map((score) => score.risk_type).filter((riskType) => riskType !== 'none'))],
+        playerScores,
+        riskTypes: [...new Set(playerScores.flatMap((score) => normalizedRiskTypes(score)))],
         ...(round.is_all_loser_round || round.carried_all_loser_multiplier > 1
           ? { nextRoundMultiplier: round.carried_all_loser_multiplier }
           : {}),
@@ -460,7 +499,20 @@ export class OnlineBrowserShellService {
     };
   }
 
-  private mapPlayerScore(score: SnapshotScoreRow, appliedScore: number): PlayerScoreResult {
+  private mapPlayerScore(
+    score: SnapshotScoreRow,
+    appliedScore: number,
+    bidType?: EstimationBid['bidType'],
+  ): PlayerScoreResult {
+    const bidRiskType: RiskType = bidType === 'dash'
+      ? 'dash'
+      : bidType === 'dash-call'
+        ? 'dash-call'
+        : bidType === 'with'
+          ? 'with'
+          : score.is_high_contract
+            ? 'high-contract'
+            : 'none';
     return {
       playerId: score.player_id,
       bidTricks: score.bid_tricks,
@@ -469,6 +521,9 @@ export class OnlineBrowserShellService {
       didMatchBid: score.did_match_bid,
       role: score.role,
       riskType: score.risk_type,
+      riskTypes: [...new Set([bidRiskType, score.risk_type].filter(
+        (riskType): riskType is RiskType => riskType !== 'none',
+      ))],
       isRiskTaker: score.is_risk_taker,
       riskModifier: score.risk_modifier,
       isHighContract: score.is_high_contract,

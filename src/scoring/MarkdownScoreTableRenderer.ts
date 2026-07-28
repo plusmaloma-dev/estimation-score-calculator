@@ -1,4 +1,4 @@
-import type { RoundScoreResult } from './types.js';
+import { normalizedRiskTypes, type RoundScoreResult } from './types.js';
 import type { PlayerBalance } from './BalanceAccumulator.js';
 
 export interface RenderedRoundInput {
@@ -44,7 +44,9 @@ export class MarkdownScoreTableRenderer {
 
     if (score.role === 'bid-owner') tags.push('BO');
     if (score.role === 'with-player') tags.push('WITH');
-    if (score.riskType === 'dash') tags.push('DASH');
+    const riskTypes = normalizedRiskTypes(score);
+    if (riskTypes.includes('dash')) tags.push('DASH');
+    if (riskTypes.includes('dash-call')) tags.push('DASH CALL');
     if (score.isRiskTaker) tags.push('RISK');
     if (score.isOnlyWinner) tags.push('OW');
     if (score.isOnlyLoser) tags.push('OL');

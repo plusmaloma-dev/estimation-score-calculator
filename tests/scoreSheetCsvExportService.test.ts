@@ -68,7 +68,7 @@ test('exports score-sheet round rows as deterministic CSV', () => {
 
   assert.match(csv, /^roundNumber,roundType,playerId,bidType,bidTricks,actualTricks,delta,score,status,role,riskType,riskModifier,runningScore,notes/);
   assert.match(csv, /1,under,A,normal,4,4,0,14,success,other-player,none,0,14,matched bid/);
-  assert.match(csv, /1,under,D,dash,0,2,2,-12,failed,risk-taker,round-risk,0,-12,missed bid; risk taker; Dash Under failed/);
+  assert.match(csv, /1,under,D,dash,0,2,2,-12,failed,risk-taker,dash\+round-risk,0,-12,missed bid; risk taker; Dash Under failed/);
 });
 
 test('exports cumulative running scores across rounds', () => {
@@ -77,7 +77,7 @@ test('exports cumulative running scores across rounds', () => {
 
   assert.match(csv, /1,under,A,normal,4,4,0,14,success,other-player,none,0,14,matched bid/);
   assert.match(csv, /2,under,A,normal,4,4,0,14,success,other-player,none,0,28,matched bid/);
-  assert.match(csv, /2,under,D,dash,0,2,2,-12,failed,risk-taker,round-risk,0,-24,missed bid; risk taker; Dash Under failed/);
+  assert.match(csv, /2,under,D,dash,0,2,2,-12,failed,risk-taker,dash\+round-risk,0,-24,missed bid; risk taker; Dash Under failed/);
 });
 
 test('can include metadata rows before score-sheet CSV rows', () => {

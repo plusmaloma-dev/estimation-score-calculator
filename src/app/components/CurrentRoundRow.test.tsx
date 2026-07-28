@@ -35,6 +35,54 @@ function renderRow(onSave = vi.fn()) {
 }
 
 describe('CurrentRoundRow', () => {
+  it('offers one pre-bidding Dash Call and keeps the declared estimate at zero', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByRole('button', { name: 'Rami Dash Call' }));
+
+    expect(screen.getByRole('button', { name: 'Rami Dash Call' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Rami estimate')).toHaveValue(0);
+    expect(screen.getByLabelText('Rami estimate')).toBeDisabled();
+    expect(screen.getByLabelText('Rami estimate annotations')).toHaveTextContent('DC');
+    expect(screen.queryByRole('button', { name: 'Dina Dash Call' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+    expect(screen.queryByRole('button', { name: 'Ahmed Dash Call' })).not.toBeInTheDocument();
+  });
+
+  it('removes Dash Call controls as soon as normal bidding starts', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '5');
+
+    expect(screen.queryByRole('button', { name: 'Rami Dash Call' })).not.toBeInTheDocument();
+  });
+
+  it('does not restore desktop Dash Call controls after clearing an entered zero', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.type(screen.getByLabelText('Ahmed estimate'), '0');
+    await user.clear(screen.getByLabelText('Ahmed estimate'));
+
+    expect(screen.queryByRole('button', { name: 'Rami Dash Call' })).not.toBeInTheDocument();
+  });
+
+  it('does not restore mobile Dash Call controls after clearing an entered zero', async () => {
+    mobileEntry.mockReturnValue(true);
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Choose 0' }));
+    await user.click(screen.getByRole('button', { name: 'Ahmed estimate' }));
+    await user.click(screen.getByRole('button', { name: 'Clear value' }));
+
+    expect(screen.queryByRole('button', { name: 'Rami Dash Call' })).not.toBeInTheDocument();
+  });
+
   it('uses blank estimates as zero, accepts and freezes the bid, then unlocks actual tricks', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
@@ -192,6 +240,9 @@ describe('CurrentRoundRow', () => {
     await user.click(screen.getByRole('button', { name: 'Accept estimates' }));
     await user.click(screen.getByRole('button', { name: 'Rami actual tricks' }));
     expect(screen.getByRole('button', { name: 'Choose 13' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose 5, matches estimate' }))
+      .toHaveClass('number-picker-value--suggested');
+    expect(screen.getByRole('button', { name: 'Choose 5, matches estimate' })).toHaveFocus();
   });
 
   it('clears a mobile value and closes the picker when portrait begins', async () => {

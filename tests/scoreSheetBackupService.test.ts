@@ -39,10 +39,11 @@ const gameInput: MvpGameInput = {
     {
       roundNumber: 1,
       profile,
+      riskPlayerId: 'C',
       bids: [
         { playerId: 'A', bidType: 'normal', tricks: 4, trumpSuit: 'spades' },
         { playerId: 'B', bidType: 'normal', tricks: 5, trumpSuit: 'hearts' },
-        { playerId: 'C', bidType: 'dash', tricks: 0 },
+        { playerId: 'C', bidType: 'dash-call', tricks: 0 },
         { playerId: 'D', bidType: 'normal', tricks: 5, trumpSuit: 'clubs' },
       ],
       actualResults: [
@@ -81,6 +82,10 @@ test('exports persisted score sheets into a versioned Egyptian Estimation backup
   assert.equal(backup.scoreSheets[0]?.id, 'sheet-1');
   assert.equal(backup.scoreSheets[0]?.gameResult?.rounds.length, 1);
   assert.equal(backup.scoreSheets[0]?.gameResult?.valid, true);
+  assert.deepEqual(
+    backup.scoreSheets[0]?.gameResult?.rounds[0]?.scoreResult?.playerScores[2]?.riskTypes,
+    ['dash-call', 'round-risk'],
+  );
 });
 
 test('imports a valid backup document and returns a defensive clone', () => {
