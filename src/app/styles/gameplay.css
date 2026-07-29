@@ -173,13 +173,50 @@
   color: #5e6b68;
 }
 
+.gameplay-action-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 2px solid #087846;
+  border-radius: 1rem;
+  background: #eef8f4;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 .45rem 1.2rem rgb(0 98 56 / 12%);
+}
+
+.gameplay-action-banner > strong {
+  font-size: clamp(1rem, 2.5vw, 1.35rem);
+}
+
+.gameplay-action-banner--loading,
+.gameplay-action-banner--synchronizing,
+.gameplay-action-banner--paused,
+.gameplay-action-banner--scored,
+.gameplay-action-banner--terminated {
+  border-color: #c7d4d0;
+  background: #f5f8f7;
+}
+
+.gameplay-countdown {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #087846;
+  color: white;
+  padding: .55rem .85rem;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
 .active-seat-card--turn {
   border-color: #087846;
   box-shadow: inset 0 0 0 1px #087846, 0 .45rem 1.2rem rgb(0 98 56 / 12%);
 }
 
 .gameplay-bid-panel,
-.gameplay-card-panel {
+.gameplay-card-panel,
+.gameplay-round-status {
   display: grid;
   gap: 1rem;
   border: 1px solid #cbd8d4;
@@ -228,6 +265,42 @@
   border-color: #087846 !important;
   background: #eef8f4 !important;
   box-shadow: inset 0 0 0 1px #087846;
+}
+
+.gameplay-estimate-list small {
+  min-height: 1rem;
+  color: #087443;
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.gameplay-round-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+}
+
+.gameplay-round-summary > div {
+  border: 1px solid #d9e1df;
+  border-radius: .8rem;
+  background: #fafcfb;
+  padding: .75rem;
+}
+
+.gameplay-round-summary dt {
+  color: #62706c;
+  font-size: .78rem;
+}
+
+.gameplay-round-summary dd {
+  margin: .25rem 0 0;
+  font-weight: 800;
+}
+
+.gameplay-round-summary--balance {
+  border-color: #087846 !important;
+  background: #eef8f4 !important;
 }
 
 .gameplay-bid-form {
@@ -347,6 +420,10 @@
   opacity: .48;
 }
 
+.gameplay-hand--read-only .playing-card {
+  opacity: 1;
+}
+
 .active-host-controls {
   justify-content: flex-end;
   border-top: 1px solid #d8e1df;
@@ -379,13 +456,15 @@
 
   .gameplay-estimate-list,
   .gameplay-current-trick ol,
-  .gameplay-trick-totals {
+  .gameplay-trick-totals,
+  .gameplay-round-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gameplay-table-heading,
   .gameplay-request-list > li,
-  .active-lifecycle {
+  .active-lifecycle,
+  .gameplay-action-banner {
     align-items: stretch;
     flex-direction: column;
   }
@@ -427,7 +506,8 @@
 
   .gameplay-estimate-list,
   .gameplay-current-trick ol,
-  .gameplay-trick-totals {
+  .gameplay-trick-totals,
+  .gameplay-round-summary {
     grid-template-columns: 1fr;
   }
 

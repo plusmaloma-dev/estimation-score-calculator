@@ -1,7 +1,8 @@
-import type { Card, CardSuit, Rank } from '../../domain/card.js';
+import type { Card, CardSuit } from '../../domain/card.js';
 import { cardId } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import { GameplayHand } from './GameplayHand.js';
 import { GameplayRoundResultPanel } from './GameplayRoundResultPanel.js';
 
 const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
@@ -10,26 +11,6 @@ const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
   diamonds: '♦',
   clubs: '♣',
 };
-
-const RANK_LABELS: Readonly<Record<Rank, string>> = {
-  '2': '2',
-  '3': '3',
-  '4': '4',
-  '5': '5',
-  '6': '6',
-  '7': '7',
-  '8': '8',
-  '9': '9',
-  '10': '10',
-  J: 'Jack',
-  Q: 'Queen',
-  K: 'King',
-  A: 'Ace',
-};
-
-function accessibleCardName(card: Card): string {
-  return `${RANK_LABELS[card.rank]} of ${card.suit}`;
-}
 
 function compactCardName(card: Card): string {
   return `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
@@ -41,17 +22,17 @@ function isRedSuit(suit: CardSuit): boolean {
 
 export function GameplayCardPanel({
   snapshot,
+  canPlay,
   busy,
   onPlay,
 }: {
   readonly snapshot: OnlineGameplayRoundSnapshot;
+  readonly canPlay: boolean;
   readonly busy: boolean;
   readonly onPlay: (card: Card) => Promise<void>;
 }) {
   const { t } = useI18n();
   const legalIds = new Set(snapshot.legalCards.map((card) => cardId(card)));
-  const isViewerTurn = snapshot.phase === 'playing'
-    && snapshot.currentTurnSeat === snapshot.viewerSeat;
   const completedTrickCount = snapshot.completedTricks.at(-1)?.trickNumber ?? 0;
 
   return (
@@ -88,34 +69,14 @@ export function GameplayCardPanel({
       </div>
 
       {snapshot.phase === 'scored' ? (
-        <>
-          <p role="status">{t('roundScored')}</p>
-          <GameplayRoundResultPanel snapshot={snapshot} />
-        </>
+        <GameplayRoundResultPanel snapshot={snapshot} />
       ) : snapshot.phase !== 'playing' ? null : (
-        <>
-          <p role="status">
-            {isViewerTurn ? t('yourCardTurn') : `Waiting for Seat ${(snapshot.currentTurnSeat ?? 0) + 1}`}
-          </p>
-          <div className="gameplay-hand" role="group" aria-label={t('yourHand')}>
-            {snapshot.ownHand.map((card) => {
-              const legal = isViewerTurn && legalIds.has(cardId(card));
-              return (
-                <button
-                  key={cardId(card)}
-                  type="button"
-                  className={`playing-card${isRedSuit(card.suit) ? ' playing-card--red' : ''}${legal ? ' playing-card--legal' : ''}`}
-                  aria-label={accessibleCardName(card)}
-                  disabled={busy || !legal}
-                  onClick={() => void onPlay(card)}
-                >
-                  <span>{card.rank}</span>
-                  <span aria-hidden="true">{SUIT_SYMBOLS[card.suit]}</span>
-                </button>
-              );
-            })}
-          </div>
-        </>
+        <GameplayHand
+          ownHand={snapshot.ownHand}
+          mode={canPlay && !busy ? 'play' : 'disabled'}
+          legalCardIds={legalIds}
+          onPlay={onPlay}
+        />
       )}
     </section>
   );

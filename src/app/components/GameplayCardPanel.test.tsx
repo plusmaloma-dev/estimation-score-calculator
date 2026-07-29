@@ -13,6 +13,7 @@ function snapshot(overrides: Partial<OnlineGameplayRoundSnapshot> = {}): OnlineG
     version: 8,
     viewerSeat: 0,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     currentTurnSeat: 0,
     players: [
       { seat: 0, playerId: 'p0', cardCount: 2, actualTricks: 1 },
@@ -32,10 +33,15 @@ function snapshot(overrides: Partial<OnlineGameplayRoundSnapshot> = {}): OnlineG
   };
 }
 
-function renderPanel(value: OnlineGameplayRoundSnapshot, onPlay = vi.fn(async () => undefined), busy = false) {
+function renderPanel(
+  value: OnlineGameplayRoundSnapshot,
+  onPlay = vi.fn(async () => undefined),
+  busy = false,
+  canPlay = true,
+) {
   render(
     <I18nProvider>
-      <GameplayCardPanel snapshot={value} busy={busy} onPlay={onPlay} />
+      <GameplayCardPanel snapshot={value} canPlay={canPlay} busy={busy} onPlay={onPlay} />
     </I18nProvider>,
   );
   return onPlay;
@@ -52,6 +58,7 @@ describe('GameplayCardPanel', () => {
     expect(screen.getByText('Seat 3')).toBeVisible();
     expect(screen.getByText('4♥')).toBeVisible();
     expect(screen.queryByText('Opponent hand')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('enables only legal cards and submits the selected card once', async () => {
@@ -71,14 +78,14 @@ describe('GameplayCardPanel', () => {
   it('disables all cards when it is not the viewer turn or the game is busy', () => {
     const { rerender } = render(
       <I18nProvider>
-        <GameplayCardPanel snapshot={snapshot({ currentTurnSeat: 1, legalCards: [] })} busy={false} onPlay={vi.fn()} />
+        <GameplayCardPanel snapshot={snapshot({ currentTurnSeat: 1, legalCards: [] })} canPlay={false} busy={false} onPlay={vi.fn()} />
       </I18nProvider>,
     );
     for (const card of screen.getAllByRole('button')) expect(card).toBeDisabled();
 
     rerender(
       <I18nProvider>
-        <GameplayCardPanel snapshot={snapshot()} busy onPlay={vi.fn()} />
+        <GameplayCardPanel snapshot={snapshot()} canPlay busy onPlay={vi.fn()} />
       </I18nProvider>,
     );
     for (const card of screen.getAllByRole('button')) expect(card).toBeDisabled();
@@ -105,6 +112,6 @@ describe('GameplayCardPanel', () => {
 
     renderPanel(scored);
     expect(screen.getByText('13 of 13 tricks completed')).toBeVisible();
-    expect(screen.getByRole('status')).toHaveTextContent('Round scored');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

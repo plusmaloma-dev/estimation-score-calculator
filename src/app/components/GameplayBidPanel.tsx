@@ -3,6 +3,7 @@ import type { EstimationBid } from '../../domain/bid.js';
 import type { ContractSuit } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import { GameplayHand } from './GameplayHand.js';
 
 const CONTRACT_OPTIONS: readonly { readonly value: ContractSuit; readonly label: string }[] = [
   { value: 'no-trump', label: 'No Trump' },
@@ -24,10 +25,12 @@ function bidLabel(bid: EstimationBid | undefined): string {
 
 export function GameplayBidPanel({
   snapshot,
+  canSubmit,
   busy,
   onSubmit,
 }: {
   readonly snapshot: OnlineGameplayRoundSnapshot;
+  readonly canSubmit: boolean;
   readonly busy: boolean;
   readonly onSubmit: (bid: EstimationBid) => Promise<void>;
 }) {
@@ -35,9 +38,6 @@ export function GameplayBidPanel({
   const firstEstimate = snapshot.legalNormalEstimates[0];
   const [estimate, setEstimate] = useState(firstEstimate === undefined ? '' : String(firstEstimate));
   const [contractSuit, setContractSuit] = useState<ContractSuit | ''>('');
-  const isViewerTurn = snapshot.phase === 'bidding'
-    && snapshot.nextBidSeat === snapshot.viewerSeat
-    && snapshot.legalNormalEstimates.length > 0;
   const isBidOwner = snapshot.viewerSeat === snapshot.bidOwnerSeat;
 
   useEffect(() => {
@@ -77,13 +77,16 @@ export function GameplayBidPanel({
         ))}
       </ul>
 
-      {snapshot.phase === 'playing' ? (
-        <p role="status">{t('biddingComplete')}</p>
-      ) : snapshot.phase === 'scored' ? (
-        <p role="status">{t('roundScored')}</p>
-      ) : isViewerTurn ? (
+      {snapshot.phase === 'bidding' && (
+        <GameplayHand
+          ownHand={snapshot.ownHand}
+          mode="read-only"
+          legalCardIds={new Set()}
+        />
+      )}
+
+      {snapshot.phase === 'bidding' && canSubmit && (
         <form className="gameplay-bid-form" onSubmit={(event) => void submit(event)}>
-          <p className="gameplay-turn-status">{t('yourEstimateTurn')}</p>
           <div className="gameplay-form-grid">
             <label>
               {t('estimate')}
@@ -122,9 +125,7 @@ export function GameplayBidPanel({
             {t('submitEstimate')}
           </button>
         </form>
-      ) : snapshot.nextBidSeat !== undefined ? (
-        <p role="status">Waiting for Seat {snapshot.nextBidSeat + 1}</p>
-      ) : null}
+      )}
     </section>
   );
 }
