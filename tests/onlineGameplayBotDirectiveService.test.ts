@@ -41,6 +41,7 @@ function snapshot(): Readonly<Record<string, unknown>> {
     version: 5,
     viewerSeat: 0,
     bidOwnerSeat: 1,
+    riskSeat: 0,
     currentTurnSeat: 2,
     players: [
       { seat: 0, playerId: 'human-0', cardCount: 12, actualTricks: 0 },

@@ -41,6 +41,7 @@ function snapshot(overrides: Readonly<Record<string, unknown>> = {}): Readonly<R
     version: 2,
     viewerSeat: 2,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     nextBidSeat: 2,
     players: [
       { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
@@ -65,6 +66,7 @@ test('getSnapshot calls the authenticated Edge Function without actor spoofing f
 
   assert.equal(result.valid, true, result.errors.join('\n'));
   assert.equal(result.value?.viewerSeat, 2);
+  assert.equal(result.value?.riskSeat, 1);
   assert.equal(result.value?.ownHand.length, 13);
   assert.deepEqual(database.calls, [{
     name: 'gameplay-round-command',

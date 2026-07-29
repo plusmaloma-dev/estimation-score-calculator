@@ -210,6 +210,7 @@ export class OnlineGameplayRoundService {
     const version = this.nonNegativeInteger(row.version);
     const viewerSeat = this.seat(row.viewerSeat);
     const bidOwnerSeat = this.seat(row.bidOwnerSeat);
+    const riskSeat = this.seat(row.riskSeat);
     const dealCommitment = row.dealCommitment === null || row.dealCommitment === undefined
       ? undefined
       : this.sha256Hex(row.dealCommitment);
@@ -220,6 +221,7 @@ export class OnlineGameplayRoundService {
       || version === undefined
       || viewerSeat === undefined
       || bidOwnerSeat === undefined
+      || riskSeat === undefined
       || (requireDealCommitment && dealCommitment === undefined)
       || (row.dealCommitment !== null
         && row.dealCommitment !== undefined
@@ -287,6 +289,7 @@ export class OnlineGameplayRoundService {
       version,
       viewerSeat,
       bidOwnerSeat,
+      riskSeat,
       ...(dealCommitment === undefined ? {} : { dealCommitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(currentTurnSeat === undefined ? {} : { currentTurnSeat }),

@@ -87,6 +87,7 @@ test('bidding snapshot exposes only the viewer hand and allow-listed public stat
   assert.equal(snapshot.version, 0);
   assert.equal(snapshot.viewerSeat, 2);
   assert.equal(snapshot.nextBidSeat, 2);
+  assert.equal(snapshot.riskSeat, 1);
   assert.deepEqual(snapshot.ownHand, state.hands[2].cards);
   assert.deepEqual(snapshot.players.map((player) => player.cardCount), [13, 13, 13, 13]);
   assert.deepEqual(snapshot.legalNormalEstimates, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);

@@ -35,6 +35,7 @@ function initialSnapshot(): Readonly<Record<string, unknown>> {
     version: 0,
     viewerSeat: 0,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     dealCommitment: 'ab'.repeat(32),
     nextBidSeat: 2,
     players: [

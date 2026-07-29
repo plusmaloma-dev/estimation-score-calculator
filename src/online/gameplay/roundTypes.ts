@@ -23,6 +23,7 @@ export interface OnlineGameplayRoundSnapshot {
   readonly version: number;
   readonly viewerSeat: SeatIndex;
   readonly bidOwnerSeat: SeatIndex;
+  readonly riskSeat?: SeatIndex;
   readonly dealCommitment?: string;
   readonly nextBidSeat?: SeatIndex;
   readonly currentTurnSeat?: SeatIndex;

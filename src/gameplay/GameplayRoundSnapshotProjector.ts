@@ -57,6 +57,7 @@ export class GameplayRoundSnapshotProjector {
       version,
       viewerSeat,
       bidOwnerSeat: state.bidOwnerSeat,
+      riskSeat: state.bidOrder[3],
       ...(state.dealAudit === undefined ? {} : { dealCommitment: state.dealAudit.commitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(state.currentTurnSeat === undefined ? {} : { currentTurnSeat: state.currentTurnSeat }),
