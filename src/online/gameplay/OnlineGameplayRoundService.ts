@@ -36,7 +36,12 @@ const PHASES = ['bidding', 'playing', 'scored'] as const;
 const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
 const PROHIBITED_KEYS = new Set([
+  'aggregate',
+  'dealAudit',
+  'dealId',
+  'deck',
   'hands',
+  'hand',
   'seed',
   'seedHex',
   'nonce',
@@ -113,6 +118,36 @@ export class OnlineGameplayRoundService {
     });
   }
 
+  async startNextRound(
+    tableId: string,
+    expectedRoundNumber: number,
+    expectedRoundVersion: number,
+    expectedControlVersion: number,
+    commandId: string,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateNextRoundCommand(
+      tableId,
+      expectedRoundNumber,
+      expectedRoundVersion,
+      expectedControlVersion,
+      commandId,
+    );
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction(
+      'gameplay-round-command',
+      {
+        action: 'start-next-round',
+        tableId: tableId.trim(),
+        commandId: commandId.trim(),
+        expectedRoundNumber,
+        expectedRoundVersion,
+        expectedControlVersion,
+      },
+      false,
+      (responseErrors) => [this.nextRoundError(responseErrors)],
+    );
+  }
+
   async processBotDirective(
     tableId: string,
     directiveId: string,
@@ -175,25 +210,36 @@ export class OnlineGameplayRoundService {
     functionName: 'gameplay-start' | 'gameplay-round-command',
     body: Readonly<Record<string, unknown>>,
     requireDealCommitment = false,
+    mapErrors?: (errors: readonly string[]) => readonly string[],
   ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
     const response = await this.client.functions.invoke(functionName, { body });
-    if (response.error !== null) return this.failure([response.error.message]);
+    if (response.error !== null) {
+      return this.failure(mapErrors === undefined
+        ? [response.error.message]
+        : mapErrors([response.error.message]));
+    }
 
     const envelope = this.object(response.data);
     if (envelope === undefined || typeof envelope.valid !== 'boolean') {
-      return this.failure(['Gameplay round response is incomplete.']);
+      return this.failure(mapErrors === undefined
+        ? ['Gameplay round response is incomplete.']
+        : mapErrors(['Gameplay round response is incomplete.']));
     }
     const errors = this.stringArray(envelope.errors);
     if (!envelope.valid) {
-      return this.failure(errors.length > 0 ? errors : ['Gameplay round command was rejected.']);
+      const safeErrors = errors.length > 0 ? errors : ['Gameplay round command was rejected.'];
+      return this.failure(mapErrors === undefined ? safeErrors : mapErrors(safeErrors));
     }
     if (this.containsProhibitedField(envelope.value)) {
-      return this.failure(['Gameplay round snapshot contains prohibited private fields.']);
+      const privateErrors = ['Gameplay round snapshot contains prohibited private fields.'];
+      return this.failure(mapErrors === undefined ? privateErrors : mapErrors(privateErrors));
     }
 
     const snapshot = this.parseSnapshot(envelope.value, requireDealCommitment);
     return snapshot === undefined
-      ? this.failure(['Gameplay round snapshot is incomplete.'])
+      ? this.failure(mapErrors === undefined
+          ? ['Gameplay round snapshot is incomplete.']
+          : mapErrors(['Gameplay round snapshot is incomplete.']))
       : { valid: true, errors: [], value: snapshot };
   }
 
@@ -437,6 +483,33 @@ export class OnlineGameplayRoundService {
     }
     if (!commandId.trim()) errors.push('Gameplay command ID is required.');
     return errors;
+  }
+
+  private validateNextRoundCommand(
+    tableId: string,
+    expectedRoundNumber: number,
+    expectedRoundVersion: number,
+    expectedControlVersion: number,
+    commandId: string,
+  ): string[] {
+    const errors = this.validateTableId(tableId);
+    if (!Number.isInteger(expectedRoundNumber) || expectedRoundNumber <= 0) {
+      errors.push('Expected round number must be a positive integer.');
+    }
+    if (!Number.isInteger(expectedRoundVersion) || expectedRoundVersion < 0) {
+      errors.push('Expected round version must be a non-negative integer.');
+    }
+    if (!Number.isInteger(expectedControlVersion) || expectedControlVersion < 0) {
+      errors.push('Expected active-control version must be a non-negative integer.');
+    }
+    if (!commandId.trim()) errors.push('Gameplay command ID is required.');
+    return errors;
+  }
+
+  private nextRoundError(errors: readonly string[]): string {
+    return errors.some((error) => /NEXT_ROUND_STALE|NEXT_ROUND_COMMAND_CONFLICT|stale|concurrent|version/i.test(error))
+      ? 'Next round state changed. Refresh and try again.'
+      : 'Next round could not be started. Refresh and try again.';
   }
 
   private contractSuit(value: unknown): ContractSuit | undefined {

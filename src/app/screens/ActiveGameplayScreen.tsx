@@ -11,6 +11,7 @@ import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
 import { GameplayActionBanner } from '../components/GameplayActionBanner.js';
 import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
 import { GameplayCardPanel } from '../components/GameplayCardPanel.js';
+import { GameplayNextRoundPanel } from '../components/GameplayNextRoundPanel.js';
 import { GameplayRoundStatus } from '../components/GameplayRoundStatus.js';
 import { createActiveRoundPresentation } from '../gameplay/ActiveRoundPresentation.js';
 import { useGameplayApp } from '../gameplay/GameplayContext.js';
@@ -68,12 +69,15 @@ export function ActiveGameplayScreen({
   const [roundSnapshot, setRoundSnapshot] = useState<OnlineGameplayRoundSnapshot | undefined>();
   const [roundErrors, setRoundErrors] = useState<readonly string[]>([]);
   const [roundBusy, setRoundBusy] = useState(false);
+  const [nextRoundBusy, setNextRoundBusy] = useState(false);
+  const [nextRoundError, setNextRoundError] = useState<string | undefined>();
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [synchronizationRetry, setSynchronizationRetry] = useState(0);
   const evaluatedTurns = useRef(new Set<string>());
   const refreshedSynchronizationKeys = useRef(new Set<string>());
+  const pendingNextRoundCommandId = useRef<string | undefined>(undefined);
   const directiveCoordinator = useMemo(() => {
     const processBotDirective = services.gameplayRound?.processBotDirective;
     if (processBotDirective === undefined) return undefined;
@@ -477,6 +481,83 @@ export function ActiveGameplayScreen({
     setCloseConfirmed(false);
   }
 
+  function nextRoundPublicError(nextErrors: readonly string[]): string {
+    return nextErrors.some((error) => /state changed|stale|concurrent|version/i.test(error))
+      ? t('nextRoundStateChanged')
+      : t('nextRoundStartFailed');
+  }
+
+  async function refreshAuthoritativeGameplayState() {
+    const activeGameControl = services.activeGameControl;
+    const gameplayRound = services.gameplayRound;
+    if (activeGameControl === undefined || gameplayRound === undefined) return;
+    try {
+      const [controlResult, roundResult] = await Promise.all([
+        activeGameControl.getSnapshot(tableId),
+        gameplayRound.getSnapshot(tableId),
+      ]);
+      if (controlResult.valid && controlResult.value !== undefined) {
+        setSnapshot(controlResult.value);
+        setErrors([]);
+      } else if (!controlResult.valid) {
+        setErrors([t('roundSynchronizationFailed')]);
+      }
+      if (roundResult.valid && roundResult.value !== undefined) {
+        setRoundSnapshot(roundResult.value);
+        setRoundErrors([]);
+      } else if (!roundResult.valid) {
+        setRoundErrors([t('roundSynchronizationFailed')]);
+      }
+    } catch {
+      setRoundErrors([t('roundSynchronizationFailed')]);
+    }
+  }
+
+  async function startNextRound() {
+    const service = services.gameplayRound;
+    if (
+      service === undefined
+      || service.startNextRound === undefined
+      || snapshot === undefined
+      || roundSnapshot === undefined
+      || nextRoundBusy
+      || !presentation.canStartNextRound
+      || presentation.roundNumber === undefined
+    ) return;
+    const startNextRoundCommand = service.startNextRound;
+
+    const command = pendingNextRoundCommandId.current ?? commandId('start-next-round');
+    pendingNextRoundCommandId.current = command;
+    setNextRoundBusy(true);
+    setNextRoundError(undefined);
+    try {
+      const operation = () => startNextRoundCommand(
+        tableId,
+        presentation.roundNumber!,
+        roundSnapshot.version,
+        snapshot.version,
+        command,
+      );
+      const result = services.gameplayRoundRealtime === undefined
+        ? await operation()
+        : await services.gameplayRoundRealtime.runMutation(operation);
+      if (!result.valid || result.value === undefined) {
+        setNextRoundError(nextRoundPublicError(result.errors));
+        await refreshAuthoritativeGameplayState();
+        return;
+      }
+      pendingNextRoundCommandId.current = undefined;
+      setRoundSnapshot(result.value);
+      setRoundErrors([]);
+      await refreshAuthoritativeGameplayState();
+    } catch {
+      setNextRoundError(t('nextRoundStartFailed'));
+      await refreshAuthoritativeGameplayState();
+    } finally {
+      setNextRoundBusy(false);
+    }
+  }
+
   function refreshGame() {
     if (presentation.isSynchronizing) {
       if (presentation.synchronizationKey !== undefined) {
@@ -550,6 +631,13 @@ export function ActiveGameplayScreen({
                   onPlay={playCard}
                 />
               )}
+              <GameplayNextRoundPanel
+                presentation={presentation}
+                isHost={isHost}
+                pending={nextRoundBusy}
+                error={nextRoundError}
+                onStartNextRound={() => void startNextRound()}
+              />
             </>
           )}
         </>

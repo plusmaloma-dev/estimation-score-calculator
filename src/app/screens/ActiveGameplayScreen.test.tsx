@@ -7,6 +7,8 @@ import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
 
+type StartNextRoundMock = NonNullable<NonNullable<AppServices['gameplayRound']>['startNextRound']>;
+
 function activeSnapshot(
   overrides: Partial<OnlineActiveGameControlSnapshot> = {},
 ): OnlineActiveGameControlSnapshot {
@@ -96,6 +98,109 @@ function roundSnapshot(): OnlineGameplayRoundSnapshot {
   };
 }
 
+function scoredControlSnapshot(
+  overrides: Partial<OnlineActiveGameControlSnapshot> = {},
+): OnlineActiveGameControlSnapshot {
+  return activeSnapshot({
+    lifecycle: 'active',
+    version: 42,
+    turn: undefined,
+    directives: [],
+    ...overrides,
+  });
+}
+
+function biddingControlSnapshot(
+  overrides: Partial<OnlineActiveGameControlSnapshot> = {},
+): OnlineActiveGameControlSnapshot {
+  return activeSnapshot({
+    version: 43,
+    turn: {
+      turnId: 'round-2:bid:1:1',
+      seat: 1,
+      actionKind: 'bid',
+      startedAt: '2026-07-26T08:10:00.000Z',
+      remainingMs: 45_000,
+      status: 'running',
+    },
+    ...overrides,
+  });
+}
+
+function scoredRoundSnapshot(
+  overrides: Partial<OnlineGameplayRoundSnapshot> = {},
+): OnlineGameplayRoundSnapshot {
+  return {
+    ...roundSnapshot(),
+    phase: 'scored',
+    version: 19,
+    currentTurnSeat: undefined,
+    ownHand: [],
+    legalCards: [],
+    currentTrick: [],
+    completedTricks: [{
+      trickNumber: 13,
+      leaderSeat: 0,
+      winnerSeat: 2,
+      entries: [
+        { seat: 0, card: { suit: 'spades', rank: 'A' } },
+        { seat: 1, card: { suit: 'spades', rank: 'K' } },
+        { seat: 2, card: { suit: 'spades', rank: 'Q' } },
+        { seat: 3, card: { suit: 'spades', rank: 'J' } },
+      ],
+    }],
+    scoreResult: {
+      roundNumber: 1,
+      valid: true,
+      errors: [],
+      bidValidation: { valid: true, errors: [], roundType: 'under', totalEstimatedTricks: 12 },
+      scoreResult: {
+        valid: true,
+        errors: [],
+        roundNumber: 1,
+        roundType: 'under',
+        playerScores: [
+          { playerId: 'host-user', bidTricks: 4, actualTricks: 4, status: 'success', score: 40, riskType: 'none', notes: [] },
+          { playerId: 'bot-1', bidTricks: 3, actualTricks: 3, status: 'success', score: 30, riskType: 'round-risk', notes: [] },
+          { playerId: 'guest-user', bidTricks: 2, actualTricks: 3, status: 'failed', score: -20, riskType: 'none', notes: [] },
+          { playerId: 'member-user', bidTricks: 3, actualTricks: 3, status: 'success', score: 30, riskType: 'none', notes: [] },
+        ],
+      },
+      isAllLoserRound: false,
+      consecutiveAllLoserCountBeforeRound: 0,
+      carriedAllLoserMultiplier: 1,
+      carryConsumed: false,
+    },
+    ...overrides,
+  } as OnlineGameplayRoundSnapshot;
+}
+
+function biddingRoundSnapshot(
+  overrides: Partial<OnlineGameplayRoundSnapshot> = {},
+): OnlineGameplayRoundSnapshot {
+  return {
+    ...roundSnapshot(),
+    roundNumber: 2,
+    phase: 'bidding',
+    version: 1,
+    nextBidSeat: 1,
+    currentTurnSeat: undefined,
+    players: [
+      { seat: 0, playerId: 'host-user', cardCount: 13, actualTricks: 0 },
+      { seat: 1, playerId: 'bot-1', cardCount: 13, actualTricks: 0 },
+      { seat: 2, playerId: 'guest-user', cardCount: 13, actualTricks: 0 },
+      { seat: 3, playerId: 'member-user', cardCount: 13, actualTricks: 0 },
+    ],
+    ownHand: [],
+    legalNormalEstimates: [],
+    legalCards: [],
+    currentTrick: [],
+    completedTricks: [],
+    scoreResult: undefined,
+    ...overrides,
+  };
+}
+
 function services(
   initial: OnlineActiveGameControlSnapshot,
   overrides: Partial<NonNullable<AppServices['activeGameControl']>> = {},
@@ -123,6 +228,7 @@ function services(
       getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: roundSnapshot() })),
       submitBid: vi.fn(),
       playCard: vi.fn(),
+      startNextRound: vi.fn(),
       ...roundOverrides,
     },
   };
@@ -367,6 +473,218 @@ describe('ActiveGameplayScreen', () => {
       'table-1', 7, true, expect.any(String), expect.any(String),
     );
     expect(screen.getByRole('status')).toHaveTextContent('Game terminated');
+  });
+
+  it('starts the next round only from one deliberate host click with current public versions', async () => {
+    const user = userEvent.setup();
+    const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
+      valid: true,
+      errors: [],
+      value: biddingRoundSnapshot(),
+    }));
+    const roundGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: biddingRoundSnapshot() });
+    const appServices = services(
+      scoredControlSnapshot(),
+      {},
+      {
+        getSnapshot: roundGetSnapshot,
+        startNextRound,
+      },
+    );
+
+    renderActive(appServices, 'host-user');
+
+    expect(await screen.findByRole('button', { name: 'Start Next Round' })).toBeVisible();
+    expect(screen.getByLabelText('Final trick cards')).toHaveTextContent('Seat 3');
+    expect(screen.getByLabelText('Final trick cards')).toHaveTextContent('Winner');
+    expect(screen.getByRole('heading', { name: 'Round 1 results' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Start Next Round' }));
+
+    expect(startNextRound).toHaveBeenCalledTimes(1);
+    expect(startNextRound).toHaveBeenCalledWith(
+      'table-1',
+      1,
+      19,
+      42,
+      expect.stringMatching(/^start-next-round:/),
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
+  });
+
+  it('retains one pending next-round command ID and ignores duplicate clicks', async () => {
+    const user = userEvent.setup();
+    let resolveStart: ((value: { valid: boolean; errors: readonly string[]; value: OnlineGameplayRoundSnapshot }) => void) | undefined;
+    const startNextRound = vi.fn<StartNextRoundMock>(() => new Promise((resolve) => {
+      resolveStart = resolve;
+    }));
+    const appServices = services(
+      scoredControlSnapshot(),
+      {},
+      {
+        getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: scoredRoundSnapshot() })),
+        startNextRound,
+      },
+    );
+
+    renderActive(appServices, 'host-user');
+
+    const start = await screen.findByRole('button', { name: 'Start Next Round' });
+    await user.click(start);
+    await user.click(start);
+
+    expect(startNextRound).toHaveBeenCalledTimes(1);
+    const firstCommandId = startNextRound.mock.calls[0]?.[4];
+    expect(firstCommandId).toEqual(expect.stringMatching(/^start-next-round:/));
+    resolveStart?.({ valid: true, errors: [], value: biddingRoundSnapshot() });
+  });
+
+  it('does not automatically start from render, countdown, Realtime, or scored reconnect', async () => {
+    const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
+      valid: true,
+      errors: [],
+      value: biddingRoundSnapshot(),
+    }));
+    renderActive(services(
+      scoredControlSnapshot(),
+      {},
+      {
+        getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: scoredRoundSnapshot() })),
+        startNextRound,
+      },
+    ), 'host-user');
+
+    expect(await screen.findByRole('button', { name: 'Start Next Round' })).toBeVisible();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(startNextRound).not.toHaveBeenCalled();
+  });
+
+  it('refreshes both authoritative sources after a stale next-round rejection without actionable UI', async () => {
+    const user = userEvent.setup();
+    const controlGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() })
+      .mockResolvedValue({ valid: true, errors: [], value: scoredControlSnapshot() });
+    const roundGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
+      .mockResolvedValue({ valid: true, errors: [], value: scoredRoundSnapshot() });
+    const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
+      valid: false,
+      errors: ['Next round state changed. Refresh and try again.'],
+    }));
+    const appServices = services(
+      scoredControlSnapshot(),
+      { getSnapshot: controlGetSnapshot },
+      { getSnapshot: roundGetSnapshot, startNextRound },
+    );
+
+    renderActive(appServices, 'host-user');
+
+    await user.click(await screen.findByRole('button', { name: 'Start Next Round' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Next round state changed. Refresh and try again.');
+    expect(controlGetSnapshot).toHaveBeenCalledTimes(2);
+    expect(roundGetSnapshot).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    const firstCommandId = startNextRound.mock.calls[0]?.[4];
+
+    await user.click(screen.getByRole('button', { name: 'Start Next Round' }));
+
+    expect(startNextRound).toHaveBeenCalledTimes(2);
+    expect(startNextRound.mock.calls[1]?.[4]).toBe(firstCommandId);
+  });
+
+  it('waits for matching active-control Realtime before enabling the authoritative first bidder bot', async () => {
+    const user = userEvent.setup();
+    let publishControl: ((value: OnlineActiveGameControlSnapshot) => void) | undefined;
+    const processBotDirective = vi.fn(async () => ({
+      valid: true,
+      errors: [],
+      terminal: true,
+      value: biddingRoundSnapshot({ version: 2, nextBidSeat: 2 }),
+    }));
+    const controlGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() });
+    const roundGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: biddingRoundSnapshot() });
+    const appServices = {
+      ...services(
+        scoredControlSnapshot(),
+        { getSnapshot: controlGetSnapshot },
+        {
+          getSnapshot: roundGetSnapshot,
+          startNextRound: vi.fn<StartNextRoundMock>(async () => ({
+            valid: true,
+            errors: [],
+            value: biddingRoundSnapshot(),
+          })),
+          processBotDirective,
+        },
+      ),
+      activeGameRealtime: {
+        connect: vi.fn(async (
+          _tableId: string,
+          onSnapshot: (value: OnlineActiveGameControlSnapshot) => void,
+        ) => {
+          publishControl = onSnapshot;
+        }),
+        disconnect: vi.fn(async () => undefined),
+        refresh: vi.fn(async () => undefined),
+        runMutation: vi.fn(async (operation: () => Promise<unknown>) => operation()),
+      },
+    } as unknown as AppServices;
+
+    renderActive(appServices, 'host-user');
+
+    await user.click(await screen.findByRole('button', { name: 'Start Next Round' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
+    expect(screen.queryByText('Standard bot in Seat 2 is acting')).not.toBeInTheDocument();
+
+    act(() => {
+      publishControl?.(biddingControlSnapshot({
+        turn: {
+          ...biddingControlSnapshot().turn!,
+          status: 'assistant-pending',
+        },
+      }));
+    });
+
+    expect(await screen.findByText('Standard bot in Seat 2 is acting')).toBeVisible();
+    await waitFor(() => expect(processBotDirective).toHaveBeenCalledWith(
+      'table-1',
+      'bot-action:table-1:round-2:bid:1:1:1',
+    ));
+  });
+
+  it('restores host and non-host scored reconnect states without starting automatically', async () => {
+    const hostStart = vi.fn();
+    const hostServices = services(
+      scoredControlSnapshot(),
+      {},
+      {
+        getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: scoredRoundSnapshot() })),
+        startNextRound: hostStart,
+      },
+    );
+    const hostView = renderActive(hostServices, 'host-user');
+
+    expect(await screen.findByRole('button', { name: 'Start Next Round' })).toBeVisible();
+    expect(hostStart).not.toHaveBeenCalled();
+    hostView.unmount();
+
+    renderActive(services(
+      scoredControlSnapshot(),
+      {},
+      { getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: scoredRoundSnapshot({ viewerSeat: 3 }) })) },
+    ), 'member-user');
+
+    expect(await screen.findByText('Waiting for host to start the next round')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Start Next Round' })).not.toBeInTheDocument();
   });
 
   it('applies authoritative Realtime snapshots and unsubscribes on unmount', async () => {

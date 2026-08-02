@@ -7,7 +7,9 @@ import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
 
-function controlSnapshot(): OnlineActiveGameControlSnapshot {
+function controlSnapshot(
+  overrides: Partial<OnlineActiveGameControlSnapshot> = {},
+): OnlineActiveGameControlSnapshot {
   return {
     tableId: 'table-1',
     lifecycle: 'active',
@@ -65,6 +67,7 @@ function controlSnapshot(): OnlineActiveGameControlSnapshot {
     ],
     events: [],
     directives: [],
+    ...overrides,
   };
 }
 
@@ -100,7 +103,9 @@ function roundSnapshot(
 
 function services(input: {
   readonly roundRealtime: NonNullable<AppServices['gameplayRoundRealtime']>;
+  readonly activeControl?: OnlineActiveGameControlSnapshot;
   readonly playCard?: ReturnType<typeof vi.fn>;
+  readonly startNextRound?: NonNullable<NonNullable<AppServices['gameplayRound']>['startNextRound']>;
   readonly getSnapshot?: ReturnType<typeof vi.fn>;
 }): AppServices {
   return {
@@ -114,7 +119,11 @@ function services(input: {
     },
     activeGameControl: {
       initialize: vi.fn(),
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: controlSnapshot() })),
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: input.activeControl ?? controlSnapshot(),
+      })),
       pause: vi.fn(), resume: vi.fn(), terminate: vi.fn(),
       disconnect: vi.fn(), reconnect: vi.fn(), evaluateGrace: vi.fn(),
       evaluateDeadlines: vi.fn(), startTurn: vi.fn(), beginBotAction: vi.fn(),
@@ -128,6 +137,7 @@ function services(input: {
       })),
       submitBid: vi.fn(),
       playCard: input.playCard ?? vi.fn(),
+      startNextRound: input.startNextRound ?? vi.fn(),
     },
     gameplayRoundRealtime: input.roundRealtime,
   };
@@ -227,5 +237,42 @@ describe('ActiveGameplayScreen round Realtime', () => {
 
     expect(runMutation).toHaveBeenCalledTimes(1);
     expect(playCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start the next round automatically when scored round Realtime arrives', async () => {
+    let publish: ((snapshot: OnlineGameplayRoundSnapshot) => void) | undefined;
+    const startNextRound = vi.fn(async () => ({
+      valid: true,
+      errors: [],
+      value: roundSnapshot({ phase: 'bidding', version: 1, nextBidSeat: 1, currentTurnSeat: undefined }),
+    }));
+    const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
+      connect: vi.fn(async (
+        _tableId: string,
+        onSnapshot: (snapshot: OnlineGameplayRoundSnapshot) => void,
+      ) => {
+        publish = onSnapshot;
+      }),
+      disconnect: vi.fn(async () => undefined),
+      refresh: vi.fn(),
+      runMutation: vi.fn(async (operation) => operation()),
+    };
+    renderActive(services({
+      activeControl: controlSnapshot({ turn: undefined }),
+      roundRealtime: realtime,
+      startNextRound,
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: roundSnapshot({ phase: 'scored', currentTurnSeat: undefined }),
+      })),
+    }));
+
+    expect(await screen.findByRole('button', { name: 'Start Next Round' })).toBeVisible();
+    act(() => {
+      publish?.(roundSnapshot({ phase: 'scored', version: 9, currentTurnSeat: undefined }));
+    });
+
+    expect(startNextRound).not.toHaveBeenCalled();
   });
 });

@@ -489,6 +489,39 @@
   font-weight: 800;
 }
 
+.gameplay-next-round-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #cbd8d4;
+  border-radius: .9rem;
+  background: #f7faf9;
+  padding: 1rem;
+}
+
+.gameplay-next-round-panel h3,
+.gameplay-next-round-panel p {
+  margin: 0;
+}
+
+.gameplay-next-round-panel > div {
+  display: grid;
+  gap: .3rem;
+  min-width: min(100%, 18rem);
+}
+
+.gameplay-next-round-panel p {
+  color: #62706c;
+}
+
+.gameplay-next-round-error {
+  flex-basis: 100%;
+  color: #a0341d !important;
+  font-weight: 700;
+}
+
 .gameplay-score--positive {
   color: #087443;
 }

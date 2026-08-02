@@ -115,6 +115,93 @@ test('submitBid and playCard route command identity and expected version exactly
   ]);
 });
 
+test('startNextRound sends only the public authenticated command contract and parses the viewer snapshot', async () => {
+  const database = client([
+    {
+      data: {
+        valid: true,
+        errors: [],
+        duplicate: false,
+        value: snapshot({ roundNumber: 6, phase: 'bidding', version: 1 }),
+      },
+      error: null,
+    },
+  ]);
+  const service = new OnlineGameplayRoundService(database);
+
+  const result = await service.startNextRound(
+    '11111111-1111-4111-8111-111111111111',
+    5,
+    19,
+    42,
+    'next-round-command',
+  );
+
+  assert.equal(result.valid, true, result.errors.join('\n'));
+  assert.equal(result.value?.roundNumber, 6);
+  assert.deepEqual(database.calls, [{
+    name: 'gameplay-round-command',
+    body: {
+      action: 'start-next-round',
+      tableId: '11111111-1111-4111-8111-111111111111',
+      commandId: 'next-round-command',
+      expectedRoundNumber: 5,
+      expectedRoundVersion: 19,
+      expectedControlVersion: 42,
+    },
+  }]);
+  for (const prohibited of [
+    'aggregate',
+    'hand',
+    'hands',
+    'card',
+    'deck',
+    'deckOrder',
+    'seed',
+    'nonce',
+    'dealId',
+    'shuffledDeck',
+    'dealAudit',
+  ]) {
+    assert.equal(prohibited in database.calls[0]!.body, false, prohibited);
+  }
+});
+
+test('startNextRound maps stale and private-looking failures to privacy-safe client messages', async () => {
+  const database = client([
+    { data: { valid: false, errors: ['NEXT_ROUND_STALE'], duplicate: false }, error: null },
+    { data: { valid: false, errors: ['database leaked shuffledDeck seed nonce detail'], duplicate: false }, error: null },
+    { data: null, error: { message: 'raw rpc stack mentions aggregate and dealId' } },
+  ]);
+  const service = new OnlineGameplayRoundService(database);
+
+  const stale = await service.startNextRound(
+    '11111111-1111-4111-8111-111111111111',
+    5,
+    19,
+    42,
+    'stale-command',
+  );
+  const privateFailure = await service.startNextRound(
+    '11111111-1111-4111-8111-111111111111',
+    5,
+    19,
+    42,
+    'private-command',
+  );
+  const thrown = await service.startNextRound(
+    '11111111-1111-4111-8111-111111111111',
+    5,
+    19,
+    42,
+    'thrown-command',
+  );
+
+  assert.deepEqual(stale.errors, ['Next round state changed. Refresh and try again.']);
+  assert.deepEqual(privateFailure.errors, ['Next round could not be started. Refresh and try again.']);
+  assert.deepEqual(thrown.errors, ['Next round could not be started. Refresh and try again.']);
+});
+
 test('database and domain errors never report success', async () => {
   const database = client([
     { data: null, error: { message: 'Edge Function unavailable.' } },

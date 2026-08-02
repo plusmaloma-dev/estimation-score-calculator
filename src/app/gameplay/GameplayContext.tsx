@@ -61,6 +61,7 @@ export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
 > & Partial<Pick<OnlineGameplayRoundService,
   | 'startGame'
   | 'processBotDirective'
+  | 'startNextRound'
 >>;
 
 export type GameplayRoundRealtimePort = Pick<GameplayRoundRealtimeSynchronizer,

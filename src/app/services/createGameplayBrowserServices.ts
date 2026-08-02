@@ -28,6 +28,7 @@ import {
 import { createSupabaseBrowserClient } from '../../online/supabaseClient.js';
 import type {
   GameplayApplicationServices,
+  GameplayRoundPort,
   GameplaySessionServices,
 } from '../gameplay/GameplayContext.js';
 
@@ -42,7 +43,7 @@ export function createGameplayServicesForClient(
         client as unknown as ActiveGameControlDatabase,
         session,
       );
-      const gameplayRound = new OnlineGameplayRoundService(
+      const gameplayRound: GameplayRoundPort = new OnlineGameplayRoundService(
         client as unknown as GameplayRoundFunctionClient,
       );
 
