@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
@@ -78,6 +78,7 @@ function roundSnapshot(
     version: 8,
     viewerSeat: 0,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     currentTurnSeat: 0,
     players: [
       { seat: 0, playerId: 'human-0', cardCount: 2, actualTricks: 0 },
@@ -100,6 +101,7 @@ function roundSnapshot(
 function services(input: {
   readonly roundRealtime: NonNullable<AppServices['gameplayRoundRealtime']>;
   readonly playCard?: ReturnType<typeof vi.fn>;
+  readonly getSnapshot?: ReturnType<typeof vi.fn>;
 }): AppServices {
   return {
     shell: {
@@ -119,7 +121,11 @@ function services(input: {
       completeActionBoundary: vi.fn(),
     },
     gameplayRound: {
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: roundSnapshot() })),
+      getSnapshot: input.getSnapshot ?? vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: roundSnapshot(),
+      })),
       submitBid: vi.fn(),
       playCard: input.playCard ?? vi.fn(),
     },
@@ -153,28 +159,38 @@ describe('ActiveGameplayScreen round Realtime', () => {
       refresh: vi.fn(),
       runMutation: vi.fn(),
     };
-    const view = renderActive(services({ roundRealtime: realtime }));
+    let resolveRefresh: ((value: { valid: boolean; errors: readonly string[]; value: OnlineGameplayRoundSnapshot }) => void) | undefined;
+    const getSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveRefresh = resolve;
+      }));
+    const view = renderActive(services({ roundRealtime: realtime, getSnapshot }));
 
     expect(await screen.findByRole('button', { name: 'Ace of hearts' })).toBeVisible();
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(1));
     expect(connect).toHaveBeenCalledWith('table-1', expect.any(Function), expect.any(Function));
 
-    publish?.(roundSnapshot({
-      version: 9,
-      currentTurnSeat: 1,
-      players: [
-        { seat: 0, playerId: 'human-0', cardCount: 1, actualTricks: 0 },
-        { seat: 1, playerId: 'human-1', cardCount: 2, actualTricks: 0 },
-        { seat: 2, playerId: 'bot-2', cardCount: 2, actualTricks: 0 },
-        { seat: 3, playerId: 'bot-3', cardCount: 2, actualTricks: 0 },
-      ],
-      ownHand: [{ suit: 'clubs', rank: '2' }],
-      legalCards: [],
-      currentTrick: [{ seat: 0, card: { suit: 'hearts', rank: 'A' } }],
-    }));
+    act(() => {
+      publish?.(roundSnapshot({
+        version: 9,
+        currentTurnSeat: 1,
+        players: [
+          { seat: 0, playerId: 'human-0', cardCount: 1, actualTricks: 0 },
+          { seat: 1, playerId: 'human-1', cardCount: 2, actualTricks: 0 },
+          { seat: 2, playerId: 'bot-2', cardCount: 2, actualTricks: 0 },
+          { seat: 3, playerId: 'bot-3', cardCount: 2, actualTricks: 0 },
+        ],
+        ownHand: [{ suit: 'clubs', rank: '2' }],
+        legalCards: [],
+        currentTrick: [{ seat: 0, card: { suit: 'hearts', rank: 'A' } }],
+      }));
+    });
 
-    expect(await screen.findByText('A♥')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Ace of hearts' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('Synchronizing round state');
+
+    resolveRefresh?.({ valid: true, errors: [], value: roundSnapshot() });
 
     view.unmount();
     expect(disconnect).toHaveBeenCalledTimes(1);
@@ -211,6 +227,5 @@ describe('ActiveGameplayScreen round Realtime', () => {
 
     expect(runMutation).toHaveBeenCalledTimes(1);
     expect(playCard).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText('A♥')).toBeVisible();
   });
 });

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
@@ -18,7 +18,7 @@ function controlSnapshot(
     disconnectGraceSeconds: 60,
     version: 4,
     turn: {
-      turnId: 'round-1-card-1',
+      turnId: 'round-1:card:8:0',
       seat: 0,
       actionKind: 'card',
       startedAt: '2026-07-26T12:00:00.000Z',
@@ -70,6 +70,20 @@ function controlSnapshot(
   };
 }
 
+function controlForRound(round: OnlineGameplayRoundSnapshot): OnlineActiveGameControlSnapshot {
+  const seat = round.currentTurnSeat ?? 0;
+  return controlSnapshot({
+    turn: {
+      turnId: `round-${round.roundNumber}:card:${round.version}:${seat}`,
+      seat,
+      actionKind: 'card',
+      startedAt: '2026-07-26T12:00:00.000Z',
+      remainingMs: 30_000,
+      status: 'running',
+    },
+  });
+}
+
 function roundSnapshot(
   overrides: Partial<OnlineGameplayRoundSnapshot> = {},
 ): OnlineGameplayRoundSnapshot {
@@ -80,6 +94,7 @@ function roundSnapshot(
     version: 8,
     viewerSeat: 0,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     currentTurnSeat: 0,
     players: [
       { seat: 0, playerId: 'host-user', cardCount: 2, actualTricks: 0 },
@@ -102,7 +117,11 @@ function roundSnapshot(
 function services(
   initialRound: OnlineGameplayRoundSnapshot,
   roundOverrides: Partial<NonNullable<AppServices['gameplayRound']>> = {},
+  controlSnapshots: readonly OnlineActiveGameControlSnapshot[] = [controlForRound(initialRound)],
+  roundSnapshots: readonly OnlineGameplayRoundSnapshot[] = [initialRound],
 ): AppServices {
+  let controlSnapshotIndex = 0;
+  let roundSnapshotIndex = 0;
   return {
     shell: {
       getSessionHistory: () => ({ sessions: [] }),
@@ -116,7 +135,11 @@ function services(
     },
     activeGameControl: {
       initialize: vi.fn(),
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: controlSnapshot() })),
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: controlSnapshots[Math.min(controlSnapshotIndex++, controlSnapshots.length - 1)],
+      })),
       pause: vi.fn(),
       resume: vi.fn(),
       terminate: vi.fn(),
@@ -129,7 +152,11 @@ function services(
       completeActionBoundary: vi.fn(),
     },
     gameplayRound: {
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: initialRound })),
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: roundSnapshots[Math.min(roundSnapshotIndex++, roundSnapshots.length - 1)],
+      })),
       submitBid: vi.fn(),
       playCard: vi.fn(),
       ...roundOverrides,
@@ -148,7 +175,7 @@ function renderActive(appServices: AppServices) {
 }
 
 describe('ActiveGameplayScreen card play', () => {
-  it('submits a legal card with the authoritative round version and renders the returned snapshot', async () => {
+  it('submits a legal card with the authoritative round version then waits for matching active control', async () => {
     const user = userEvent.setup();
     const afterPlay = roundSnapshot({
       version: 9,
@@ -164,7 +191,13 @@ describe('ActiveGameplayScreen card play', () => {
       currentTrick: [{ seat: 0, card: { suit: 'hearts', rank: 'A' } }],
     });
     const playCard = vi.fn(async () => ({ valid: true, errors: [], value: afterPlay }));
-    renderActive(services(roundSnapshot(), { playCard }));
+    const initial = roundSnapshot();
+    renderActive(services(
+      initial,
+      { playCard },
+      [controlForRound(initial), controlForRound(afterPlay)],
+      [initial, afterPlay],
+    ));
 
     await user.click(await screen.findByRole('button', { name: 'Ace of hearts' }));
 
@@ -174,12 +207,13 @@ describe('ActiveGameplayScreen card play', () => {
       expect.stringMatching(/^play-card:/),
       { suit: 'hearts', rank: 'A' },
     );
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Standard bot in Seat 2 is acting');
+    });
     expect(screen.queryByRole('button', { name: 'Ace of hearts' })).not.toBeInTheDocument();
-    expect(screen.getByText('A♥')).toBeVisible();
-    expect(screen.getByText('Waiting for Seat 2')).toBeVisible();
   });
 
-  it('reloads the authoritative round snapshot after a rejected card command', async () => {
+  it('reloads both projections after a rejected card command without rendering a contradictory turn', async () => {
     const user = userEvent.setup();
     const reloaded = roundSnapshot({
       version: 9,
@@ -196,16 +230,20 @@ describe('ActiveGameplayScreen card play', () => {
     });
     const getSnapshot = vi.fn()
       .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
-      .mockResolvedValueOnce({ valid: true, errors: [], value: reloaded });
+      .mockResolvedValue({ valid: true, errors: [], value: reloaded });
     const playCard = vi.fn(async () => ({ valid: false, errors: ['Gameplay version is stale.'] }));
-    const appServices = services(roundSnapshot(), { getSnapshot, playCard });
+    const initial = roundSnapshot();
+    const appServices = services(
+      initial,
+      { getSnapshot, playCard },
+      [controlForRound(initial), controlForRound(reloaded)],
+    );
     renderActive(appServices);
 
     await user.click(await screen.findByRole('button', { name: 'Ace of hearts' }));
 
-    expect(await screen.findByText('Gameplay version is stale.')).toBeVisible();
-    expect(getSnapshot).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(3));
     expect(screen.queryByRole('button', { name: 'Ace of hearts' })).not.toBeInTheDocument();
-    expect(screen.getByText('A♥')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent('Standard bot in Seat 2 is acting');
   });
 });

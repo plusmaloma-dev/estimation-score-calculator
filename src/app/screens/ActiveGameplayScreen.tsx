@@ -8,8 +8,11 @@ import type {
 } from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
+import { GameplayActionBanner } from '../components/GameplayActionBanner.js';
 import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
 import { GameplayCardPanel } from '../components/GameplayCardPanel.js';
+import { GameplayRoundStatus } from '../components/GameplayRoundStatus.js';
+import { createActiveRoundPresentation } from '../gameplay/ActiveRoundPresentation.js';
 import { useGameplayApp } from '../gameplay/GameplayContext.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
@@ -22,27 +25,6 @@ function commandId(prefix: string): string {
 
 function nowIso(): string {
   return new Date().toISOString();
-}
-
-function lifecycleLabel(snapshot: OnlineActiveGameControlSnapshot): string {
-  if (snapshot.lifecycle === 'paused') return 'Game paused';
-  if (snapshot.lifecycle === 'terminated') return 'Game terminated';
-  return 'Game active';
-}
-
-function turnLabel(snapshot: OnlineActiveGameControlSnapshot): string | undefined {
-  const turn = snapshot.turn;
-  if (turn === undefined) return undefined;
-  const action = turn.actionKind === 'card' ? 'Card turn' : 'Bid turn';
-  return `${action} · Seat ${turn.seat + 1}`;
-}
-
-function remainingSeconds(snapshot: OnlineActiveGameControlSnapshot): number | undefined {
-  const turn = snapshot.turn;
-  if (turn === undefined) return undefined;
-  if (turn.remainingMs !== undefined) return Math.max(0, Math.ceil(turn.remainingMs / 1_000));
-  if (turn.deadlineAt === undefined) return undefined;
-  return Math.max(0, Math.ceil((Date.parse(turn.deadlineAt) - Date.now()) / 1_000));
 }
 
 function recoverableDirective(
@@ -88,7 +70,9 @@ export function ActiveGameplayScreen({
   const [roundBusy, setRoundBusy] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeConfirmed, setCloseConfirmed] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const evaluatedTurns = useRef(new Set<string>());
+  const refreshedSynchronizationKeys = useRef(new Set<string>());
   const directiveCoordinator = useMemo(() => {
     const processBotDirective = services.gameplayRound?.processBotDirective;
     if (processBotDirective === undefined) return undefined;
@@ -157,6 +141,51 @@ export function ActiveGameplayScreen({
       active = false;
     };
   }, [services.gameplayRound, tableId]);
+
+  const presentation = useMemo(() => createActiveRoundPresentation({
+    activeControl: snapshot,
+    round: roundSnapshot,
+    viewerUserId: currentUserId,
+    nowMs,
+  }), [currentUserId, nowMs, roundSnapshot, snapshot]);
+
+  useEffect(() => {
+    const deadlineAt = snapshot?.lifecycle === 'active' ? snapshot.turn?.deadlineAt : undefined;
+    if (deadlineAt === undefined) return;
+    setNowMs(Date.now());
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [snapshot?.lifecycle, snapshot?.turn?.deadlineAt]);
+
+  useEffect(() => {
+    if (!presentation.isSynchronizing || presentation.synchronizationKey === undefined) return;
+    const key = presentation.synchronizationKey;
+    if (refreshedSynchronizationKeys.current.has(key)) return;
+    refreshedSynchronizationKeys.current.add(key);
+
+    let active = true;
+    const refresh = async () => {
+      const [controlResult, roundResult] = await Promise.all([
+        services.activeGameControl?.getSnapshot(tableId),
+        services.gameplayRound?.getSnapshot(tableId),
+      ]);
+      if (!active) return;
+      if (controlResult?.valid && controlResult.value !== undefined) {
+        setSnapshot(controlResult.value);
+        setErrors([]);
+      }
+      if (roundResult?.valid && roundResult.value !== undefined) {
+        setRoundSnapshot(roundResult.value);
+        setRoundErrors([]);
+      }
+    };
+    void refresh().catch(() => {
+      if (active) setRoundErrors(['Round state could not be synchronized.']);
+    });
+    return () => {
+      active = false;
+    };
+  }, [presentation.isSynchronizing, presentation.synchronizationKey, services.activeGameControl, services.gameplayRound, tableId]);
 
   useEffect(() => {
     let active = true;
@@ -429,8 +458,9 @@ export function ActiveGameplayScreen({
   }
 
   const isHost = snapshot?.hostUserId === currentUserId;
-  const seconds = snapshot === undefined ? undefined : remainingSeconds(snapshot);
-  const turn = snapshot === undefined ? undefined : turnLabel(snapshot);
+  const canRenderRound = roundSnapshot !== undefined
+    && !presentation.isSynchronizing
+    && presentation.phase !== 'loading';
 
   return (
     <section className="screen-stack active-game-screen" aria-labelledby="active-game-heading">
@@ -462,42 +492,38 @@ export function ActiveGameplayScreen({
         </div>
       )}
 
-      {snapshot === undefined ? (
-        <p>{t('loadingActiveGame')}</p>
-      ) : (
+      <GameplayActionBanner presentation={presentation} />
+
+      {snapshot !== undefined && !presentation.isSynchronizing && (
+        <ActiveSeatStatus seats={snapshot.seats} activeSeat={presentation.activeSeat} />
+      )}
+
+      {canRenderRound && (
         <>
-          <div className={`active-lifecycle active-lifecycle--${snapshot.lifecycle}`} role="status">
-            <strong>{lifecycleLabel(snapshot)}</strong>
-            <span>Version {snapshot.version}</span>
-          </div>
-
-          {turn !== undefined && snapshot.lifecycle !== 'terminated' && (
-            <section className="active-turn-card" aria-labelledby="active-turn-heading">
-              <h3 id="active-turn-heading">{turn}</h3>
-              {seconds !== undefined && <p>{seconds} seconds remaining</p>}
-              <p>{snapshot.turn?.status === 'bot-processing' ? 'Bot action processing' : 'Waiting for action'}</p>
-            </section>
-          )}
-
-          <ActiveSeatStatus seats={snapshot.seats} activeSeat={snapshot.turn?.seat} />
-
-          {roundSnapshot !== undefined && snapshot.lifecycle !== 'terminated' && (
+          <GameplayRoundStatus presentation={presentation} />
+          {presentation.phase !== 'terminated' && (
             <>
               <GameplayBidPanel
                 snapshot={roundSnapshot}
-                busy={roundBusy || snapshot.lifecycle === 'paused'}
+                canSubmit={presentation.phase === 'bidding' && presentation.viewerActionRequired}
+                busy={roundBusy || presentation.phase === 'paused'}
                 onSubmit={submitEstimate}
               />
               {(roundSnapshot.phase === 'playing' || roundSnapshot.phase === 'scored') && (
                 <GameplayCardPanel
                   snapshot={roundSnapshot}
-                  busy={roundBusy || snapshot.lifecycle === 'paused'}
+                  canPlay={presentation.phase === 'playing' && presentation.viewerActionRequired}
+                  busy={roundBusy || presentation.phase === 'paused'}
                   onPlay={playCard}
                 />
               )}
             </>
           )}
+        </>
+      )}
 
+      {snapshot !== undefined && (
+        <>
           {isHost && snapshot.lifecycle !== 'terminated' && (
             <div className="active-host-controls" aria-label="Host controls">
               {snapshot.lifecycle === 'paused' ? (

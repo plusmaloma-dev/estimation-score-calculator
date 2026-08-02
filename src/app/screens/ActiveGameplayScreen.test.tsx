@@ -1,7 +1,8 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
+import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
@@ -17,7 +18,7 @@ function activeSnapshot(
     disconnectGraceSeconds: 60,
     version: 7,
     turn: {
-      turnId: 'turn-1',
+      turnId: 'round-1:card:1:2',
       seat: 2,
       actionKind: 'card',
       startedAt: '2026-07-26T08:00:00.000Z',
@@ -71,6 +72,30 @@ function activeSnapshot(
   };
 }
 
+function roundSnapshot(): OnlineGameplayRoundSnapshot {
+  return {
+    tableId: 'table-1',
+    roundNumber: 1,
+    phase: 'playing',
+    version: 1,
+    viewerSeat: 0,
+    bidOwnerSeat: 0,
+    riskSeat: 1,
+    currentTurnSeat: 2,
+    players: [
+      { seat: 0, playerId: 'host-user', cardCount: 13, actualTricks: 0, bid: { playerId: 'host-user', bidType: 'normal', tricks: 4, trumpSuit: 'spades' } },
+      { seat: 1, playerId: 'bot-1', cardCount: 13, actualTricks: 0, bid: { playerId: 'bot-1', bidType: 'normal', tricks: 3 } },
+      { seat: 2, playerId: 'guest-user', cardCount: 13, actualTricks: 0, bid: { playerId: 'guest-user', bidType: 'normal', tricks: 2 } },
+      { seat: 3, playerId: 'member-user', cardCount: 13, actualTricks: 0, bid: { playerId: 'member-user', bidType: 'normal', tricks: 5 } },
+    ],
+    ownHand: [],
+    legalNormalEstimates: [],
+    legalCards: [],
+    currentTrick: [],
+    completedTricks: [],
+  };
+}
+
 function services(
   initial: OnlineActiveGameControlSnapshot,
   overrides: Partial<NonNullable<AppServices['activeGameControl']>> = {},
@@ -93,6 +118,11 @@ function services(
       completeActionBoundary: vi.fn(),
       ...overrides,
     },
+    gameplayRound: {
+      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: roundSnapshot() })),
+      submitBid: vi.fn(),
+      playCard: vi.fn(),
+    },
   };
 }
 
@@ -107,18 +137,96 @@ function renderActive(appServices: AppServices, currentUserId: string) {
 }
 
 describe('ActiveGameplayScreen', () => {
-  it('shows authoritative turn and seat-control status without exposing host controls to guests', async () => {
-    renderActive(services(activeSnapshot()), 'member-user');
+  it('shows a neutral synchronization banner without exposing host controls to guests', async () => {
+    const appServices = services(activeSnapshot());
+    renderActive(appServices, 'member-user');
 
     expect(await screen.findByRole('heading', { name: 'Active online game' })).toBeVisible();
-    expect(screen.getByText('Card turn · Seat 3')).toBeVisible();
-    expect(screen.getByText('30 seconds remaining')).toBeVisible();
-    const seats = screen.getByRole('list', { name: 'Active seat control' });
-    expect(within(seats).getAllByRole('listitem')).toHaveLength(4);
-    expect(within(seats).getByText('Permanent Standard bot')).toBeVisible();
-    expect(within(seats).getByText('Temporary bot · reclaim pending')).toBeVisible();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
     expect(screen.queryByRole('button', { name: 'Pause game' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Close table' })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(appServices.activeGameControl?.getSnapshot).toHaveBeenCalledTimes(2);
+      expect(appServices.gameplayRound?.getSnapshot).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('ticks the active-control deadline locally without advancing gameplay', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-26T08:00:00.000Z'));
+    const timed = activeSnapshot({
+      turn: {
+        ...activeSnapshot().turn!,
+        deadlineAt: '2026-07-26T08:00:05.000Z',
+      },
+    });
+
+    try {
+      const view = renderActive(services(timed), 'host-user');
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(screen.getByLabelText('Turn countdown')).toHaveTextContent('5 seconds');
+      await act(async () => {
+        vi.advanceTimersByTime(1_000);
+      });
+      expect(screen.getByLabelText('Turn countdown')).toHaveTextContent('4 seconds');
+      view.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows neutral synchronization when active Realtime arrives before its round projection', async () => {
+    let publishSnapshot: ((value: OnlineActiveGameControlSnapshot) => void) | undefined;
+    let resolveRefresh: ((value: {
+      valid: boolean;
+      errors: readonly string[];
+      value: OnlineActiveGameControlSnapshot;
+    }) => void) | undefined;
+    const initial = activeSnapshot();
+    const getSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: initial })
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveRefresh = resolve;
+      }));
+    const appServices = {
+      ...services(initial, { getSnapshot }),
+      activeGameRealtime: {
+        connect: vi.fn(async (
+          _tableId: string,
+          onSnapshot: (value: OnlineActiveGameControlSnapshot) => void,
+        ) => {
+          publishSnapshot = onSnapshot;
+        }),
+        disconnect: vi.fn(async () => undefined),
+        refresh: vi.fn(async () => undefined),
+        runMutation: vi.fn(async (operation: () => Promise<unknown>) => operation()),
+      },
+    } as unknown as AppServices;
+
+    const view = renderActive(appServices, 'host-user');
+    await waitFor(() => expect(publishSnapshot).toBeTypeOf('function'));
+    act(() => {
+      publishSnapshot?.(activeSnapshot({
+        version: 8,
+        turn: {
+          ...activeSnapshot().turn!,
+          turnId: 'round-1:card:2:1',
+          seat: 1,
+        },
+      }));
+    });
+
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
+    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+
+    resolveRefresh?.({ valid: true, errors: [], value: initial });
+    view.unmount();
   });
 
   it('lets the active host pause and then resume from the returned authoritative snapshots', async () => {

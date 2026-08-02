@@ -7,8 +7,10 @@ const gameplayCss = existsSync(gameplayCssPath) ? readFileSync(gameplayCssPath, 
 const lobby = readFileSync('src/app/screens/GameplayLobbyScreen.tsx', 'utf8');
 const waitingRoom = readFileSync('src/app/screens/GameplayTableScreen.tsx', 'utf8');
 const activeGame = readFileSync('src/app/screens/ActiveGameplayScreen.tsx', 'utf8');
+const actionBanner = readFileSync('src/app/components/GameplayActionBanner.tsx', 'utf8');
 const bidPanel = readFileSync('src/app/components/GameplayBidPanel.tsx', 'utf8');
 const cardPanel = readFileSync('src/app/components/GameplayCardPanel.tsx', 'utf8');
+const gameplayHand = readFileSync('src/app/components/GameplayHand.tsx', 'utf8');
 const main = readFileSync('src/app/main.tsx', 'utf8');
 
 const gameplaySource = `${lobby}\n${waitingRoom}\n${activeGame}\n${bidPanel}\n${cardPanel}`;
@@ -28,10 +30,12 @@ test('gameplay forms and lifecycle controls retain semantic accessibility', () =
   assert.match(lobby, /<form[\s\S]*<label[\s\S]*<input/i);
   assert.match(waitingRoom, /aria-label="Host controls"|aria-labelledby="pending-requests-heading"/i);
   assert.match(activeGame, /role="dialog"[\s\S]*aria-modal="true"/i);
-  assert.match(activeGame, /role="status"/i);
+  assert.match(activeGame, /<GameplayActionBanner\s+presentation=\{presentation\}/i);
+  assert.match(actionBanner, /role="status"[\s\S]*aria-live="polite"/i);
   assert.match(bidPanel, /<form[\s\S]*<label[\s\S]*<select/i);
   assert.match(bidPanel, /aria-label="Public estimates"/i);
-  assert.match(cardPanel, /role="group"[\s\S]*aria-label=\{t\('yourHand'\)\}/i);
+  assert.match(cardPanel, /<GameplayHand/i);
+  assert.match(gameplayHand, /role="group"[\s\S]*aria-label=\{t\('yourHand'\)\}/i);
   assert.match(gameplaySource, /role="alert"/i);
 });
 

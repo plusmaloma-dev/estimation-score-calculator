@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createCanonicalDeck } from '../../gameplay/CanonicalDeck.js';
@@ -8,7 +8,13 @@ import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
 
-function controlSnapshot(): OnlineActiveGameControlSnapshot {
+function controlSnapshot(
+  round: OnlineGameplayRoundSnapshot = roundSnapshot(),
+): OnlineActiveGameControlSnapshot {
+  const actionKind = round.phase === 'bidding' ? 'bid' : 'card';
+  const seat = round.phase === 'bidding'
+    ? round.nextBidSeat ?? 0
+    : round.currentTurnSeat ?? 0;
   return {
     tableId: 'table-1',
     lifecycle: 'active',
@@ -16,6 +22,14 @@ function controlSnapshot(): OnlineActiveGameControlSnapshot {
     turnTimerSeconds: 45,
     disconnectGraceSeconds: 60,
     version: 4,
+    turn: {
+      turnId: `round-${round.roundNumber}:${actionKind}:${round.version}:${seat}`,
+      seat,
+      actionKind,
+      startedAt: '2026-07-26T10:00:00.000Z',
+      deadlineAt: '2026-07-26T10:00:45.000Z',
+      status: 'running',
+    },
     seats: [
       {
         seat: 0,
@@ -72,6 +86,7 @@ function roundSnapshot(
     version: 2,
     viewerSeat: 2,
     bidOwnerSeat: 2,
+    riskSeat: 1,
     nextBidSeat: 2,
     players: [
       { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
@@ -91,7 +106,11 @@ function roundSnapshot(
 function services(
   initial: OnlineGameplayRoundSnapshot,
   overrides: Partial<NonNullable<AppServices['gameplayRound']>> = {},
+  controlSnapshots: readonly OnlineActiveGameControlSnapshot[] = [controlSnapshot(initial)],
+  roundSnapshots: readonly OnlineGameplayRoundSnapshot[] = [initial],
 ): AppServices {
+  let controlSnapshotIndex = 0;
+  let roundSnapshotIndex = 0;
   return {
     shell: {
       getSessionHistory: () => ({ sessions: [] }),
@@ -103,13 +122,21 @@ function services(
     },
     activeGameControl: {
       initialize: vi.fn(),
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: controlSnapshot() })),
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: controlSnapshots[Math.min(controlSnapshotIndex++, controlSnapshots.length - 1)],
+      })),
       pause: vi.fn(), resume: vi.fn(), terminate: vi.fn(), disconnect: vi.fn(), reconnect: vi.fn(),
       evaluateGrace: vi.fn(), evaluateDeadlines: vi.fn(), startTurn: vi.fn(),
       beginBotAction: vi.fn(), completeActionBoundary: vi.fn(),
     },
     gameplayRound: {
-      getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: initial })),
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: roundSnapshots[Math.min(roundSnapshotIndex++, roundSnapshots.length - 1)],
+      })),
       submitBid: vi.fn(),
       playCard: vi.fn(),
       ...overrides,
@@ -148,12 +175,19 @@ describe('ActiveGameplayScreen bidding', () => {
       ],
     });
     const submitBid = vi.fn(async () => ({ valid: true, errors: [], value: accepted }));
-    renderScreen(services(roundSnapshot(), { submitBid }));
+    const initial = roundSnapshot();
+    renderScreen(services(
+      initial,
+      { submitBid },
+      [controlSnapshot(initial), controlSnapshot(accepted)],
+      [initial, accepted],
+    ));
 
     expect(await screen.findByRole('heading', { name: 'Round 1 estimates' })).toBeVisible();
     const progress = screen.getByRole('list', { name: 'Public estimates' });
     expect(within(progress).getAllByRole('listitem')).toHaveLength(4);
-    expect(screen.getByText('Your estimate turn')).toBeVisible();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Submit your estimate');
 
     await user.selectOptions(screen.getByLabelText('Estimate'), '5');
     await user.selectOptions(screen.getByLabelText('Contract suit'), 'spades');
@@ -165,7 +199,9 @@ describe('ActiveGameplayScreen bidding', () => {
       expect.any(String),
       { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
     );
-    expect(await screen.findByText('5 · Spades')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Standard bot in Seat 4 is acting');
+    });
     expect(screen.queryByRole('button', { name: 'Submit estimate' })).not.toBeInTheDocument();
   });
 
@@ -192,7 +228,7 @@ describe('ActiveGameplayScreen bidding', () => {
     renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [] }), 'user-0');
     expect(await screen.findByRole('heading', { name: 'Round 1 estimates' })).toBeVisible();
     expect(screen.queryByLabelText('Estimate')).not.toBeInTheDocument();
-    expect(screen.getByText('Waiting for Seat 2')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 2');
   });
 
   it('renders the authoritative transition to card play after the fourth accepted estimate', async () => {
@@ -218,12 +254,19 @@ describe('ActiveGameplayScreen bidding', () => {
       ],
     });
     const submitBid = vi.fn(async () => ({ valid: true, errors: [], value: playing }));
-    renderScreen(services(fourth, { submitBid }), 'user-1');
+    renderScreen(services(
+      fourth,
+      { submitBid },
+      [controlSnapshot(fourth), controlSnapshot(playing)],
+      [fourth, playing],
+    ), 'user-1');
 
     await user.selectOptions(await screen.findByLabelText('Estimate'), '1');
     await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
 
-    expect(await screen.findByText('Bidding complete. Card play is ready.')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 1');
+    });
     expect(screen.queryByRole('button', { name: 'Submit estimate' })).not.toBeInTheDocument();
   });
 });

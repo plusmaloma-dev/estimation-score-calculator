@@ -79,6 +79,7 @@ function roundSnapshot(
     version: 4,
     viewerSeat: 0,
     bidOwnerSeat: 1,
+    riskSeat: 2,
     currentTurnSeat: 1,
     players: [
       { seat: 0, playerId: 'human-0', cardCount: 13, actualTricks: 0 },
@@ -192,7 +193,8 @@ describe('ActiveGameplayScreen bot orchestration', () => {
       'table-1',
       issued.directiveId,
     ));
-    expect(await screen.findByText('2♥')).toBeVisible();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).not.toHaveTextContent('Play a card');
   });
 
   it('recovers an assistant-pending directive from deterministic public turn state after reconnect', async () => {
