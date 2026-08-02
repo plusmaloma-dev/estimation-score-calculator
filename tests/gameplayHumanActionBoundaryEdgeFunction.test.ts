@@ -21,6 +21,16 @@ const copies = [
 
 for (const copy of copies) {
   test(
+    `next-round dispatch leaves human bid and card boundary coordination intact in the ${copy.label}`,
+    () => {
+      assert.match(copy.source, /start-next-round/);
+      assert.match(copy.source, /actionKind:\s*'bid'/);
+      assert.match(copy.source, /actionKind:\s*'card'/);
+      assert.match(copy.source, /coordinateHumanRoundAction/);
+    },
+  );
+
+  test(
     `human actions synchronize active control in the ${copy.label}`,
     () => {
       assert.match(copy.source, /coordinateHumanRoundAction/);

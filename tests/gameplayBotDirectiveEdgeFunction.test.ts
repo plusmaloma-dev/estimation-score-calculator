@@ -44,6 +44,12 @@ test('issued directive and authoritative control state are loaded with service-r
 });
 
 for (const copy of edgeCopies) {
+  test(`next-round dispatch remains separate from bot directive handling in the ${copy.label}`, () => {
+    assert.match(copy.source, /start-next-round/);
+    assert.match(copy.source, /process-bot-directive/);
+    assert.match(copy.source, /GameplayBotDirectiveService/);
+  });
+
   test(`bot directive lookup avoids fragile JSON containment filters in the ${copy.label}`, () => {
     const source = copy.source;
 

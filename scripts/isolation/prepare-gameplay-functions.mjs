@@ -15,6 +15,9 @@ const stagingRoot = resolve('supabase-gameplay-deploy');
 const stagingSupabase = join(stagingRoot, 'supabase');
 const stagingCode = join(stagingRoot, 'edge-src');
 const functionNames = ['gameplay-start', 'gameplay-round-command'];
+const functionRuntimeModules = {
+  'gameplay-round-command': ['nextRoundHandler.ts'],
+};
 
 function fail(message) {
   throw new Error(`Gameplay Function preparation failed: ${message}`);
@@ -66,6 +69,17 @@ function copyFunction(functionName) {
 
   write(join(targetDirectory, 'index.ts'), staged);
   write(join(targetDirectory, 'deno.json'), readFileSync(sourceDeno, 'utf8'));
+
+  for (const moduleName of functionRuntimeModules[functionName] ?? []) {
+    const sourceModule = join(sourceDirectory, moduleName);
+    if (!existsSync(sourceModule)) {
+      fail(`Missing allowlisted runtime module for ${functionName}: ${moduleName}.`);
+    }
+    write(
+      join(targetDirectory, moduleName),
+      explicitTypeScriptImports(readFileSync(sourceModule, 'utf8')),
+    );
+  }
 }
 
 function verifyNoSloppyImports(directory) {

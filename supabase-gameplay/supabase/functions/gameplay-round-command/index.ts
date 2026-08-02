@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { GameplayRoundApplicationService } from '../../../../src/gameplay/GameplayRoundApplicationService.ts';
 import { GameplayBotDirectiveService } from '../../../../src/gameplay/bot/GameplayBotDirectiveService.ts';
+import { GameplaySessionBootstrapService } from '../../../../src/gameplay/session/GameplaySessionBootstrapService.ts';
 import type {
   GameplayRoundAggregate,
   GameplayRoundCommitInput,
@@ -10,6 +11,7 @@ import type {
 import type { BotActionDirective } from '../../../../src/gameplay/control/types.ts';
 import type { EstimationBid } from '../../../../src/domain/bid.ts';
 import type { Card } from '../../../../src/domain/card.ts';
+import type { GameplaySeatPlayers, SeatIndex } from '../../../../src/gameplay/types.ts';
 import {
   coordinateHumanRoundAction,
   nextAuthoritativeTurn,
@@ -18,6 +20,12 @@ import {
   type HumanBoundaryCompletionInput,
   type HumanBoundaryResolution,
 } from '../../../../src/online/gameplay/HumanActionBoundaryCoordinator.ts';
+import {
+  handleStartNextRound,
+  type AuthoritativeNextRound,
+  type NextRoundCommandLedger,
+  type NextRoundCommandPorts,
+} from './nextRoundHandler.ts';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -26,10 +34,13 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  readonly action?: 'snapshot' | 'submit-bid' | 'play-card' | 'process-bot-directive';
+  readonly action?: 'snapshot' | 'submit-bid' | 'play-card' | 'process-bot-directive' | 'start-next-round';
   readonly tableId?: string;
   readonly commandId?: string;
   readonly expectedVersion?: number;
+  readonly expectedRoundNumber?: number;
+  readonly expectedRoundVersion?: number;
+  readonly expectedControlVersion?: number;
   readonly bid?: EstimationBid;
   readonly card?: Card;
   readonly directiveId?: string;
@@ -47,6 +58,7 @@ interface RpcResult {
 interface ActiveControlRow {
   readonly version: number;
   readonly lifecycle: string;
+  readonly host_user_id: string | null;
   readonly turn_id: string | null;
   readonly turn_seat: number | null;
   readonly turn_action_kind: string | null;
@@ -147,6 +159,17 @@ function validCommandInput(body: RequestBody): boolean {
     && (body.expectedVersion ?? -1) >= 0;
 }
 
+function validNextRoundInput(body: RequestBody): boolean {
+  return typeof body.commandId === 'string'
+    && body.commandId.trim().length > 0
+    && Number.isInteger(body.expectedRoundNumber)
+    && (body.expectedRoundNumber ?? -1) >= 0
+    && Number.isInteger(body.expectedRoundVersion)
+    && (body.expectedRoundVersion ?? -1) >= 0
+    && Number.isInteger(body.expectedControlVersion)
+    && (body.expectedControlVersion ?? -1) >= 0;
+}
+
 function parseDirective(value: unknown): BotActionDirective | undefined {
   const row = object(value);
   if (
@@ -180,6 +203,156 @@ async function commandRecord(
     .maybeSingle();
   if (error !== null) throw new Error(error.message);
   return object(data);
+}
+
+async function nextRoundCommandRecord(
+  client: ServiceClient,
+  tableId: string,
+  commandId: string,
+): Promise<NextRoundCommandLedger | undefined> {
+  const { data, error } = await client
+    .from('gameplay_active_control_commands')
+    .select('actor_user_id,command_type,expected_version,accepted,payload')
+    .eq('table_id', tableId)
+    .eq('command_id', commandId)
+    .maybeSingle();
+  if (error !== null) throw new Error(error.message);
+  const row = object(data);
+  if (row === undefined) return undefined;
+  const payload = object(row.payload);
+  return {
+    actorUserId: typeof row.actor_user_id === 'string' ? row.actor_user_id : '',
+    commandType: typeof row.command_type === 'string' ? row.command_type : '',
+    expectedRoundNumber: typeof payload?.expectedRoundNumber === 'number'
+      ? payload.expectedRoundNumber
+      : -1,
+    expectedRoundVersion: typeof payload?.expectedRoundVersion === 'number'
+      ? payload.expectedRoundVersion
+      : -1,
+    expectedControlVersion: typeof row.expected_version === 'number'
+      ? row.expected_version
+      : -1,
+    accepted: row.accepted === true,
+  };
+}
+
+async function loadAuthoritativeNextRound(
+  client: ServiceClient,
+  repository: GameplayRoundRepository,
+  tableId: string,
+): Promise<AuthoritativeNextRound | undefined> {
+  const { data: tableData, error: tableError } = await client
+    .from('gameplay_tables')
+    .select('lifecycle')
+    .eq('id', tableId)
+    .maybeSingle();
+  if (tableError !== null) throw new Error(tableError.message);
+  const table = object(tableData);
+
+  const { data: controlData, error: controlError } = await client
+    .from('gameplay_active_controls')
+    .select('version,lifecycle,host_user_id,turn_id')
+    .eq('table_id', tableId)
+    .maybeSingle();
+  if (controlError !== null) throw new Error(controlError.message);
+  const control = object(controlData);
+  const aggregate = await repository.load(tableId);
+  if (
+    aggregate === undefined
+    || typeof table?.lifecycle !== 'string'
+    || typeof control?.lifecycle !== 'string'
+    || typeof control?.host_user_id !== 'string'
+    || typeof control?.version !== 'number'
+    || control.turn_id !== null && typeof control.turn_id !== 'string'
+  ) return undefined;
+
+  const nextRoundMultiplier = aggregate.state.scoreResult?.scoreResult?.nextRoundMultiplier;
+  return {
+    tableLifecycle: table.lifecycle,
+    controlLifecycle: control.lifecycle,
+    hostUserId: control.host_user_id,
+    controlVersion: control.version,
+    turnId: control.turn_id,
+    roundNumber: aggregate.state.roundNumber,
+    roundVersion: aggregate.version,
+    phase: aggregate.state.phase,
+    dealerSeat: aggregate.state.bidOwnerSeat,
+    players: aggregate.state.players,
+    ...(nextRoundMultiplier === undefined ? {} : { nextRoundMultiplier }),
+  };
+}
+
+function validateNextRoundAggregate(aggregate: unknown): readonly string[] {
+  const state = object(aggregate);
+  return state?.phase === 'bidding'
+    && state.currentBidIndex === 0
+    && Array.isArray(state.players)
+    && Array.isArray(state.hands)
+    && state.hands.length === 4
+    ? []
+    : ['Generated round is incomplete.'];
+}
+
+function nextRoundPorts(
+  serviceClient: ServiceClient,
+  repository: GameplayRoundRepository,
+  service: GameplayRoundApplicationService,
+  actorUserId: string,
+): NextRoundCommandPorts {
+  return {
+    resolveActor: async () => ({ userId: actorUserId }),
+    loadCommand: (tableId, commandId) => nextRoundCommandRecord(serviceClient, tableId, commandId),
+    loadCurrentRound: (tableId) => loadAuthoritativeNextRound(serviceClient, repository, tableId),
+    randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
+    randomUuid: () => crypto.randomUUID(),
+    bootstrap: async (input) => {
+      const bootstrap = await new GameplaySessionBootstrapService().bootstrap({
+        tableId: input.tableId,
+        roundNumber: input.roundNumber,
+        seats: input.seats as unknown as GameplaySeatPlayers,
+        seedHex: input.seedHex,
+        dealId: input.dealId,
+        nonce: input.nonce,
+        initialization: {
+          kind: 'subsequent-round',
+          dealerSeat: input.initialization.dealerSeat as SeatIndex,
+          roundMultiplier: input.initialization.roundMultiplier,
+        },
+      });
+      return {
+        aggregate: bootstrap.state,
+        firstBidSeat: bootstrap.firstTurn.seat,
+      };
+    },
+    validateAggregate: validateNextRoundAggregate,
+    startNextRound: async (input) => {
+      const result = await userRpc(serviceClient, 'start_next_gameplay_round', {
+        p_table_id: input.tableId,
+        p_actor_user_id: input.actorUserId,
+        p_command_id: input.commandId,
+        p_expected_round_number: input.expectedRoundNumber,
+        p_expected_round_version: input.expectedRoundVersion,
+        p_expected_control_version: input.expectedControlVersion,
+        p_first_bid_seat: input.firstBidSeat,
+        p_next_round_aggregate: input.aggregate,
+        p_occurred_at: new Date().toISOString(),
+      });
+      return {
+        valid: result.valid === true,
+        errors: stringArray(result.errors),
+      };
+    },
+    projectViewer: async (tableId, actor) => {
+      const snapshot = await service.getSnapshot(tableId, { userId: actor.userId });
+      return {
+        valid: snapshot.valid,
+        errors: snapshot.errors,
+        ...(snapshot.value === undefined
+          ? {}
+          : { value: snapshot.value as unknown as Readonly<Record<string, unknown>> }),
+      };
+    },
+  };
 }
 
 async function loadIssuedDirective(
@@ -517,6 +690,18 @@ Deno.serve(async (request) => {
   try {
     if (body.action === 'snapshot') {
       return json(await service.getSnapshot(body.tableId, actor));
+    }
+    if (body.action === 'start-next-round') {
+      if (!validNextRoundInput(body)) {
+        return json({ valid: false, errors: ['NEXT_ROUND_COMMAND_INCOMPLETE'], duplicate: false }, 400);
+      }
+      return json(await handleStartNextRound({
+        tableId: body.tableId,
+        commandId: body.commandId,
+        expectedRoundNumber: body.expectedRoundNumber,
+        expectedRoundVersion: body.expectedRoundVersion,
+        expectedControlVersion: body.expectedControlVersion,
+      }, nextRoundPorts(serviceClient, repository, service, actor.userId)));
     }
     if (body.action === 'submit-bid') {
       if (!validCommandInput(body) || body.bid === undefined) {
