@@ -2,11 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  DeterministicRandomSource,
   GameplayRoundSnapshotProjector,
   GameplaySessionBootstrapService,
-  type GameplaySessionBootstrapInput,
-  type SeatIndex,
+  type GameplayFirstRoundBootstrapInput,
+  type GameplaySessionBootstrapRequest,
 } from '../src/index.js';
 
 const seats = [
@@ -17,8 +16,8 @@ const seats = [
 ] as const;
 
 function input(
-  overrides: Partial<GameplaySessionBootstrapInput> = {},
-): GameplaySessionBootstrapInput {
+  overrides: Partial<Omit<GameplayFirstRoundBootstrapInput, 'initialization'>> = {},
+): GameplayFirstRoundBootstrapInput {
   return {
     tableId: 'table-1',
     roundNumber: 1,
@@ -26,39 +25,44 @@ function input(
     seedHex: 'a7'.repeat(32),
     dealId: 'deal-1',
     nonce: 'nonce-1',
+    initialization: { kind: 'first-round' },
     ...overrides,
   };
 }
 
-function hexToBytes(value: string): Uint8Array {
-  const bytes = new Uint8Array(value.length / 2);
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16);
-  }
-  return bytes;
+function subsequentInput(
+  overrides: {
+    readonly dealerSeat?: number;
+    readonly roundNumber?: number;
+    readonly roundMultiplier?: number;
+  } = {},
+): GameplaySessionBootstrapRequest {
+  return {
+    ...input({
+      roundNumber: overrides.roundNumber ?? 2,
+      dealId: 'deal-2',
+      nonce: 'nonce-2',
+    }),
+    initialization: {
+      kind: 'subsequent-round',
+      dealerSeat: overrides.dealerSeat ?? 1,
+      roundMultiplier: overrides.roundMultiplier ?? 2,
+    },
+  } as GameplaySessionBootstrapRequest;
 }
 
 test('secure bootstrap maps four seats, selects an unbiased deterministic caller, and creates thirteen-card hands', async () => {
   const service = new GameplaySessionBootstrapService();
-  const expectedDealer = await new DeterministicRandomSource(
-    hexToBytes(input().seedHex),
-  ).nextInt(4) as SeatIndex;
 
   const result = await service.bootstrap(input());
 
-  assert.equal(result.dealerSeat, expectedDealer);
-  assert.equal(result.state.bidOwnerSeat, expectedDealer);
-  assert.equal(result.state.bidOrder[0], expectedDealer);
-  assert.deepEqual(result.state.bidOrder, [
-    expectedDealer,
-    (expectedDealer + 1) % 4,
-    (expectedDealer + 2) % 4,
-    (expectedDealer + 3) % 4,
-  ]);
-  assert.equal(result.firstLeadSeat, (expectedDealer + 1) % 4);
-  assert.equal(result.firstTurn.seat, expectedDealer);
+  assert.equal(result.dealerSeat, 2);
+  assert.equal(result.state.bidOwnerSeat, 2);
+  assert.deepEqual(result.state.bidOrder, [2, 3, 0, 1]);
+  assert.equal(result.firstLeadSeat, 3);
+  assert.equal(result.firstTurn.seat, 2);
   assert.equal(result.firstTurn.actionKind, 'bid');
-  assert.match(result.firstTurn.turnId, /^round-1:bid:0:[0-3]$/);
+  assert.equal(result.firstTurn.turnId, 'round-1:bid:0:2');
   assert.deepEqual(result.state.players, seats);
   assert.deepEqual(result.state.hands.map((hand) => hand.cards.length), [13, 13, 13, 13]);
   assert.equal(new Set(result.state.hands.flatMap((hand) => hand.cards.map(
@@ -104,6 +108,53 @@ test('same secure inputs reproduce the same dealer, commitment, hands, and first
   assert.deepEqual(second.firstTurn, first.firstTurn);
 });
 
+test('subsequent bootstrap accepts server-derived seat 1 after seat 0 with the existing order mapping', async () => {
+  const result = await new GameplaySessionBootstrapService().bootstrap(subsequentInput());
+
+  assert.equal(result.dealerSeat, 1);
+  assert.equal(result.state.bidOwnerSeat, 1);
+  assert.deepEqual(result.state.bidOrder, [1, 2, 3, 0]);
+  assert.equal(result.firstLeadSeat, 2);
+  assert.deepEqual(result.state.playOrder, [0, 1, 2, 3]);
+  assert.deepEqual(result.firstTurn, {
+    turnId: 'round-2:bid:0:1',
+    seat: 1,
+    actionKind: 'bid',
+  });
+});
+
+test('subsequent bootstrap carries the scored round multiplier into a fresh valid deal', async () => {
+  const result = await new GameplaySessionBootstrapService().bootstrap(subsequentInput({ roundMultiplier: 2 }));
+
+  assert.equal(result.state.roundNumber, 2);
+  assert.equal(result.state.roundMultiplier, 2);
+  assert.deepEqual(result.state.hands.map((hand) => hand.cards.length), [13, 13, 13, 13]);
+  assert.equal(new Set(result.state.hands.flatMap((hand) => hand.cards.map(
+    (card) => `${card.rank}-${card.suit}`,
+  ))).size, 52);
+});
+
+test('subsequent bootstrap rejects an invalid explicit dealer seat', async () => {
+  await assert.rejects(
+    () => new GameplaySessionBootstrapService().bootstrap(subsequentInput({ dealerSeat: 4 })),
+    /dealer seat must be 0, 1, 2, or 3/i,
+  );
+});
+
+test('subsequent bootstrap rejects an invalid round number', async () => {
+  await assert.rejects(
+    () => new GameplaySessionBootstrapService().bootstrap(subsequentInput({ roundNumber: 0 })),
+    /round number must be a positive integer/i,
+  );
+});
+
+test('subsequent bootstrap rejects an invalid carried multiplier', async () => {
+  await assert.rejects(
+    () => new GameplaySessionBootstrapService().bootstrap(subsequentInput({ roundMultiplier: 0 })),
+    /round multiplier must be a positive integer/i,
+  );
+});
+
 test('bootstrap rejects incomplete, duplicated, or invalid seat/player identity', async () => {
   const service = new GameplaySessionBootstrapService();
   const malformed = [
@@ -111,7 +162,7 @@ test('bootstrap rejects incomplete, duplicated, or invalid seat/player identity'
     { seat: 1, playerId: 'bot-1' },
     { seat: 1, playerId: 'duplicate-seat' },
     { seat: 3, playerId: '' },
-  ] as unknown as GameplaySessionBootstrapInput['seats'];
+  ] as unknown as GameplaySessionBootstrapRequest['seats'];
 
   await assert.rejects(
     () => service.bootstrap(input({ seats: malformed })),

@@ -3,13 +3,13 @@ import { DeterministicRandomSource } from '../DeterministicRandomSource.js';
 import { HouseRulesRoundEngine } from '../HouseRulesRoundEngine.js';
 import {
   SEAT_INDICES,
+  type GameplaySessionBootstrapRequest,
   type GameplaySeatPlayers,
   type SeatIndex,
   type SeatOrder,
 } from '../types.js';
 import type {
   GameplayDealAuditRecord,
-  GameplaySessionBootstrapInput,
   GameplaySessionBootstrapResult,
 } from './types.js';
 
@@ -22,14 +22,25 @@ export class GameplaySessionBootstrapService {
   ) {}
 
   async bootstrap(
-    input: GameplaySessionBootstrapInput,
+    input: GameplaySessionBootstrapRequest,
   ): Promise<GameplaySessionBootstrapResult> {
     this.validateInput(input);
 
     const normalizedSeedHex = input.seedHex.toLowerCase();
-    const dealerSeat = await new DeterministicRandomSource(
-      this.hexToBytes(normalizedSeedHex),
-    ).nextInt(4) as SeatIndex;
+    const dealerSeat = await this.resolveDealerSeat(input, normalizedSeedHex);
+    const roundMultiplier = input.initialization.kind === 'subsequent-round'
+      ? input.initialization.roundMultiplier
+      : undefined;
+
+    return this.initializeRound(input, normalizedSeedHex, dealerSeat, roundMultiplier);
+  }
+
+  private async initializeRound(
+    input: GameplaySessionBootstrapRequest,
+    normalizedSeedHex: string,
+    dealerSeat: SeatIndex,
+    roundMultiplier: number | undefined,
+  ): Promise<GameplaySessionBootstrapResult> {
     const firstLeadSeat = this.nextSeat(dealerSeat);
     const bidOrder = this.rotatingOrder(dealerSeat);
     const playOrder: SeatOrder = [0, 1, 2, 3];
@@ -63,6 +74,7 @@ export class GameplaySessionBootstrapService {
       playOrder,
       bidOwnerSeat: dealerSeat,
       firstLeadSeat,
+      roundMultiplier,
       dealAudit,
     });
     const state = { ...created, dealAudit };
@@ -80,7 +92,19 @@ export class GameplaySessionBootstrapService {
     };
   }
 
-  private validateInput(input: GameplaySessionBootstrapInput): void {
+  private async resolveDealerSeat(
+    input: GameplaySessionBootstrapRequest,
+    normalizedSeedHex: string,
+  ): Promise<SeatIndex> {
+    if (input.initialization.kind === 'subsequent-round') {
+      return input.initialization.dealerSeat;
+    }
+    return (await new DeterministicRandomSource(
+      this.hexToBytes(normalizedSeedHex),
+    ).nextInt(4)) as SeatIndex;
+  }
+
+  private validateInput(input: GameplaySessionBootstrapRequest): void {
     const errors: string[] = [];
     if (!input.tableId.trim()) errors.push('Gameplay table id is required.');
     if (!Number.isInteger(input.roundNumber) || input.roundNumber < 1) {
@@ -91,6 +115,17 @@ export class GameplaySessionBootstrapService {
     }
     if (!input.dealId.trim()) errors.push('Deal id is required.');
     if (!input.nonce.trim()) errors.push('Deal nonce is required.');
+    if (input.initialization.kind === 'subsequent-round') {
+      if (!(SEAT_INDICES as readonly number[]).includes(input.initialization.dealerSeat)) {
+        errors.push('Dealer seat must be 0, 1, 2, or 3.');
+      }
+      if (
+        !Number.isInteger(input.initialization.roundMultiplier)
+        || input.initialization.roundMultiplier < 1
+      ) {
+        errors.push('Round multiplier must be a positive integer.');
+      }
+    }
 
     const seats = input.seats as readonly { readonly seat: number; readonly playerId: string }[];
     const validSeatSet = seats.length === 4

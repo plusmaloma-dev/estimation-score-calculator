@@ -57,6 +57,33 @@ export type GameplaySeatPlayers = readonly [
   GameplaySeatPlayer,
 ];
 
+export interface GameplaySessionBootstrapBaseInput {
+  readonly tableId: string;
+  readonly roundNumber: number;
+  readonly seats: GameplaySeatPlayers;
+  readonly seedHex: string;
+  readonly dealId: string;
+  readonly nonce: string;
+}
+
+export interface GameplayFirstRoundBootstrapInput extends GameplaySessionBootstrapBaseInput {
+  readonly initialization: {
+    readonly kind: 'first-round';
+  };
+}
+
+export interface GameplaySubsequentRoundBootstrapInput extends GameplaySessionBootstrapBaseInput {
+  readonly initialization: {
+    readonly kind: 'subsequent-round';
+    readonly dealerSeat: SeatIndex;
+    readonly roundMultiplier: number;
+  };
+}
+
+export type GameplaySessionBootstrapRequest =
+  | GameplayFirstRoundBootstrapInput
+  | GameplaySubsequentRoundBootstrapInput;
+
 export interface CompletedGameplayTrick {
   readonly trickNumber: number;
   readonly leaderSeat: SeatIndex;
