@@ -12,6 +12,7 @@ function snapshot(): OnlineGameplayRoundSnapshot {
     version: 56,
     viewerSeat: 0,
     bidOwnerSeat: 0,
+    riskSeat: 3,
     players: [
       {
         seat: 0,
@@ -51,6 +52,8 @@ function snapshot(): OnlineGameplayRoundSnapshot {
       roundNumber: 1,
       valid: true,
       errors: [],
+      carriedAllLoserMultiplier: 2,
+      carryConsumed: true,
       bidValidation: {
         valid: true,
         errors: [],
@@ -97,7 +100,7 @@ function snapshot(): OnlineGameplayRoundSnapshot {
 }
 
 describe('GameplayRoundResultPanel', () => {
-  it('shows authoritative estimate, actual, score, outcome, and risk classification by seat', () => {
+  it('shows responsive labelled result cards with viewer, caller, score, outcome, and Risk', () => {
     render(
       <I18nProvider>
         <GameplayRoundResultPanel snapshot={snapshot()} />
@@ -106,17 +109,23 @@ describe('GameplayRoundResultPanel', () => {
 
     expect(screen.getByRole('heading', { name: 'Round 1 results' })).toBeVisible();
     expect(screen.getByText('Under · 11 estimated tricks')).toBeVisible();
-    const table = screen.getByRole('table', { name: 'Round scores' });
-    const rows = within(table).getAllByRole('row');
-    expect(rows).toHaveLength(5);
-    expect(rows[1]).toHaveTextContent('Seat 1');
-    expect(rows[1]).toHaveTextContent('4');
-    expect(rows[1]).toHaveTextContent('+14');
-    expect(rows[1]).toHaveTextContent('Success');
-    expect(rows[3]).toHaveTextContent('Dash');
-    expect(rows[3]).toHaveTextContent('+25');
-    expect(rows[4]).toHaveTextContent('Round risk');
-    expect(rows[4]).toHaveTextContent('-13');
+    expect(screen.getByText('Score multiplier ×2')).toBeVisible();
+    const list = screen.getByRole('list', { name: 'Round scores' });
+    const cards = within(list).getAllByRole('listitem');
+    expect(cards).toHaveLength(4);
+    expect(cards[0]).toHaveTextContent('Seat 1');
+    expect(cards[0]).toHaveTextContent('You');
+    expect(cards[0]).toHaveTextContent('Caller');
+    expect(cards[0]).toHaveTextContent('Estimate');
+    expect(cards[0]).toHaveTextContent('Actual tricks');
+    expect(cards[0]).toHaveTextContent('Made');
+    expect(cards[0]).toHaveTextContent('+14');
+    expect(cards[2]).toHaveTextContent('Dash');
+    expect(cards[2]).toHaveTextContent('+25');
+    expect(cards[3]).toHaveTextContent('Round risk');
+    expect(cards[3]).toHaveTextContent('Lost');
+    expect(cards[3]).toHaveTextContent('-13');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('renders nothing unless a valid authoritative scored result is present', () => {

@@ -91,14 +91,11 @@ describe('GameplayCardPanel', () => {
     for (const card of screen.getAllByRole('button')) expect(card).toBeDisabled();
   });
 
-  it('shows trick progress and scored round results', () => {
-    const scored = snapshot({
-      phase: 'scored',
-      currentTurnSeat: undefined,
-      ownHand: [],
-      legalCards: [],
-      completedTricks: [{
-        trickNumber: 13,
+  it('retains trick 13 and its winner without showing opening-card copy after scoring', () => {
+    const completedTricks: OnlineGameplayRoundSnapshot['completedTricks'] = Array.from(
+      { length: 13 },
+      (_, index) => ({
+        trickNumber: index + 1,
         leaderSeat: 0,
         entries: [
           { seat: 0, card: { suit: 'spades', rank: 'A' } },
@@ -107,11 +104,23 @@ describe('GameplayCardPanel', () => {
           { seat: 3, card: { suit: 'spades', rank: '4' } },
         ],
         winnerSeat: 0,
-      }],
+      }),
+    );
+    const scored = snapshot({
+      phase: 'scored',
+      currentTurnSeat: undefined,
+      ownHand: [],
+      legalCards: [],
+      currentTrick: [],
+      completedTricks,
     });
 
     renderPanel(scored);
     expect(screen.getByText('13 of 13 tricks completed')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Final trick · Trick 13' })).toBeVisible();
+    expect(screen.getByText('A♠')).toBeVisible();
+    expect(screen.getByText('Winner')).toBeVisible();
+    expect(screen.queryByText('Waiting for the opening card.')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

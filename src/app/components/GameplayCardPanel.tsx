@@ -2,6 +2,7 @@ import type { Card, CardSuit } from '../../domain/card.js';
 import { cardId } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import { GameplayFinalTrick } from './GameplayFinalTrick.js';
 import { GameplayHand } from './GameplayHand.js';
 import { GameplayRoundResultPanel } from './GameplayRoundResultPanel.js';
 
@@ -44,23 +45,25 @@ export function GameplayCardPanel({
         </span>
       </div>
 
-      <section className="gameplay-current-trick" aria-labelledby="current-trick-heading">
-        <h4 id="current-trick-heading">{t('currentTrick')}</h4>
-        {snapshot.currentTrick.length === 0 ? (
-          <p>{t('waitingForLead')}</p>
-        ) : (
-          <ol aria-label="Current trick cards">
-            {snapshot.currentTrick.map((entry) => (
-              <li key={`${entry.seat}:${cardId(entry.card)}`}>
-                <span>Seat {entry.seat + 1}</span>
-                <strong className={isRedSuit(entry.card.suit) ? 'playing-card--red' : ''}>
-                  {compactCardName(entry.card)}
-                </strong>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      {snapshot.phase === 'playing' && (
+        <section className="gameplay-current-trick" aria-labelledby="current-trick-heading">
+          <h4 id="current-trick-heading">{t('currentTrick')}</h4>
+          {snapshot.currentTrick.length === 0 ? (
+            <p>{t('waitingForLead')}</p>
+          ) : (
+            <ol aria-label="Current trick cards">
+              {snapshot.currentTrick.map((entry) => (
+                <li key={`${entry.seat}:${cardId(entry.card)}`}>
+                  <span>Seat {entry.seat + 1}</span>
+                  <strong className={isRedSuit(entry.card.suit) ? 'playing-card--red' : ''}>
+                    {compactCardName(entry.card)}
+                  </strong>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
 
       <div className="gameplay-trick-totals" aria-label="Tricks won">
         {snapshot.players.map((player) => (
@@ -69,7 +72,12 @@ export function GameplayCardPanel({
       </div>
 
       {snapshot.phase === 'scored' ? (
-        <GameplayRoundResultPanel snapshot={snapshot} />
+        <>
+          {snapshot.completedTricks.at(-1) !== undefined && (
+            <GameplayFinalTrick trick={snapshot.completedTricks.at(-1)!} />
+          )}
+          <GameplayRoundResultPanel snapshot={snapshot} />
+        </>
       ) : snapshot.phase !== 'playing' ? null : (
         <GameplayHand
           ownHand={snapshot.ownHand}
