@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ActiveRoundPresentation } from '../gameplay/ActiveRoundPresentation.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { GameplayRoundStatus } from './GameplayRoundStatus.js';
@@ -57,6 +57,8 @@ function renderStatus(value: ActiveRoundPresentation) {
 }
 
 describe('GameplayRoundStatus', () => {
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => window.localStorage.clear());
   it('binds every estimate to its seat and marks the viewer and caller unambiguously', () => {
     renderStatus(presentation());
 
@@ -118,5 +120,19 @@ describe('GameplayRoundStatus', () => {
     }));
 
     expect(screen.getByText('At 13 · final estimate must move Under or Over')).toBeVisible();
+  });
+
+  it('renders round status labels in Arabic without the corresponding English status text', () => {
+    window.localStorage.setItem('estimation-language', 'ar');
+    renderStatus(presentation());
+
+    expect(screen.getByText('الجولة 3')).toBeVisible();
+    expect(screen.getByText('بستوني')).toBeVisible();
+    expect(screen.getByText('أقل بـ 4')).toBeVisible();
+    expect(screen.getByText('المقعد 3 · قيد الانتظار')).toBeVisible();
+    expect(screen.queryByText('Pending')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spades')).not.toBeInTheDocument();
+    expect(screen.queryByText('Under by 4')).not.toBeInTheDocument();
+    expect(screen.queryByText('Round risk')).not.toBeInTheDocument();
   });
 });

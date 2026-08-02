@@ -41,7 +41,7 @@ export function GameplayCardPanel({
       <div className="gameplay-round-heading">
         <h3 id="card-play-heading">{t('cardPlay')}</h3>
         <span className="rule-chip">
-          {completedTrickCount} of 13 tricks completed
+          {completedTrickCount} {t('tricksCompleted')}
         </span>
       </div>
 
@@ -51,10 +51,10 @@ export function GameplayCardPanel({
           {snapshot.currentTrick.length === 0 ? (
             <p>{t('waitingForLead')}</p>
           ) : (
-            <ol aria-label="Current trick cards">
+            <ol aria-label={t('currentTrickCards')}>
               {snapshot.currentTrick.map((entry) => (
                 <li key={`${entry.seat}:${cardId(entry.card)}`}>
-                  <span>Seat {entry.seat + 1}</span>
+                  <span>{t('seat')} {entry.seat + 1}</span>
                   <strong className={isRedSuit(entry.card.suit) ? 'playing-card--red' : ''}>
                     {compactCardName(entry.card)}
                   </strong>
@@ -65,9 +65,9 @@ export function GameplayCardPanel({
         </section>
       )}
 
-      <div className="gameplay-trick-totals" aria-label="Tricks won">
+      <div className="gameplay-trick-totals" aria-label={t('tricksWon')}>
         {snapshot.players.map((player) => (
-          <span key={player.seat}>Seat {player.seat + 1}: {player.actualTricks}</span>
+          <span key={player.seat}>{t('seat')} {player.seat + 1}: {player.actualTricks}</span>
         ))}
       </div>
 

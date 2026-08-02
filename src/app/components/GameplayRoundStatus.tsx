@@ -2,27 +2,40 @@ import type { ContractSuit } from '../../domain/card.js';
 import type { RiskType } from '../../scoring/types.js';
 import type { ActiveRoundPresentation } from '../gameplay/ActiveRoundPresentation.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import type { TranslationKey } from '../i18n/translations.js';
 
-function contractLabel(contract: ContractSuit | undefined): string {
-  if (contract === undefined) return 'Pending';
-  if (contract === 'no-trump') return 'No Trump';
-  return contract[0]!.toUpperCase() + contract.slice(1);
+function contractLabel(contract: ContractSuit | undefined, t: (key: TranslationKey) => string): string {
+  if (contract === undefined) return t('pending');
+  switch (contract) {
+    case 'no-trump': return t('noTrump');
+    case 'spades': return t('spades');
+    case 'hearts': return t('hearts');
+    case 'diamonds': return t('diamonds');
+    case 'clubs': return t('clubs');
+  }
 }
 
-function riskLabel(type: 'pending' | RiskType): string {
-  if (type === 'pending') return 'Pending';
-  if (type === 'round-risk') return 'Round risk';
-  return type.split('-').map((part) => part[0]!.toUpperCase() + part.slice(1)).join(' ');
+function riskLabel(type: 'pending' | RiskType, t: (key: TranslationKey) => string): string {
+  switch (type) {
+    case 'pending': return t('pending');
+    case 'none': return t('none');
+    case 'dash': return t('dash');
+    case 'dash-call': return t('dashCall');
+    case 'with': return t('with');
+    case 'high-contract': return t('highContract');
+    case 'round-risk': return t('roundRisk');
+    case 'custom': return t('custom');
+  }
 }
 
-function balanceLabel(presentation: ActiveRoundPresentation): string {
+function balanceLabel(presentation: ActiveRoundPresentation, t: (key: TranslationKey) => string): string {
   if (presentation.estimateStatus === 'at-13') {
     return presentation.estimatesComplete
-      ? 'At 13'
-      : 'At 13 · final estimate must move Under or Over';
+      ? t('atThirteen')
+      : `${t('atThirteen')} · ${t('finalEstimateMustMove')}`;
   }
-  const direction = presentation.estimateStatus === 'under' ? 'Under' : 'Over';
-  return `${direction} by ${presentation.estimateDistanceFrom13}`;
+  const direction = presentation.estimateStatus === 'under' ? t('underBy') : t('overBy');
+  return `${direction} ${presentation.estimateDistanceFrom13}`;
 }
 
 export function GameplayRoundStatus({
@@ -88,7 +101,7 @@ export function GameplayRoundStatus({
         </div>
         <div>
           <dt>{t('trump')}</dt>
-          <dd>{contractLabel(presentation.trump)}</dd>
+          <dd>{contractLabel(presentation.trump, t)}</dd>
         </div>
         <div>
           <dt>{t('totalEstimates')}</dt>
@@ -96,14 +109,14 @@ export function GameplayRoundStatus({
         </div>
         <div className="gameplay-round-summary--balance">
           <dt>{t('underOver')}</dt>
-          <dd>{balanceLabel(presentation)}</dd>
+          <dd>{balanceLabel(presentation, t)}</dd>
         </div>
         <div>
           <dt>{t('risk')}</dt>
           <dd>
             {presentation.risk === undefined
               ? t('pending')
-              : `${t('seat')} ${presentation.risk.seat + 1} · ${riskLabel(presentation.risk.type)}`}
+              : `${t('seat')} ${presentation.risk.seat + 1} · ${riskLabel(presentation.risk.type, t)}`}
           </dd>
         </div>
       </dl>

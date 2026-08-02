@@ -155,7 +155,7 @@ function renderScreen(appServices: AppServices, currentUserId = 'user-2') {
 }
 
 describe('ActiveGameplayScreen bidding', () => {
-  it('shows public estimate progress and lets the acting bid owner submit estimate and contract suit', async () => {
+  it('shows one authoritative estimate-by-seat list and lets the acting bid owner submit estimate and contract suit', async () => {
     const user = userEvent.setup();
     const accepted = roundSnapshot({
       version: 3,
@@ -183,13 +183,14 @@ describe('ActiveGameplayScreen bidding', () => {
       [initial, accepted],
     ));
 
-    expect(await screen.findByRole('heading', { name: 'Round 1 estimates' })).toBeVisible();
-    const progress = screen.getByRole('list', { name: 'Public estimates' });
+    expect(await screen.findByRole('heading', { name: 'Round 1' })).toBeVisible();
+    const progress = screen.getByRole('list', { name: 'Estimates by seat' });
     expect(within(progress).getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.queryByRole('list', { name: 'Public estimates' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Submit your estimate');
 
-    await user.selectOptions(screen.getByLabelText('Estimate'), '5');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5');
     await user.selectOptions(screen.getByLabelText('Contract suit'), 'spades');
     await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
 
@@ -220,14 +221,14 @@ describe('ActiveGameplayScreen bidding', () => {
     });
     const { unmount } = renderScreen(services(acting), 'user-1');
 
-    const estimate = await screen.findByLabelText('Estimate');
+    const estimate = await screen.findByRole('combobox', { name: 'Estimate' });
     expect(within(estimate).queryByRole('option', { name: '3' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
     unmount();
 
     renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [] }), 'user-0');
-    expect(await screen.findByRole('heading', { name: 'Round 1 estimates' })).toBeVisible();
-    expect(screen.queryByLabelText('Estimate')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Estimate' })).toBeVisible();
+    expect(screen.queryByRole('combobox', { name: 'Estimate' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 2');
   });
 
@@ -261,7 +262,7 @@ describe('ActiveGameplayScreen bidding', () => {
       [fourth, playing],
     ), 'user-1');
 
-    await user.selectOptions(await screen.findByLabelText('Estimate'), '1');
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Estimate' }), '1');
     await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
 
     await waitFor(() => {

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { GameplayCardPanel } from './GameplayCardPanel.js';
@@ -48,6 +48,14 @@ function renderPanel(
 }
 
 describe('GameplayCardPanel', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
   it('renders only the viewer hand and public current trick', () => {
     renderPanel(snapshot());
 
@@ -122,5 +130,17 @@ describe('GameplayCardPanel', () => {
     expect(screen.getByText('Winner')).toBeVisible();
     expect(screen.queryByText('Waiting for the opening card.')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('renders public card and trick seat labels in Arabic', () => {
+    window.localStorage.setItem('estimation-language', 'ar');
+    renderPanel(snapshot());
+
+    expect(screen.getByText('المقعد 3')).toBeVisible();
+    expect(screen.getByLabelText('بطاقات اللفة الحالية')).toBeVisible();
+    expect(screen.getByLabelText('اللفات المحققة')).toBeVisible();
+    expect(screen.queryByText('Seat 3')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current trick cards')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Tricks won')).not.toBeInTheDocument();
   });
 });

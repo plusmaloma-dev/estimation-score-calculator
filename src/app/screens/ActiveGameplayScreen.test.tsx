@@ -99,6 +99,7 @@ function roundSnapshot(): OnlineGameplayRoundSnapshot {
 function services(
   initial: OnlineActiveGameControlSnapshot,
   overrides: Partial<NonNullable<AppServices['activeGameControl']>> = {},
+  roundOverrides: Partial<NonNullable<AppServices['gameplayRound']>> = {},
 ): AppServices {
   return {
     shell: {
@@ -122,6 +123,7 @@ function services(
       getSnapshot: vi.fn(async () => ({ valid: true, errors: [], value: roundSnapshot() })),
       submitBid: vi.fn(),
       playCard: vi.fn(),
+      ...roundOverrides,
     },
   };
 }
@@ -150,6 +152,97 @@ describe('ActiveGameplayScreen', () => {
       expect(appServices.activeGameControl?.getSnapshot).toHaveBeenCalledTimes(2);
       expect(appServices.gameplayRound?.getSnapshot).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('shows a privacy-safe error and retries the same mismatch after an invalid active-control refresh', async () => {
+    const user = userEvent.setup();
+    const initial = activeSnapshot();
+    const activeGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: initial })
+      .mockResolvedValueOnce({ valid: false, errors: ['sensitive active refresh detail'] })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: initial });
+    const roundGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
+      .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() });
+    const appServices = services(
+      initial,
+      { getSnapshot: activeGetSnapshot },
+      { getSnapshot: roundGetSnapshot },
+    );
+
+    renderActive(appServices, 'member-user');
+
+    const error = await screen.findByRole('alert');
+    expect(error).toHaveTextContent('Could not synchronize the round. Refresh and try again.');
+    expect(error).not.toHaveTextContent('sensitive active refresh detail');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit estimate' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+    expect(activeGetSnapshot).toHaveBeenCalledTimes(2);
+    expect(roundGetSnapshot).toHaveBeenCalledTimes(2);
+
+    await user.click(screen.getByRole('button', { name: 'Refresh game' }));
+    await waitFor(() => {
+      expect(activeGetSnapshot).toHaveBeenCalledTimes(3);
+      expect(roundGetSnapshot).toHaveBeenCalledTimes(3);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(activeGetSnapshot).toHaveBeenCalledTimes(3);
+    expect(roundGetSnapshot).toHaveBeenCalledTimes(3);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+  });
+
+  it('reports an invalid round refresh without exposing its error details', async () => {
+    const initial = activeSnapshot();
+    const appServices = services(
+      initial,
+      {
+        getSnapshot: vi.fn()
+          .mockResolvedValueOnce({ valid: true, errors: [], value: initial })
+          .mockResolvedValueOnce({ valid: true, errors: [], value: initial }),
+      },
+      {
+        getSnapshot: vi.fn()
+          .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
+          .mockResolvedValueOnce({ valid: false, errors: ['sensitive round refresh detail'] }),
+      },
+    );
+
+    renderActive(appServices, 'member-user');
+
+    const error = await screen.findByRole('alert');
+    expect(error).toHaveTextContent('Could not synchronize the round. Refresh and try again.');
+    expect(error).not.toHaveTextContent('sensitive round refresh detail');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('reports a thrown joint refresh failure without exposing the thrown detail', async () => {
+    const initial = activeSnapshot();
+    const appServices = services(
+      initial,
+      {
+        getSnapshot: vi.fn()
+          .mockResolvedValueOnce({ valid: true, errors: [], value: initial })
+          .mockRejectedValueOnce(new Error('sensitive thrown refresh detail')),
+      },
+      {
+        getSnapshot: vi.fn()
+          .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() })
+          .mockResolvedValueOnce({ valid: true, errors: [], value: roundSnapshot() }),
+      },
+    );
+
+    renderActive(appServices, 'member-user');
+
+    const error = await screen.findByRole('alert');
+    expect(error).toHaveTextContent('Could not synchronize the round. Refresh and try again.');
+    expect(error).not.toHaveTextContent('sensitive thrown refresh detail');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('ticks the active-control deadline locally without advancing gameplay', async () => {

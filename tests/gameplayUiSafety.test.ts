@@ -33,7 +33,8 @@ test('gameplay forms and lifecycle controls retain semantic accessibility', () =
   assert.match(activeGame, /<GameplayActionBanner\s+presentation=\{presentation\}/i);
   assert.match(actionBanner, /role="status"[\s\S]*aria-live="polite"/i);
   assert.match(bidPanel, /<form[\s\S]*<label[\s\S]*<select/i);
-  assert.match(bidPanel, /aria-label="Public estimates"/i);
+  assert.doesNotMatch(bidPanel, /Public estimates/i);
+  assert.match(bidPanel, /<GameplayHand[\s\S]*mode="read-only"/i);
   assert.match(cardPanel, /<GameplayHand/i);
   assert.match(gameplayHand, /role="group"[\s\S]*aria-label=\{t\('yourHand'\)\}/i);
   assert.match(gameplaySource, /role="alert"/i);

@@ -3,24 +3,25 @@ import type { EstimationBid } from '../../domain/bid.js';
 import type { ContractSuit } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
+import type { TranslationKey } from '../i18n/translations.js';
 import { GameplayHand } from './GameplayHand.js';
 
-const CONTRACT_OPTIONS: readonly { readonly value: ContractSuit; readonly label: string }[] = [
-  { value: 'no-trump', label: 'No Trump' },
-  { value: 'spades', label: 'Spades' },
-  { value: 'hearts', label: 'Hearts' },
-  { value: 'diamonds', label: 'Diamonds' },
-  { value: 'clubs', label: 'Clubs' },
+const CONTRACT_OPTIONS: readonly ContractSuit[] = [
+  'no-trump',
+  'spades',
+  'hearts',
+  'diamonds',
+  'clubs',
 ];
 
-function contractLabel(suit: ContractSuit | undefined): string {
-  return CONTRACT_OPTIONS.find((option) => option.value === suit)?.label ?? '';
-}
-
-function bidLabel(bid: EstimationBid | undefined): string {
-  if (bid === undefined) return 'Pending';
-  const contract = contractLabel(bid.trumpSuit);
-  return contract.length === 0 ? String(bid.tricks) : `${bid.tricks} · ${contract}`;
+function contractLabelKey(contract: ContractSuit): TranslationKey {
+  switch (contract) {
+    case 'no-trump': return 'noTrump';
+    case 'spades': return 'spades';
+    case 'hearts': return 'hearts';
+    case 'diamonds': return 'diamonds';
+    case 'clubs': return 'clubs';
+  }
 }
 
 export function GameplayBidPanel({
@@ -64,18 +65,9 @@ export function GameplayBidPanel({
   return (
     <section className="gameplay-bid-panel" aria-labelledby="round-estimates-heading">
       <div className="gameplay-round-heading">
-        <h3 id="round-estimates-heading">Round {snapshot.roundNumber} estimates</h3>
-        <span className="rule-chip">Version {snapshot.version}</span>
+        <h3 id="round-estimates-heading">{t('estimate')}</h3>
+        <span className="rule-chip">{t('version')} {snapshot.version}</span>
       </div>
-
-      <ul className="gameplay-estimate-list" aria-label="Public estimates">
-        {snapshot.players.map((player) => (
-          <li key={player.seat} className={snapshot.nextBidSeat === player.seat ? 'gameplay-estimate--active' : ''}>
-            <span>Seat {player.seat + 1}</span>
-            <strong>{bidLabel(player.bid)}</strong>
-          </li>
-        ))}
-      </ul>
 
       {snapshot.phase === 'bidding' && (
         <GameplayHand
@@ -109,9 +101,9 @@ export function GameplayBidPanel({
                   required
                   onChange={(event) => setContractSuit(event.target.value as ContractSuit | '')}
                 >
-                  <option value="">Select contract</option>
+                  <option value="">{t('selectContract')}</option>
                   {CONTRACT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                    <option key={option} value={option}>{t(contractLabelKey(option))}</option>
                   ))}
                 </select>
               </label>

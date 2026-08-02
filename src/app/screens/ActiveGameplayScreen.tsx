@@ -71,6 +71,7 @@ export function ActiveGameplayScreen({
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeConfirmed, setCloseConfirmed] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [synchronizationRetry, setSynchronizationRetry] = useState(0);
   const evaluatedTurns = useRef(new Set<string>());
   const refreshedSynchronizationKeys = useRef(new Set<string>());
   const directiveCoordinator = useMemo(() => {
@@ -165,27 +166,46 @@ export function ActiveGameplayScreen({
 
     let active = true;
     const refresh = async () => {
+      const activeGameControl = services.activeGameControl;
+      const gameplayRound = services.gameplayRound;
+      if (activeGameControl === undefined || gameplayRound === undefined) {
+        throw new Error('Authoritative gameplay projections are unavailable.');
+      }
       const [controlResult, roundResult] = await Promise.all([
-        services.activeGameControl?.getSnapshot(tableId),
-        services.gameplayRound?.getSnapshot(tableId),
+        activeGameControl.getSnapshot(tableId),
+        gameplayRound.getSnapshot(tableId),
       ]);
       if (!active) return;
-      if (controlResult?.valid && controlResult.value !== undefined) {
-        setSnapshot(controlResult.value);
-        setErrors([]);
+      if (
+        !controlResult.valid
+        || controlResult.value === undefined
+        || !roundResult.valid
+        || roundResult.value === undefined
+      ) {
+        throw new Error('Authoritative gameplay projections are invalid.');
       }
-      if (roundResult?.valid && roundResult.value !== undefined) {
-        setRoundSnapshot(roundResult.value);
-        setRoundErrors([]);
-      }
+      setSnapshot(controlResult.value);
+      setRoundSnapshot(roundResult.value);
+      setErrors([]);
+      setRoundErrors([]);
     };
     void refresh().catch(() => {
-      if (active) setRoundErrors(['Round state could not be synchronized.']);
+      if (!active) return;
+      refreshedSynchronizationKeys.current.delete(key);
+      setRoundErrors([t('roundSynchronizationFailed')]);
     });
     return () => {
       active = false;
     };
-  }, [presentation.isSynchronizing, presentation.synchronizationKey, services.activeGameControl, services.gameplayRound, tableId]);
+  }, [
+    presentation.isSynchronizing,
+    presentation.synchronizationKey,
+    services.activeGameControl,
+    services.gameplayRound,
+    synchronizationRetry,
+    t,
+    tableId,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -457,6 +477,19 @@ export function ActiveGameplayScreen({
     setCloseConfirmed(false);
   }
 
+  function refreshGame() {
+    if (presentation.isSynchronizing) {
+      if (presentation.synchronizationKey !== undefined) {
+        refreshedSynchronizationKeys.current.delete(presentation.synchronizationKey);
+      }
+      setErrors([]);
+      setRoundErrors([]);
+      setSynchronizationRetry((attempt) => attempt + 1);
+      return;
+    }
+    void mutate(() => services.activeGameControl!.getSnapshot(tableId));
+  }
+
   const isHost = snapshot?.hostUserId === currentUserId;
   const canRenderRound = roundSnapshot !== undefined
     && !presentation.isSynchronizing
@@ -473,7 +506,7 @@ export function ActiveGameplayScreen({
             className="secondary-button"
             type="button"
             disabled={busy}
-            onClick={() => void mutate(() => services.activeGameControl!.getSnapshot(tableId))}
+            onClick={refreshGame}
           >
             {t('refreshGame')}
           </button>
