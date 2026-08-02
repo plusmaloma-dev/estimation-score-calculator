@@ -18,6 +18,7 @@ const expectedMigrations = [
   '202607260008_gameplay_round_state.sql',
   '202607260009_gameplay_round_rpc.sql',
   '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
+  '202607290011_active_round_next_round.sql',
 ];
 
 const forbiddenSql = [
@@ -86,6 +87,19 @@ test('gameplay Start migration disambiguates the bot-seat loop variable', () => 
   assert.ok(sql.includes('seat.seat_number = target_seat_number'));
   assert.equal(sql.includes('for seat_number in 1..4 loop'), false);
   assert.equal(sql.includes('seat.seat_number = seat_number'), false);
+});
+
+test('next-round migration mirrors the root copy byte-for-byte', () => {
+  const isolatedPath = join(migrationsDirectory, '202607290011_active_round_next_round.sql');
+  const rootPath = join('supabase', 'migrations', '202607290011_active_round_next_round.sql');
+
+  assert.equal(existsSync(isolatedPath), true, 'Missing isolated next-round migration.');
+  assert.equal(existsSync(rootPath), true, 'Missing root next-round migration mirror.');
+  assert.deepEqual(
+    readFileSync(isolatedPath),
+    readFileSync(rootPath),
+    'Root and isolated next-round migrations must be byte-identical.',
+  );
 });
 
 test('gameplay Supabase config is isolated and both functions require JWTs', () => {

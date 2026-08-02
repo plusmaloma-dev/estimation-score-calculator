@@ -9,6 +9,7 @@ const startFunctionPath = 'supabase-gameplay/supabase/functions/gameplay-start/i
 const roundFunctionPath = 'supabase-gameplay/supabase/functions/gameplay-round-command/index.ts';
 const startFunction = readFileSync(startFunctionPath, 'utf8');
 const roundFunction = readFileSync(roundFunctionPath, 'utf8');
+const nextRoundMigrationPath = 'supabase-gameplay/supabase/migrations/202607290011_active_round_next_round.sql';
 
 function expectText(value: string): RegExp {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -61,6 +62,15 @@ test('gameplay Functions have deployable dependency maps and resolvable local im
       );
     }
   }
+});
+
+test('next-round activation remains an additive database-only service boundary', () => {
+  assert.equal(existsSync(nextRoundMigrationPath), true, 'Missing next-round activation migration.');
+  const migration = readFileSync(nextRoundMigrationPath, 'utf8');
+
+  assert.match(migration, /create or replace function public\.start_next_gameplay_round/i);
+  assert.doesNotMatch(migration, /create table public\.gameplay_/i);
+  assert.doesNotMatch(migration, /service_role.*key|authorization\s*:/i);
 });
 
 test('runbook verifies only the isolated gameplay migration workspace and guarded Functions', () => {
