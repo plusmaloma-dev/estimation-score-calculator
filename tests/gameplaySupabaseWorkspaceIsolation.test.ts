@@ -19,6 +19,7 @@ const expectedMigrations = [
   '202607260009_gameplay_round_rpc.sql',
   '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
   '202607290011_active_round_next_round.sql',
+  '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
 ];
 
 const forbiddenSql = [
@@ -87,6 +88,23 @@ test('gameplay Start migration disambiguates the bot-seat loop variable', () => 
   assert.ok(sql.includes('seat.seat_number = target_seat_number'));
   assert.equal(sql.includes('for seat_number in 1..4 loop'), false);
   assert.equal(sql.includes('seat.seat_number = seat_number'), false);
+});
+
+test('gameplay round correction migration qualifies every table-id predicate', () => {
+  const correctionPath = join(
+    migrationsDirectory,
+    '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
+  );
+  assert.equal(existsSync(correctionPath), true, 'Missing gameplay round ambiguity correction migration.');
+
+  const sql = compact(readFileSync(correctionPath, 'utf8'));
+  assert.match(sql, /create or replace function public\.initialize_gameplay_round_state/);
+  assert.match(sql, /create or replace function public\.load_gameplay_round_for_engine/);
+  assert.ok(sql.includes('where state_record.table_id = p_table_id'));
+  assert.ok(sql.includes('where control_record.table_id = p_table_id'));
+  assert.ok(sql.includes('where command_record.table_id = p_table_id'));
+  assert.ok(sql.includes('where seat_record.table_id = p_table_id'));
+  assert.equal(/where table_id = p_table_id/.test(sql), false);
 });
 
 test('next-round migration mirrors the root copy byte-for-byte', () => {
