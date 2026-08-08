@@ -32,6 +32,13 @@ test('Start Function generates private cryptographic deal inputs server-side', (
   assert.doesNotMatch(edge, /json\([^)]*(seedHex|shuffledDeck|dealAudit|state\.hands)/i);
 });
 
+test('Start Function explicitly bootstraps the first round', () => {
+  assert.match(
+    compact(edge),
+    /initialization:\s*\{\s*kind:\s*['"]first-round['"]\s*\}/i,
+  );
+});
+
 test('Start Function uses deterministic retry-safe sub-command identities', () => {
   const normalized = compact(edge);
   assert.match(normalized, /start_gameplay_table/i);

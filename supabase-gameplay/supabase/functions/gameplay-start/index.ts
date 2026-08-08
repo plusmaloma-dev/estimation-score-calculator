@@ -173,6 +173,7 @@ async function initializeRound(
     seedHex,
     dealId: crypto.randomUUID(),
     nonce: crypto.randomUUID(),
+    initialization: { kind: 'first-round' },
   });
   const occurredAt = new Date().toISOString();
   const initialized = await rpc(client, 'initialize_gameplay_round_state', {
