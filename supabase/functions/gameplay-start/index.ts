@@ -327,6 +327,10 @@ Deno.serve(async (request) => {
     );
     return json(await roundService.getSnapshot(body.tableId, actor));
   } catch (error) {
+    console.error(
+      'gameplay-start failed:',
+      error instanceof Error ? error.message : 'Unknown gameplay-start error.',
+    );
     return json({
       valid: false,
       errors: [error instanceof Error ? error.message : 'Gameplay Start failed.'],
