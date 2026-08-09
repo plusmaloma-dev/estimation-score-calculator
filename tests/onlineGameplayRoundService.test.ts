@@ -198,8 +198,11 @@ test('startNextRound maps stale and private-looking failures to privacy-safe cli
   );
 
   assert.deepEqual(stale.errors, ['Next round state changed. Refresh and try again.']);
+  assert.equal(stale.failureKind, 'definitive-rejection');
   assert.deepEqual(privateFailure.errors, ['Next round could not be started. Refresh and try again.']);
+  assert.equal(privateFailure.failureKind, 'definitive-rejection');
   assert.deepEqual(thrown.errors, ['Next round could not be started. Refresh and try again.']);
+  assert.equal(thrown.failureKind, 'ambiguous');
 });
 
 test('database and domain errors never report success', async () => {

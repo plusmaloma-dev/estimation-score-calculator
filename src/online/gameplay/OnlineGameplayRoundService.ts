@@ -32,6 +32,13 @@ export interface GameplayRoundFunctionClient {
   };
 }
 
+export type NextRoundFailureKind = 'definitive-rejection' | 'ambiguous';
+
+export interface OnlineStartNextRoundResult
+  extends OnlineGameplayResult<OnlineGameplayRoundSnapshot> {
+  readonly failureKind?: NextRoundFailureKind;
+}
+
 const PHASES = ['bidding', 'playing', 'scored'] as const;
 const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
@@ -124,7 +131,7 @@ export class OnlineGameplayRoundService {
     expectedRoundVersion: number,
     expectedControlVersion: number,
     commandId: string,
-  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+  ): Promise<OnlineStartNextRoundResult> {
     const errors = this.validateNextRoundCommand(
       tableId,
       expectedRoundNumber,
@@ -132,20 +139,51 @@ export class OnlineGameplayRoundService {
       expectedControlVersion,
       commandId,
     );
-    if (errors.length > 0) return this.failure(errors);
-    return this.invokeFunction(
-      'gameplay-round-command',
-      {
-        action: 'start-next-round',
-        tableId: tableId.trim(),
-        commandId: commandId.trim(),
-        expectedRoundNumber,
-        expectedRoundVersion,
-        expectedControlVersion,
-      },
-      false,
-      (responseErrors) => [this.nextRoundError(responseErrors)],
-    );
+    if (errors.length > 0) return this.nextRoundFailure(errors, 'definitive-rejection');
+
+    const body = {
+      action: 'start-next-round',
+      tableId: tableId.trim(),
+      commandId: commandId.trim(),
+      expectedRoundNumber,
+      expectedRoundVersion,
+      expectedControlVersion,
+    };
+
+    try {
+      const response = await this.client.functions.invoke('gameplay-round-command', { body });
+      if (response.error !== null) {
+        return this.nextRoundFailure([response.error.message], 'ambiguous');
+      }
+
+      const envelope = this.object(response.data);
+      if (envelope === undefined || typeof envelope.valid !== 'boolean') {
+        return this.nextRoundFailure(['Gameplay round response is incomplete.'], 'ambiguous');
+      }
+      const errors = this.stringArray(envelope.errors);
+      if (!envelope.valid) {
+        return this.nextRoundFailure(
+          errors.length > 0 ? errors : ['Gameplay round command was rejected.'],
+          'definitive-rejection',
+        );
+      }
+      if (this.containsProhibitedField(envelope.value)) {
+        return this.nextRoundFailure(
+          ['Gameplay round snapshot contains prohibited private fields.'],
+          'ambiguous',
+        );
+      }
+
+      const snapshot = this.parseSnapshot(envelope.value, false);
+      return snapshot === undefined
+        ? this.nextRoundFailure(['Gameplay round snapshot is incomplete.'], 'ambiguous')
+        : { valid: true, errors: [], value: snapshot };
+    } catch (error: unknown) {
+      return this.nextRoundFailure(
+        [error instanceof Error ? error.message : 'Gameplay round command failed.'],
+        'ambiguous',
+      );
+    }
   }
 
   async processBotDirective(
@@ -510,6 +548,17 @@ export class OnlineGameplayRoundService {
     return errors.some((error) => /NEXT_ROUND_STALE|NEXT_ROUND_COMMAND_CONFLICT|stale|concurrent|version/i.test(error))
       ? 'Next round state changed. Refresh and try again.'
       : 'Next round could not be started. Refresh and try again.';
+  }
+
+  private nextRoundFailure(
+    errors: readonly string[],
+    failureKind: NextRoundFailureKind,
+  ): OnlineStartNextRoundResult {
+    return {
+      valid: false,
+      errors: [this.nextRoundError(errors)],
+      failureKind,
+    };
   }
 
   private contractSuit(value: unknown): ContractSuit | undefined {

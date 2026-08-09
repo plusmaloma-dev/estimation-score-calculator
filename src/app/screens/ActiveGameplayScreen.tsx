@@ -540,8 +540,11 @@ export function ActiveGameplayScreen({
       );
       const result = services.gameplayRoundRealtime === undefined
         ? await operation()
-        : await services.gameplayRoundRealtime.runMutation(operation);
+        : await services.gameplayRoundRealtime.runMutation(operation) as Awaited<ReturnType<typeof startNextRoundCommand>>;
       if (!result.valid || result.value === undefined) {
+        if (result.failureKind === 'definitive-rejection') {
+          pendingNextRoundCommandId.current = undefined;
+        }
         setNextRoundError(nextRoundPublicError(result.errors));
         await refreshAuthoritativeGameplayState();
         return;

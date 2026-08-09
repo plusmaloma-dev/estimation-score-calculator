@@ -574,6 +574,7 @@ describe('ActiveGameplayScreen', () => {
     const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
       valid: false,
       errors: ['Next round state changed. Refresh and try again.'],
+      failureKind: 'definitive-rejection',
     }));
     const appServices = services(
       scoredControlSnapshot(),
@@ -589,6 +590,40 @@ describe('ActiveGameplayScreen', () => {
     expect(controlGetSnapshot).toHaveBeenCalledTimes(2);
     expect(roundGetSnapshot).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    const firstCommandId = startNextRound.mock.calls[0]?.[4];
+
+    await user.click(screen.getByRole('button', { name: 'Start Next Round' }));
+
+    expect(startNextRound).toHaveBeenCalledTimes(2);
+    expect(startNextRound.mock.calls[1]?.[4]).not.toBe(firstCommandId);
+    expect(startNextRound.mock.calls[1]?.[4]).toEqual(expect.stringMatching(/^start-next-round:/));
+  });
+
+  it('retains the same next-round command ID after an ambiguous invoke failure', async () => {
+    const user = userEvent.setup();
+    const controlGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() })
+      .mockResolvedValue({ valid: true, errors: [], value: scoredControlSnapshot() });
+    const roundGetSnapshot = vi.fn()
+      .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
+      .mockResolvedValue({ valid: true, errors: [], value: scoredRoundSnapshot() });
+    const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
+      valid: false,
+      errors: ['Next round could not be started. Refresh and try again.'],
+      failureKind: 'ambiguous',
+    }));
+    const appServices = services(
+      scoredControlSnapshot(),
+      { getSnapshot: controlGetSnapshot },
+      { getSnapshot: roundGetSnapshot, startNextRound },
+    );
+
+    renderActive(appServices, 'host-user');
+
+    await user.click(await screen.findByRole('button', { name: 'Start Next Round' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Next round could not be started. Refresh and try again.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('rpc');
     const firstCommandId = startNextRound.mock.calls[0]?.[4];
 
     await user.click(screen.getByRole('button', { name: 'Start Next Round' }));
