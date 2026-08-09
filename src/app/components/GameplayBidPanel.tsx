@@ -23,6 +23,12 @@ function optionKey(option: OnlineGameplayBidOption): string {
   return `${option.tricks}:${option.bidType}:${option.withTargetPlayerId ?? ''}`;
 }
 
+function optionLabel(option: OnlineGameplayBidOption, t: (key: TranslationKey) => string): string {
+  return option.bidType === 'with'
+    ? `${option.tricks} · ${t('with')}`
+    : String(option.tricks);
+}
+
 export function GameplayBidPanel({
   snapshot,
   canSubmit,
@@ -93,7 +99,9 @@ export function GameplayBidPanel({
                 }}
               >
                 {legalBidOptions.map((option) => (
-                  <option key={optionKey(option)} value={optionKey(option)}>{option.tricks}</option>
+                  <option key={optionKey(option)} value={optionKey(option)}>
+                    {optionLabel(option, t)}
+                  </option>
                 ))}
               </select>
             </label>

@@ -68,6 +68,8 @@ describe('GameplayBidPanel', () => {
     expect(within(hand).queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Public estimates' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '5' })).toBeVisible();
+    expect(screen.queryByRole('option', { name: '5 · WITH' })).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5');
     await user.selectOptions(screen.getByLabelText('Contract suit'), 'spades');
@@ -118,8 +120,11 @@ describe('GameplayBidPanel', () => {
     });
 
     expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '4' })).toBeVisible();
+    expect(screen.queryByRole('option', { name: '4 · WITH' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '5 · WITH' })).toBeVisible();
     expect(screen.queryByRole('option', { name: '6' })).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5:with:p2');
     await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -128,6 +133,7 @@ describe('GameplayBidPanel', () => {
       tricks: 5,
       withTargetPlayerId: 'p2',
     });
+    expect(onSubmit).not.toHaveBeenCalledWith(expect.objectContaining({ trumpSuit: expect.any(String) }));
   });
 
   it('does not offer a final estimate that would make total estimates exactly thirteen', () => {
@@ -188,5 +194,42 @@ describe('GameplayBidPanel', () => {
     expect(screen.queryByText('Spades')).not.toBeInTheDocument();
     expect(screen.queryByText('Round 1 estimates')).not.toBeInTheDocument();
     expect(screen.queryByText('Version 2')).not.toBeInTheDocument();
+  });
+
+  it('renders With bid options with the Arabic localized label', () => {
+    window.localStorage.setItem('estimation-language', 'ar');
+    renderPanel(true, vi.fn(async () => undefined), {
+      ...snapshot(),
+      viewerSeat: 3,
+      bidOwnerSeat: 2,
+      nextBidSeat: 3,
+      players: [
+        { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
+        { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
+        {
+          seat: 2,
+          playerId: 'p2',
+          cardCount: 13,
+          actualTricks: 0,
+          bid: { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        },
+        { seat: 3, playerId: 'p3', cardCount: 13, actualTricks: 0 },
+      ],
+      legalNormalEstimates: [4, 5],
+      legalBidOptions: [
+        { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        {
+          tricks: 5,
+          bidType: 'with',
+          requiresContractSuit: false,
+          legalContractSuits: [],
+          withTargetPlayerId: 'p2',
+        },
+      ],
+    });
+
+    expect(screen.getByRole('option', { name: '4' })).toBeVisible();
+    expect(screen.getByRole('option', { name: '5 · مع' })).toBeVisible();
+    expect(screen.queryByRole('option', { name: '5 · WITH' })).not.toBeInTheDocument();
   });
 });
