@@ -101,6 +101,57 @@ function roundSnapshot(
   };
 }
 
+function biddingControlSnapshot(
+  overrides: Partial<OnlineActiveGameControlSnapshot> = {},
+): OnlineActiveGameControlSnapshot {
+  return controlSnapshot({
+    turn: {
+      turnId: 'round-1:bid:8:0',
+      seat: 0,
+      actionKind: 'bid',
+      startedAt: '2026-07-26T14:20:00.000Z',
+      remainingMs: 30_000,
+      status: 'running',
+    },
+    ...overrides,
+  });
+}
+
+function biddingRoundSnapshot(
+  overrides: Partial<OnlineGameplayRoundSnapshot> = {},
+): OnlineGameplayRoundSnapshot {
+  return roundSnapshot({
+    phase: 'bidding',
+    currentTurnSeat: undefined,
+    nextBidSeat: 0,
+    players: [
+      { seat: 0, playerId: 'human-0', cardCount: 2, actualTricks: 0 },
+      { seat: 1, playerId: 'human-1', cardCount: 2, actualTricks: 0 },
+      {
+        seat: 2,
+        playerId: 'bot-2',
+        cardCount: 2,
+        actualTricks: 0,
+        bid: { playerId: 'bot-2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+      },
+      { seat: 3, playerId: 'bot-3', cardCount: 2, actualTricks: 0 },
+    ],
+    legalNormalEstimates: [4, 5],
+    legalBidOptions: [
+      { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+      {
+        tricks: 5,
+        bidType: 'with',
+        requiresContractSuit: false,
+        legalContractSuits: [],
+        withTargetPlayerId: 'bot-2',
+      },
+    ],
+    legalCards: [],
+    ...overrides,
+  });
+}
+
 function services(input: {
   readonly roundRealtime: NonNullable<AppServices['gameplayRoundRealtime']>;
   readonly activeControl?: OnlineActiveGameControlSnapshot;
@@ -154,6 +205,94 @@ function renderActive(appServices: AppServices) {
 }
 
 describe('ActiveGameplayScreen round Realtime', () => {
+  it('preserves focused bidding control across a compatible Realtime update while the action remains available', async () => {
+    let publish: ((snapshot: OnlineGameplayRoundSnapshot) => void) | undefined;
+    const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
+      connect: vi.fn(async (
+        _tableId: string,
+        onSnapshot: (snapshot: OnlineGameplayRoundSnapshot) => void,
+      ) => {
+        publish = onSnapshot;
+      }),
+      disconnect: vi.fn(async () => undefined),
+      refresh: vi.fn(),
+      runMutation: vi.fn(),
+    };
+    const getSnapshot = vi.fn(async () => ({
+      valid: true,
+      errors: [],
+      value: biddingRoundSnapshot(),
+    }));
+    renderActive(services({
+      activeControl: biddingControlSnapshot(),
+      roundRealtime: realtime,
+      getSnapshot,
+    }));
+
+    const estimate = await screen.findByRole('combobox', { name: 'Estimate' });
+    estimate.focus();
+    expect(document.activeElement).toBe(estimate);
+
+    act(() => {
+      publish?.(biddingRoundSnapshot({
+        players: [
+          { seat: 0, playerId: 'human-0', cardCount: 2, actualTricks: 0 },
+          { seat: 1, playerId: 'human-1', cardCount: 2, actualTricks: 0 },
+          {
+            seat: 2,
+            playerId: 'bot-2',
+            cardCount: 2,
+            actualTricks: 1,
+            bid: { playerId: 'bot-2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+          },
+          { seat: 3, playerId: 'bot-3', cardCount: 2, actualTricks: 0 },
+        ],
+      }));
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Estimate' })).toBe(estimate);
+    expect(document.activeElement).toBe(estimate);
+  });
+
+  it('does not require focus to stay when Realtime makes the bidding action unavailable', async () => {
+    let publish: ((snapshot: OnlineGameplayRoundSnapshot) => void) | undefined;
+    const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
+      connect: vi.fn(async (
+        _tableId: string,
+        onSnapshot: (snapshot: OnlineGameplayRoundSnapshot) => void,
+      ) => {
+        publish = onSnapshot;
+      }),
+      disconnect: vi.fn(async () => undefined),
+      refresh: vi.fn(),
+      runMutation: vi.fn(),
+    };
+    renderActive(services({
+      activeControl: biddingControlSnapshot(),
+      roundRealtime: realtime,
+      getSnapshot: vi.fn(async () => ({
+        valid: true,
+        errors: [],
+        value: biddingRoundSnapshot(),
+      })),
+    }));
+
+    const estimate = await screen.findByRole('combobox', { name: 'Estimate' });
+    estimate.focus();
+
+    act(() => {
+      publish?.(biddingRoundSnapshot({
+        version: 9,
+        nextBidSeat: 1,
+        legalNormalEstimates: [],
+        legalBidOptions: [],
+      }));
+    });
+
+    expect(screen.queryByRole('combobox', { name: 'Estimate' })).not.toBeInTheDocument();
+    expect(document.activeElement).not.toBe(estimate);
+  });
+
   it('subscribes once, applies remote authoritative snapshots, and disconnects on unmount', async () => {
     let publish: ((snapshot: OnlineGameplayRoundSnapshot) => void) | undefined;
     const connect = vi.fn(async (

@@ -40,6 +40,13 @@ test('gameplay forms and lifecycle controls retain semantic accessibility', () =
   assert.match(gameplaySource, /role="alert"/i);
 });
 
+test('active round status has a sticky persistence CSS contract', () => {
+  assert.match(gameplayCss, /\.gameplay-round-status\s*\{[\s\S]*position:\s*sticky/i);
+  assert.match(gameplayCss, /\.gameplay-round-status\s*\{[\s\S]*top:\s*[^;]+;/i);
+  assert.match(gameplayCss, /\.gameplay-round-status\s*\{[\s\S]*z-index:\s*[^;]+;/i);
+  assert.match(gameplayCss, /\.gameplay-round-status\s*\{[\s\S]*background:\s*[^;]+;/i);
+});
+
 test('browser gameplay projections do not reference hidden deal material or privileged credentials', () => {
   for (const prohibited of [
     /shuffle[_-]?seed/i,

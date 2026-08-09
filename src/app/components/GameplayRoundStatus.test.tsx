@@ -94,6 +94,8 @@ describe('GameplayRoundStatus', () => {
     renderStatus(presentation());
 
     const status = screen.getByRole('region', { name: /Round 3/ });
+    expect(status).toHaveClass('gameplay-round-status');
+    expect(screen.getAllByRole('region', { name: /Round 3/ })).toHaveLength(1);
     expect(status).toHaveTextContent('Bidding');
     expect(status).toHaveTextContent('Active');
     expect(status).toHaveTextContent('Seat 3');

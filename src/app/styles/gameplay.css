@@ -226,6 +226,13 @@
   box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
 }
 
+.gameplay-round-status {
+  position: sticky;
+  top: .75rem;
+  z-index: 10;
+  background: white;
+}
+
 .gameplay-round-heading {
   align-items: center;
 }
