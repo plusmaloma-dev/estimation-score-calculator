@@ -1,4 +1,4 @@
-import type { Card, CardSuit } from '../../domain/card.js';
+import type { Card, CardSuit, ContractSuit } from '../../domain/card.js';
 import { cardId } from '../../domain/card.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
@@ -21,6 +21,19 @@ function isRedSuit(suit: CardSuit): boolean {
   return suit === 'hearts' || suit === 'diamonds';
 }
 
+function suitLabel(suit: CardSuit, t: ReturnType<typeof useI18n>['t']): string {
+  switch (suit) {
+    case 'spades': return t('spades');
+    case 'hearts': return t('hearts');
+    case 'diamonds': return t('diamonds');
+    case 'clubs': return t('clubs');
+  }
+}
+
+function currentContract(snapshot: OnlineGameplayRoundSnapshot): ContractSuit | undefined {
+  return snapshot.players.find((player) => player.seat === snapshot.bidOwnerSeat)?.bid?.trumpSuit;
+}
+
 export function GameplayCardPanel({
   snapshot,
   canPlay,
@@ -35,6 +48,9 @@ export function GameplayCardPanel({
   const { t } = useI18n();
   const legalIds = new Set(snapshot.legalCards.map((card) => cardId(card)));
   const completedTrickCount = snapshot.completedTricks.at(-1)?.trickNumber ?? 0;
+  const lastCompletedTrick = snapshot.completedTricks.at(-1);
+  const leadSuit = snapshot.currentTrick[0]?.card.suit;
+  const contractSuit = currentContract(snapshot);
 
   return (
     <section className="gameplay-card-panel" aria-labelledby="card-play-heading">
@@ -48,21 +64,48 @@ export function GameplayCardPanel({
       {snapshot.phase === 'playing' && (
         <section className="gameplay-current-trick" aria-labelledby="current-trick-heading">
           <h4 id="current-trick-heading">{t('currentTrick')}</h4>
-          {snapshot.currentTrick.length === 0 ? (
-            <p>{t('waitingForLead')}</p>
-          ) : (
-            <ol aria-label={t('currentTrickCards')}>
-              {snapshot.currentTrick.map((entry) => (
-                <li key={`${entry.seat}:${cardId(entry.card)}`}>
-                  <span>{t('seat')} {entry.seat + 1}</span>
-                  <strong className={isRedSuit(entry.card.suit) ? 'playing-card--red' : ''}>
-                    {compactCardName(entry.card)}
-                  </strong>
-                </li>
-              ))}
-            </ol>
-          )}
+          <p>
+            {leadSuit === undefined
+              ? t('waitingForFirstCard')
+              : `${t('suitToFollow')}: ${suitLabel(leadSuit, t)}`}
+          </p>
+          <table aria-label={t('currentTrickCards')} className="gameplay-current-trick-table">
+            <caption>
+              {leadSuit === undefined
+                ? t('waitingForFirstCard')
+                : `${t('suitToFollow')}: ${suitLabel(leadSuit, t)}`}
+            </caption>
+            <thead>
+              <tr>
+                <th>{t('seat')}</th>
+                <th>{t('card')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.players.map((player) => {
+                const entry = snapshot.currentTrick.find((candidate) => candidate.seat === player.seat);
+                return (
+                  <tr key={player.seat}>
+                    <th scope="row">{t('seat')} {player.seat + 1}</th>
+                    <td>
+                      {entry === undefined ? (
+                        <span>{t('waiting')}</span>
+                      ) : (
+                        <strong className={isRedSuit(entry.card.suit) ? 'playing-card--red' : ''}>
+                          {compactCardName(entry.card)}
+                        </strong>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </section>
+      )}
+
+      {snapshot.phase === 'playing' && lastCompletedTrick !== undefined && (
+        <GameplayFinalTrick trick={lastCompletedTrick} label="last-completed" />
       )}
 
       <div className="gameplay-trick-totals" aria-label={t('tricksWon')}>
@@ -83,6 +126,7 @@ export function GameplayCardPanel({
           ownHand={snapshot.ownHand}
           mode={canPlay && !busy ? 'play' : 'disabled'}
           legalCardIds={legalIds}
+          trumpSuit={contractSuit}
           onPlay={onPlay}
         />
       )}

@@ -7,6 +7,13 @@ import { I18nProvider } from '../i18n/I18nContext.js';
 import { GameplayHand } from './GameplayHand.js';
 
 const ownHand = createCanonicalDeck().slice(0, 13);
+const mixedHand = [
+  { suit: 'clubs', rank: '2' },
+  { suit: 'hearts', rank: 'A' },
+  { suit: 'spades', rank: 'K' },
+  { suit: 'hearts', rank: '3' },
+  { suit: 'diamonds', rank: 'Q' },
+] as const;
 
 function renderHand({
   mode,
@@ -44,11 +51,11 @@ describe('GameplayHand', () => {
 
     const cards = screen.getAllByRole('button');
     expect(cards).toHaveLength(13);
-    expect(cards[0]).toBeEnabled();
-    expect(cards[1]).toBeDisabled();
-    expect(cards[2]).toBeEnabled();
+    expect(screen.getByRole('button', { name: '2 of spades' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '3 of spades' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '4 of spades' })).toBeEnabled();
 
-    await user.click(cards[0]!);
+    await user.click(screen.getByRole('button', { name: '2 of spades' }));
     expect(onPlay).toHaveBeenCalledTimes(1);
     expect(onPlay).toHaveBeenCalledWith(ownHand[0]);
   });
@@ -56,5 +63,38 @@ describe('GameplayHand', () => {
   it('disables every card in a non-actionable state', () => {
     renderHand({ mode: 'disabled' });
     for (const card of screen.getAllByRole('button')) expect(card).toBeDisabled();
+  });
+
+  it('sorts a derived hand copy with trump first and preserves legal state and original card values', async () => {
+    const user = userEvent.setup();
+    const onPlay = vi.fn(async () => undefined);
+    const originalOrder = mixedHand.map(cardId);
+
+    render(
+      <I18nProvider>
+        <GameplayHand
+          ownHand={mixedHand}
+          mode="play"
+          legalCardIds={new Set([cardId(mixedHand[1]!), cardId(mixedHand[2]!)])}
+          trumpSuit="hearts"
+          onPlay={onPlay}
+        />
+      </I18nProvider>,
+    );
+
+    const cards = screen.getAllByRole('button');
+    expect(cards.map((card) => card.getAttribute('aria-label'))).toEqual([
+      'Ace of hearts',
+      '3 of hearts',
+      'King of spades',
+      'Queen of diamonds',
+      '2 of clubs',
+    ]);
+    expect(cards[0]).toBeEnabled();
+    expect(cards[1]).toBeDisabled();
+    expect(cards[2]).toBeEnabled();
+    await user.click(cards[0]!);
+    expect(onPlay).toHaveBeenCalledWith(mixedHand[1]);
+    expect(mixedHand.map(cardId)).toEqual(originalOrder);
   });
 });

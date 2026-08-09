@@ -24,6 +24,14 @@ function snapshot(): OnlineGameplayRoundSnapshot {
     ],
     ownHand: createCanonicalDeck().slice(0, 13),
     legalNormalEstimates: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    legalBidOptions: [
+      {
+        tricks: 5,
+        bidType: 'normal',
+        requiresContractSuit: true,
+        legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
+      },
+    ],
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -71,6 +79,80 @@ describe('GameplayBidPanel', () => {
       tricks: 5,
       trumpSuit: 'spades',
     });
+  });
+
+  it('renders non-owner options without trump and submits matching owner estimate as With', async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderPanel(true, vi.fn(async () => undefined), {
+      ...snapshot(),
+      viewerSeat: 3,
+      bidOwnerSeat: 2,
+      nextBidSeat: 3,
+      players: [
+        { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
+        { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
+        {
+          seat: 2,
+          playerId: 'p2',
+          cardCount: 13,
+          actualTricks: 0,
+          bid: { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        },
+        { seat: 3, playerId: 'p3', cardCount: 13, actualTricks: 0 },
+      ],
+      legalNormalEstimates: [0, 1, 2, 3, 4, 5],
+      legalBidOptions: [
+        { tricks: 0, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 1, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 2, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 3, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        {
+          tricks: 5,
+          bidType: 'with',
+          requiresContractSuit: false,
+          legalContractSuits: [],
+          withTargetPlayerId: 'p2',
+        },
+      ],
+    });
+
+    expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '6' })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5');
+    await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      playerId: 'p3',
+      bidType: 'with',
+      tricks: 5,
+      withTargetPlayerId: 'p2',
+    });
+  });
+
+  it('does not offer a final estimate that would make total estimates exactly thirteen', () => {
+    renderPanel(true, vi.fn(async () => undefined), {
+      ...snapshot(),
+      viewerSeat: 1,
+      bidOwnerSeat: 2,
+      nextBidSeat: 1,
+      legalNormalEstimates: [0, 1, 2, 4, 5],
+      legalBidOptions: [
+        { tricks: 0, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 1, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 2, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
+        {
+          tricks: 5,
+          bidType: 'with',
+          requiresContractSuit: false,
+          legalContractSuits: [],
+          withTargetPlayerId: 'p2',
+        },
+      ],
+    });
+
+    expect(screen.queryByRole('option', { name: '3' })).not.toBeInTheDocument();
   });
 
   it('shows no estimate form or independent waiting instruction when the parent denies the action', () => {

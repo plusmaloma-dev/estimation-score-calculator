@@ -1,5 +1,5 @@
-import type { Card, CardSuit, Rank } from '../../domain/card.js';
-import { cardId } from '../../domain/card.js';
+import type { Card, CardSuit, ContractSuit, Rank } from '../../domain/card.js';
+import { CARD_SUITS, RANKS, cardId } from '../../domain/card.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
 const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
@@ -41,6 +41,22 @@ function cardClass(card: Card, legal: boolean): string {
   ].filter(Boolean).join(' ');
 }
 
+const suitOrder = new Map<CardSuit, number>(CARD_SUITS.map((suit, index) => [suit, index]));
+const rankOrder = new Map<Rank, number>(RANKS.map((rank, index) => [rank, index]));
+
+function sortedHand(ownHand: readonly Card[], trumpSuit?: ContractSuit): readonly Card[] {
+  const trump = trumpSuit === 'no-trump' ? undefined : trumpSuit;
+  return [...ownHand].sort((left, right) => {
+    if (trump !== undefined && left.suit !== right.suit) {
+      if (left.suit === trump) return -1;
+      if (right.suit === trump) return 1;
+    }
+    const suitDifference = (suitOrder.get(left.suit) ?? 0) - (suitOrder.get(right.suit) ?? 0);
+    if (suitDifference !== 0) return suitDifference;
+    return (rankOrder.get(right.rank) ?? 0) - (rankOrder.get(left.rank) ?? 0);
+  });
+}
+
 function CardFace({ card }: { readonly card: Card }) {
   return (
     <>
@@ -54,14 +70,17 @@ export function GameplayHand({
   ownHand,
   mode,
   legalCardIds,
+  trumpSuit,
   onPlay,
 }: {
   readonly ownHand: readonly Card[];
   readonly mode: 'read-only' | 'disabled' | 'play';
   readonly legalCardIds: ReadonlySet<string>;
+  readonly trumpSuit?: ContractSuit;
   readonly onPlay?: (card: Card) => Promise<void>;
 }) {
   const { t } = useI18n();
+  const displayHand = sortedHand(ownHand, trumpSuit);
 
   return (
     <div
@@ -69,7 +88,7 @@ export function GameplayHand({
       role="group"
       aria-label={t('yourHand')}
     >
-      {ownHand.map((card) => {
+      {displayHand.map((card) => {
         const id = cardId(card);
         const legal = mode === 'play' && legalCardIds.has(id);
         const name = accessibleCardName(card);

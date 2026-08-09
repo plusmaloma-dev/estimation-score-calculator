@@ -8,6 +8,32 @@ import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
 
+function ownerBidOptions(tricks: readonly number[]) {
+  return tricks.map((value) => ({
+    tricks: value,
+    bidType: 'normal' as const,
+    requiresContractSuit: true,
+    legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'] as const,
+  }));
+}
+
+function nonOwnerBidOptions(tricks: readonly number[], ownerTricks = 5) {
+  return tricks.map((value) => value === ownerTricks
+    ? {
+        tricks: value,
+        bidType: 'with' as const,
+        requiresContractSuit: false,
+        legalContractSuits: [] as const,
+        withTargetPlayerId: 'p2',
+      }
+    : {
+        tricks: value,
+        bidType: 'normal' as const,
+        requiresContractSuit: false,
+        legalContractSuits: [] as const,
+      });
+}
+
 function controlSnapshot(
   round: OnlineGameplayRoundSnapshot = roundSnapshot(),
 ): OnlineActiveGameControlSnapshot {
@@ -96,6 +122,7 @@ function roundSnapshot(
     ],
     ownHand: createCanonicalDeck().slice(0, 13),
     legalNormalEstimates: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    legalBidOptions: ownerBidOptions([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -161,6 +188,7 @@ describe('ActiveGameplayScreen bidding', () => {
       version: 3,
       nextBidSeat: 3,
       legalNormalEstimates: [],
+      legalBidOptions: [],
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
@@ -212,6 +240,7 @@ describe('ActiveGameplayScreen bidding', () => {
       viewerSeat: 1,
       nextBidSeat: 1,
       legalNormalEstimates: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      legalBidOptions: nonOwnerBidOptions([0, 1, 2, 4, 5]),
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0, bid: { playerId: 'p0', bidType: 'normal', tricks: 2 } },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
@@ -226,7 +255,7 @@ describe('ActiveGameplayScreen bidding', () => {
     expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
     unmount();
 
-    renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [] }), 'user-0');
+    renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [], legalBidOptions: [] }), 'user-0');
     expect(await screen.findByRole('heading', { name: 'Estimate' })).toBeVisible();
     expect(screen.queryByRole('combobox', { name: 'Estimate' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 2');
@@ -239,6 +268,7 @@ describe('ActiveGameplayScreen bidding', () => {
       nextBidSeat: 1,
       version: 5,
       legalNormalEstimates: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      legalBidOptions: nonOwnerBidOptions([0, 1, 2, 4, 5]),
     });
     const playing = roundSnapshot({
       viewerSeat: 1,
@@ -247,6 +277,7 @@ describe('ActiveGameplayScreen bidding', () => {
       nextBidSeat: undefined,
       currentTurnSeat: 0,
       legalNormalEstimates: [],
+      legalBidOptions: [],
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0, bid: { playerId: 'p0', bidType: 'normal', tricks: 2 } },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0, bid: { playerId: 'p1', bidType: 'normal', tricks: 1 } },

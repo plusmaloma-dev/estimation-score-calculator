@@ -38,6 +38,26 @@ function balanceLabel(presentation: ActiveRoundPresentation, t: (key: Translatio
   return `${direction} ${presentation.estimateDistanceFrom13}`;
 }
 
+function phaseLabel(phase: ActiveRoundPresentation['phase'], t: (key: TranslationKey) => string): string {
+  switch (phase) {
+    case 'bidding': return t('bidding');
+    case 'playing': return t('playing');
+    case 'scored': return t('scored');
+    case 'paused': return t('paused');
+    case 'terminated': return t('terminated');
+    case 'loading': return t('loadingActiveRound');
+    case 'synchronizing': return t('synchronizingRoundState');
+  }
+}
+
+function actionLabel(action: ActiveRoundPresentation['actionKind'], t: (key: TranslationKey) => string): string {
+  switch (action) {
+    case 'bid': return t('bid');
+    case 'card': return t('card');
+    case undefined: return t('pending');
+  }
+}
+
 export function GameplayRoundStatus({
   presentation,
 }: {
@@ -54,6 +74,22 @@ export function GameplayRoundStatus({
         <h3 id="round-status-heading">
           {t('round')} {presentation.roundNumber ?? '—'}
         </h3>
+        <div className="gameplay-round-status__meta">
+          <span className="rule-chip">{phaseLabel(presentation.phase, t)}</span>
+          {presentation.activeSeat !== undefined && (
+            <span className="rule-chip">
+              {t('active')}: {t('seat')} {presentation.activeSeat + 1} Â· {actionLabel(presentation.actionKind, t)}
+            </span>
+          )}
+          {presentation.phase !== 'paused'
+            && presentation.phase !== 'scored'
+            && presentation.countdownSeconds !== undefined
+            && (
+              <span className="rule-chip">
+                {presentation.countdownSeconds} {t('seconds')}
+              </span>
+            )}
+        </div>
       </div>
 
       <ul className="gameplay-estimate-list" aria-label={t('estimatesBySeat')}>

@@ -90,6 +90,41 @@ describe('GameplayRoundStatus', () => {
     expect(within(summary).getByText('Seat 3 · Pending')).toBeVisible();
   });
 
+  it('renders compact phase, active action, and timer without duplicating action-banner copy', () => {
+    renderStatus(presentation());
+
+    const status = screen.getByRole('region', { name: /Round 3/ });
+    expect(status).toHaveTextContent('Bidding');
+    expect(status).toHaveTextContent('Active');
+    expect(status).toHaveTextContent('Seat 3');
+    expect(status).toHaveTextContent('Bid');
+    expect(status).toHaveTextContent('20 seconds');
+    expect(status).not.toHaveTextContent('Submit your estimate');
+  });
+
+  it('does not display a stale active timer once the round is scored or paused', () => {
+    const { rerender } = renderStatus(presentation({
+      phase: 'scored',
+      activeSeat: undefined,
+      actionKind: undefined,
+      countdownSeconds: 17,
+    }));
+
+    expect(screen.queryByText('17 seconds')).not.toBeInTheDocument();
+
+    rerender(
+      <I18nProvider>
+        <GameplayRoundStatus presentation={presentation({
+          phase: 'paused',
+          activeSeat: 2,
+          actionKind: 'bid',
+          countdownSeconds: 17,
+        })} />
+      </I18nProvider>,
+    );
+    expect(screen.queryByText('17 seconds')).not.toBeInTheDocument();
+  });
+
   it('keeps Over distance and active Risk visible during card play', () => {
     renderStatus(presentation({
       phase: 'playing',

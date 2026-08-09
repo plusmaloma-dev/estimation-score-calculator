@@ -51,6 +51,12 @@ function snapshot(overrides: Readonly<Record<string, unknown>> = {}): Readonly<R
     ],
     ownHand,
     legalNormalEstimates: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    legalBidOptions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((tricks) => ({
+      tricks,
+      bidType: 'normal',
+      requiresContractSuit: true,
+      legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
+    })),
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -68,6 +74,12 @@ test('getSnapshot calls the authenticated Edge Function without actor spoofing f
   assert.equal(result.value?.viewerSeat, 2);
   assert.equal(result.value?.riskSeat, 1);
   assert.equal(result.value?.ownHand.length, 13);
+  assert.deepEqual(result.value?.legalBidOptions?.[5], {
+    tricks: 5,
+    bidType: 'normal',
+    requiresContractSuit: true,
+    legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
+  });
   assert.deepEqual(database.calls, [{
     name: 'gameplay-round-command',
     body: {
@@ -253,14 +265,49 @@ test('malformed or privacy-unsafe snapshots are rejected entirely', async () => 
     { data: { valid: true, errors: [], value: snapshot({ players: [] }) }, error: null },
     { data: { valid: true, errors: [], value: snapshot({ hands: [[{ suit: 'clubs', rank: 'A' }]] }) }, error: null },
     { data: { valid: true, errors: [], value: snapshot({ ownHand: [{ suit: 'stars', rank: '1' }] }) }, error: null },
+    {
+      data: {
+        valid: true,
+        errors: [],
+        value: snapshot({
+          legalBidOptions: [{
+            tricks: 5,
+            bidType: 'normal',
+            requiresContractSuit: true,
+            legalContractSuits: ['seed'],
+          }],
+        }),
+      },
+      error: null,
+    },
+    {
+      data: {
+        valid: true,
+        errors: [],
+        value: snapshot({
+          legalBidOptions: [{
+            tricks: 5,
+            bidType: 'normal',
+            requiresContractSuit: false,
+            legalContractSuits: [],
+            hand: [{ suit: 'clubs', rank: 'A' }],
+          }],
+        }),
+      },
+      error: null,
+    },
   ]);
   const service = new OnlineGameplayRoundService(database);
 
   const incomplete = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
   const leaked = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
   const invalidCard = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
+  const malformedOption = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
+  const privateOption = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
 
   assert.deepEqual(incomplete.errors, ['Gameplay round snapshot is incomplete.']);
   assert.deepEqual(leaked.errors, ['Gameplay round snapshot contains prohibited private fields.']);
   assert.deepEqual(invalidCard.errors, ['Gameplay round snapshot is incomplete.']);
+  assert.deepEqual(malformedOption.errors, ['Gameplay round snapshot is incomplete.']);
+  assert.deepEqual(privateOption.errors, ['Gameplay round snapshot contains prohibited private fields.']);
 });

@@ -11,15 +11,18 @@ const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
 
 export function GameplayFinalTrick({
   trick,
+  label = 'final',
 }: {
   readonly trick: CompletedGameplayTrick;
+  readonly label?: 'final' | 'last-completed';
 }) {
   const { t } = useI18n();
+  const heading = label === 'last-completed' ? t('lastCompletedTrick') : t('finalTrick');
 
   return (
     <section className="gameplay-final-trick" aria-labelledby="final-trick-heading">
       <h4 id="final-trick-heading">
-        {t('finalTrick')} · {t('trick')} {trick.trickNumber}
+        {heading} · {t('trick')} {trick.trickNumber}
       </h4>
       <ol aria-label={t('finalTrickCards')}>
         {trick.entries.map((entry) => {

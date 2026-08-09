@@ -38,4 +38,15 @@ describe('GameplayFinalTrick', () => {
     expect(items[3]).toHaveTextContent('Seat 2');
     expect(items[3]).toHaveTextContent('4♥');
   });
+
+  it('can label the same retained trick as the last completed trick during play', () => {
+    render(
+      <I18nProvider>
+        <GameplayFinalTrick trick={{ ...finalTrick, trickNumber: 4 }} label="last-completed" />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Last completed trick · Trick 4' })).toBeVisible();
+    expect(within(screen.getByRole('list', { name: 'Final trick cards' })).getAllByRole('listitem')).toHaveLength(4);
+  });
 });

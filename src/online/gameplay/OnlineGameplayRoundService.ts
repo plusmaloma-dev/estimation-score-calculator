@@ -16,6 +16,7 @@ import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
 import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
 import type { OnlineGameplayResult } from './types.js';
 import type {
+  OnlineGameplayBidOption,
   OnlineGameplayRoundPlayer,
   OnlineGameplayRoundSnapshot,
 } from './roundTypes.js';
@@ -314,6 +315,9 @@ export class OnlineGameplayRoundService {
       || row.players.length !== 4
       || !Array.isArray(row.ownHand)
       || !Array.isArray(row.legalNormalEstimates)
+      || row.legalBidOptions !== undefined
+        && row.legalBidOptions !== null
+        && !Array.isArray(row.legalBidOptions)
       || !Array.isArray(row.legalCards)
       || !Array.isArray(row.currentTrick)
       || !Array.isArray(row.completedTricks)
@@ -343,6 +347,22 @@ export class OnlineGameplayRoundService {
       if (parsed === undefined || parsed > 12 || legalNormalEstimates.includes(parsed)) return undefined;
       legalNormalEstimates.push(parsed);
     }
+    const legalBidOptions: OnlineGameplayBidOption[] = [];
+    for (const item of row.legalBidOptions ?? []) {
+      const option = this.parseBidOption(item);
+      if (
+        option === undefined
+        || legalBidOptions.some((candidate) => candidate.tricks === option.tricks)
+      ) return undefined;
+      legalBidOptions.push(option);
+    }
+    if (
+      legalBidOptions.length > 0
+      &&
+      legalNormalEstimates.some((estimate) => (
+        legalBidOptions.find((option) => option.tricks === estimate)?.bidType !== 'normal'
+      ))
+    ) return undefined;
 
     const currentTrick = this.parseTrickEntries(row.currentTrick, false);
     if (currentTrick === undefined) return undefined;
@@ -380,6 +400,7 @@ export class OnlineGameplayRoundService {
       players,
       ownHand,
       legalNormalEstimates,
+      legalBidOptions,
       legalCards,
       currentTrick,
       completedTricks,
@@ -521,6 +542,48 @@ export class OnlineGameplayRoundService {
     }
     if (!commandId.trim()) errors.push('Gameplay command ID is required.');
     return errors;
+  }
+
+  private parseBidOption(value: unknown): OnlineGameplayBidOption | undefined {
+    const row = this.object(value);
+    if (row === undefined) return undefined;
+    const tricks = this.nonNegativeInteger(row.tricks);
+    const bidType = this.oneOf(row.bidType, ['normal', 'with'] as const);
+    const requiresContractSuit = typeof row.requiresContractSuit === 'boolean'
+      ? row.requiresContractSuit
+      : undefined;
+    if (
+      tricks === undefined
+      || tricks > 12
+      || bidType === undefined
+      || requiresContractSuit === undefined
+      || !Array.isArray(row.legalContractSuits)
+    ) return undefined;
+
+    const legalContractSuits: ContractSuit[] = [];
+    for (const suit of row.legalContractSuits) {
+      const parsed = this.contractSuit(suit);
+      if (parsed === undefined || legalContractSuits.includes(parsed)) return undefined;
+      legalContractSuits.push(parsed);
+    }
+
+    const withTargetPlayerId = row.withTargetPlayerId === null || row.withTargetPlayerId === undefined
+      ? undefined
+      : this.string(row.withTargetPlayerId);
+    if (row.withTargetPlayerId !== null && row.withTargetPlayerId !== undefined && withTargetPlayerId === undefined) {
+      return undefined;
+    }
+    if (requiresContractSuit !== (legalContractSuits.length > 0)) return undefined;
+    if (bidType === 'normal' && withTargetPlayerId !== undefined) return undefined;
+    if (bidType === 'with' && withTargetPlayerId === undefined) return undefined;
+
+    return {
+      tricks,
+      bidType,
+      requiresContractSuit,
+      legalContractSuits,
+      ...(withTargetPlayerId === undefined ? {} : { withTargetPlayerId }),
+    };
   }
 
   private validateNextRoundCommand(

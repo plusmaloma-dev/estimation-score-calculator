@@ -1,4 +1,5 @@
 import type { Card } from '../domain/card.js';
+import { HouseRulesBidOptionsService } from './HouseRulesBidOptionsService.js';
 import { HouseRulesRoundEngine } from './HouseRulesRoundEngine.js';
 import type {
   CompletedGameplayTrick,
@@ -11,10 +12,11 @@ import type {
   OnlineGameplayRoundSnapshot,
 } from '../online/gameplay/roundTypes.js';
 
-const NORMAL_ESTIMATES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
-
 export class GameplayRoundSnapshotProjector {
-  constructor(private readonly roundEngine = new HouseRulesRoundEngine()) {}
+  constructor(
+    private readonly roundEngine = new HouseRulesRoundEngine(),
+    private readonly bidOptionsService = new HouseRulesBidOptionsService(),
+  ) {}
 
   project(
     tableId: string,
@@ -43,9 +45,10 @@ export class GameplayRoundSnapshotProjector {
 
     const currentTrick = state.currentTrick.map((entry) => this.copyEntry(entry));
     const completedTricks = state.completedTricks.map((trick) => this.copyCompletedTrick(trick));
-    const legalNormalEstimates = nextBidSeat === viewerSeat
-      ? this.legalNormalEstimates(state)
-      : [];
+    const legalBidOptions = this.bidOptionsService.legalOptions(state, viewerSeat);
+    const legalNormalEstimates = legalBidOptions
+      .filter((option) => option.bidType === 'normal')
+      .map((option) => option.tricks);
     const legalCards = state.phase === 'playing' && state.currentTurnSeat === viewerSeat
       ? this.roundEngine.legalCards(state, viewerSeat).map((card) => this.copyCard(card))
       : [];
@@ -64,20 +67,12 @@ export class GameplayRoundSnapshotProjector {
       players,
       ownHand: state.hands[viewerSeat].cards.map((card) => this.copyCard(card)),
       legalNormalEstimates,
+      legalBidOptions: legalBidOptions.map((option) => ({ ...option })),
       legalCards,
       currentTrick,
       completedTricks,
       ...(state.scoreResult === undefined ? {} : { scoreResult: state.scoreResult }),
     };
-  }
-
-  private legalNormalEstimates(state: HouseRulesRoundState): readonly number[] {
-    if (state.phase !== 'bidding') return [];
-    if (state.currentBidIndex !== 3) return [...NORMAL_ESTIMATES];
-
-    const currentTotal = state.bids.reduce((total, bid) => total + bid.tricks, 0);
-    const prohibitedEstimate = 13 - currentTotal;
-    return NORMAL_ESTIMATES.filter((estimate) => estimate !== prohibitedEstimate);
   }
 
   private copyCard(card: Card): Card {

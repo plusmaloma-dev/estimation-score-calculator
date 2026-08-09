@@ -1,18 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { EstimationBid } from '../../domain/bid.js';
 import type { ContractSuit } from '../../domain/card.js';
-import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
+import type {
+  OnlineGameplayBidOption,
+  OnlineGameplayRoundSnapshot,
+} from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
 import type { TranslationKey } from '../i18n/translations.js';
 import { GameplayHand } from './GameplayHand.js';
-
-const CONTRACT_OPTIONS: readonly ContractSuit[] = [
-  'no-trump',
-  'spades',
-  'hearts',
-  'diamonds',
-  'clubs',
-];
 
 function contractLabelKey(contract: ContractSuit): TranslationKey {
   switch (contract) {
@@ -22,6 +17,10 @@ function contractLabelKey(contract: ContractSuit): TranslationKey {
     case 'diamonds': return 'diamonds';
     case 'clubs': return 'clubs';
   }
+}
+
+function optionKey(option: OnlineGameplayBidOption): string {
+  return `${option.tricks}:${option.bidType}:${option.withTargetPlayerId ?? ''}`;
 }
 
 export function GameplayBidPanel({
@@ -36,29 +35,32 @@ export function GameplayBidPanel({
   readonly onSubmit: (bid: EstimationBid) => Promise<void>;
 }) {
   const { t } = useI18n();
-  const firstEstimate = snapshot.legalNormalEstimates[0];
-  const [estimate, setEstimate] = useState(firstEstimate === undefined ? '' : String(firstEstimate));
+  const legalBidOptions = snapshot.legalBidOptions ?? [];
+  const firstOption = legalBidOptions[0];
+  const [selectedOptionKey, setSelectedOptionKey] = useState(firstOption === undefined ? '' : optionKey(firstOption));
   const [contractSuit, setContractSuit] = useState<ContractSuit | ''>('');
-  const isBidOwner = snapshot.viewerSeat === snapshot.bidOwnerSeat;
+  const selectedOption = legalBidOptions.find((option) => optionKey(option) === selectedOptionKey);
 
   useEffect(() => {
-    const next = snapshot.legalNormalEstimates[0];
-    setEstimate(next === undefined ? '' : String(next));
-    if (!isBidOwner) setContractSuit('');
-  }, [isBidOwner, snapshot.legalNormalEstimates, snapshot.version]);
+    const next = snapshot.legalBidOptions?.[0];
+    setSelectedOptionKey(next === undefined ? '' : optionKey(next));
+    setContractSuit('');
+  }, [snapshot.legalBidOptions, snapshot.version]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const tricks = Number(estimate);
     const player = snapshot.players.find((candidate) => candidate.seat === snapshot.viewerSeat);
-    if (player === undefined || !snapshot.legalNormalEstimates.includes(tricks)) return;
-    if (isBidOwner && contractSuit === '') return;
+    if (player === undefined || selectedOption === undefined) return;
+    if (selectedOption.requiresContractSuit && contractSuit === '') return;
 
     await onSubmit({
       playerId: player.playerId,
-      bidType: 'normal',
-      tricks,
-      ...(contractSuit === '' ? {} : { trumpSuit: contractSuit }),
+      bidType: selectedOption.bidType,
+      tricks: selectedOption.tricks,
+      ...(selectedOption.requiresContractSuit ? { trumpSuit: contractSuit as ContractSuit } : {}),
+      ...(selectedOption.withTargetPlayerId === undefined
+        ? {}
+        : { withTargetPlayerId: selectedOption.withTargetPlayerId }),
     });
   }
 
@@ -83,16 +85,19 @@ export function GameplayBidPanel({
             <label>
               {t('estimate')}
               <select
-                value={estimate}
+                value={selectedOptionKey}
                 disabled={busy}
-                onChange={(event) => setEstimate(event.target.value)}
+                onChange={(event) => {
+                  setSelectedOptionKey(event.target.value);
+                  setContractSuit('');
+                }}
               >
-                {snapshot.legalNormalEstimates.map((value) => (
-                  <option key={value} value={value}>{value}</option>
+                {legalBidOptions.map((option) => (
+                  <option key={optionKey(option)} value={optionKey(option)}>{option.tricks}</option>
                 ))}
               </select>
             </label>
-            {isBidOwner && (
+            {selectedOption?.requiresContractSuit === true && (
               <label>
                 {t('contractSuit')}
                 <select
@@ -102,7 +107,7 @@ export function GameplayBidPanel({
                   onChange={(event) => setContractSuit(event.target.value as ContractSuit | '')}
                 >
                   <option value="">{t('selectContract')}</option>
-                  {CONTRACT_OPTIONS.map((option) => (
+                  {selectedOption.legalContractSuits.map((option) => (
                     <option key={option} value={option}>{t(contractLabelKey(option))}</option>
                   ))}
                 </select>
@@ -112,7 +117,7 @@ export function GameplayBidPanel({
           <button
             className="primary-button"
             type="submit"
-            disabled={busy || estimate === '' || isBidOwner && contractSuit === ''}
+            disabled={busy || selectedOption === undefined || selectedOption.requiresContractSuit && contractSuit === ''}
           >
             {t('submitEstimate')}
           </button>

@@ -1,5 +1,5 @@
 import type { EstimationBid } from '../../domain/bid.js';
-import type { Card } from '../../domain/card.js';
+import type { Card, ContractSuit } from '../../domain/card.js';
 import type {
   CompletedGameplayTrick,
   GameplayRoundPhase,
@@ -16,6 +16,14 @@ export interface OnlineGameplayRoundPlayer {
   readonly actualTricks: number;
 }
 
+export interface OnlineGameplayBidOption {
+  readonly tricks: number;
+  readonly bidType: 'normal' | 'with';
+  readonly requiresContractSuit: boolean;
+  readonly legalContractSuits: readonly ContractSuit[];
+  readonly withTargetPlayerId?: string;
+}
+
 export interface OnlineGameplayRoundSnapshot {
   readonly tableId: string;
   readonly roundNumber: number;
@@ -30,6 +38,7 @@ export interface OnlineGameplayRoundSnapshot {
   readonly players: readonly OnlineGameplayRoundPlayer[];
   readonly ownHand: readonly Card[];
   readonly legalNormalEstimates: readonly number[];
+  readonly legalBidOptions?: readonly OnlineGameplayBidOption[];
   readonly legalCards: readonly Card[];
   readonly currentTrick: readonly GameplayTrickEntry[];
   readonly completedTricks: readonly CompletedGameplayTrick[];

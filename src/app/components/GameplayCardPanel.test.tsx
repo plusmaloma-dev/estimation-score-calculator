@@ -26,6 +26,7 @@ function snapshot(overrides: Partial<OnlineGameplayRoundSnapshot> = {}): OnlineG
       { suit: 'clubs', rank: '2' },
     ],
     legalNormalEstimates: [],
+    legalBidOptions: [],
     legalCards: [{ suit: 'hearts', rank: 'A' }],
     currentTrick: [{ seat: 2, card: { suit: 'hearts', rank: '4' } }],
     completedTricks: [],
@@ -130,6 +131,54 @@ describe('GameplayCardPanel', () => {
     expect(screen.getByText('Winner')).toBeVisible();
     expect(screen.queryByText('Waiting for the opening card.')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('renders an empty current trick as four stable seat positions with waiting state', () => {
+    renderPanel(snapshot({ currentTrick: [] }));
+
+    const trick = screen.getByRole('table', { name: 'Current trick cards' });
+    expect(within(trick).getAllByRole('row')).toHaveLength(5);
+    expect(within(trick).getByText('Waiting for first card')).toBeVisible();
+    for (const seat of ['Seat 1', 'Seat 2', 'Seat 3', 'Seat 4']) {
+      expect(within(trick).getByText(seat)).toBeVisible();
+    }
+  });
+
+  it('keeps four trick seats stable and shows suit to follow after the lead card', () => {
+    renderPanel(snapshot({
+      currentTrick: [
+        { seat: 2, card: { suit: 'hearts', rank: '4' } },
+        { seat: 3, card: { suit: 'hearts', rank: 'K' } },
+        { seat: 0, card: { suit: 'hearts', rank: 'A' } },
+      ],
+    }));
+
+    const trick = screen.getByRole('table', { name: 'Current trick cards' });
+    expect(within(trick).getAllByRole('row')).toHaveLength(5);
+    expect(within(trick).getByText('Suit to follow: Hearts')).toBeVisible();
+    expect(within(trick).getByText('Seat 2')).toBeVisible();
+    expect(within(trick).getAllByText('Waiting')).toHaveLength(1);
+  });
+
+  it('shows the last completed trick while the next trick is in progress', () => {
+    renderPanel(snapshot({
+      currentTrick: [{ seat: 1, card: { suit: 'clubs', rank: '2' } }],
+      completedTricks: [{
+        trickNumber: 4,
+        leaderSeat: 0,
+        entries: [
+          { seat: 0, card: { suit: 'spades', rank: 'A' } },
+          { seat: 1, card: { suit: 'spades', rank: '2' } },
+          { seat: 2, card: { suit: 'spades', rank: '3' } },
+          { seat: 3, card: { suit: 'spades', rank: '4' } },
+        ],
+        winnerSeat: 0,
+      }],
+    }));
+
+    expect(screen.getByRole('heading', { name: 'Last completed trick · Trick 4' })).toBeVisible();
+    expect(screen.getByText('A♠')).toBeVisible();
+    expect(screen.getByText('2♣')).toBeVisible();
   });
 
   it('renders public card and trick seat labels in Arabic', () => {
