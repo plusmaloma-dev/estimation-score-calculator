@@ -89,7 +89,46 @@ function verifiedLocalInventory() {
   }
 }
 
+function migrationValue(value) {
+  if (value === null || value === '') return '';
+  if (typeof value !== 'string' || !/^\d{12}$/.test(value)) {
+    fail('Linked migration state output is malformed.');
+  }
+  return value;
+}
+
+function parseJsonMigrationList(output) {
+  let parsed;
+  try {
+    parsed = JSON.parse(output);
+  } catch {
+    fail('Linked migration state output is malformed.');
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed) || !Array.isArray(parsed.migrations)) {
+    fail('Linked migration state output is malformed.');
+  }
+  const rows = parsed.migrations.map((migration) => {
+    if (migration === null || typeof migration !== 'object' || Array.isArray(migration)
+      || !Object.hasOwn(migration, 'local') || !Object.hasOwn(migration, 'remote') || !Object.hasOwn(migration, 'time')) {
+      fail('Linked migration state output is malformed.');
+    }
+    if (typeof migration.time !== 'string' || !/^\d{12}$/.test(migration.time)) {
+      fail('Linked migration state output is malformed.');
+    }
+    const local = migrationValue(migration.local);
+    const remote = migrationValue(migration.remote);
+    if (local === '' && remote === '') fail('Linked migration state output is malformed.');
+    return { local, remote };
+  });
+  if (rows.length === 0) fail('Linked migration state output is malformed.');
+  return rows;
+}
+
 function parseMigrationList(output) {
+  const trimmed = output.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    return parseJsonMigrationList(trimmed);
+  }
   const rows = [];
   for (const rawLine of output.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -113,9 +152,8 @@ function inspectLinkedMigrationState() {
   return parseMigrationList(output);
 }
 
-function assertState(rows, expectedRemoteNames, stage) {
+function checkedRemoteState(rows, stage) {
   const expectedVersions = EXPECTED_MIGRATIONS.map(migrationVersion);
-  const expectedRemote = expectedRemoteNames.map(migrationVersion);
   const local = [];
   const remote = [];
   for (const row of rows) {
@@ -134,6 +172,17 @@ function assertState(rows, expectedRemoteNames, stage) {
   if (local.length !== expectedVersions.length || expectedVersions.some((value, index) => local[index] !== value)) {
     fail(`Linked migration state does not list the reviewed local migrations in order during ${stage}.`);
   }
+  return remote;
+}
+
+function matchesRemoteState(remote, expectedRemoteNames) {
+  const expectedRemote = expectedRemoteNames.map(migrationVersion);
+  return remote.length === expectedRemote.length && expectedRemote.every((value, index) => remote[index] === value);
+}
+
+function assertState(rows, expectedRemoteNames, stage) {
+  const remote = checkedRemoteState(rows, stage);
+  const expectedRemote = expectedRemoteNames.map(migrationVersion);
   if (remote.length !== expectedRemote.length || expectedRemote.some((value, index) => remote[index] !== value)) {
     fail(`Linked migration state does not exactly match the reviewed remote migrations during ${stage}.`);
   }
@@ -148,16 +197,22 @@ const { projectRef, expectedSha } = validateArguments(process.argv.slice(2));
 verifiedLocalInventory();
 runGuard(projectRef, expectedSha, 'before migration inspection');
 const before = inspectLinkedMigrationState();
-assertState(before, EXPECTED_MIGRATIONS.slice(0, 10), 'pre-push verification');
-const pending = pendingNames(before);
-if (pending.length !== EXPECTED_PENDING.length || pending.some((name, index) => name !== EXPECTED_PENDING[index])) {
-  fail('Pending gameplay migrations do not exactly match the reviewed deployment set.');
+const beforeRemote = checkedRemoteState(before, 'pre-push verification');
+if (matchesRemoteState(beforeRemote, EXPECTED_MIGRATIONS.slice(0, 10))) {
+  const pending = pendingNames(before);
+  if (pending.length !== EXPECTED_PENDING.length || pending.some((name, index) => name !== EXPECTED_PENDING[index])) {
+    fail('Pending gameplay migrations do not exactly match the reviewed deployment set.');
+  }
+  console.log(`Reviewed pending migrations: ${pending.join(', ')}`);
+  runGuard(projectRef, expectedSha, 'immediately before migration push');
+  console.log('Migration push started.');
+  runNpx(['supabase', '--workdir', WORKSPACE, 'db', 'push', '--linked'], true, 'Supabase migration push failed.');
+  const after = inspectLinkedMigrationState();
+  assertState(after, EXPECTED_MIGRATIONS, 'post-push verification');
+  if (pendingNames(after).length !== 0) fail('Post-push migration verification found residual pending migrations.');
+  console.log('Migration deployment succeeded: all reviewed migrations are applied.');
+} else if (matchesRemoteState(beforeRemote, EXPECTED_MIGRATIONS)) {
+  console.log('All reviewed gameplay migrations are already applied; no database push is required.');
+} else {
+  fail('Linked migration state does not match an approved deployment state.');
 }
-console.log(`Reviewed pending migrations: ${pending.join(', ')}`);
-runGuard(projectRef, expectedSha, 'immediately before migration push');
-console.log('Migration push started.');
-runNpx(['supabase', '--workdir', WORKSPACE, 'db', 'push', '--linked'], true, 'Supabase migration push failed.');
-const after = inspectLinkedMigrationState();
-assertState(after, EXPECTED_MIGRATIONS, 'post-push verification');
-if (pendingNames(after).length !== 0) fail('Post-push migration verification found residual pending migrations.');
-console.log('Migration deployment succeeded: all reviewed migrations are applied.');

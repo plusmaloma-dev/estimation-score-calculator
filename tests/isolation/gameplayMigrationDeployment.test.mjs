@@ -37,6 +37,18 @@ function migrationList(remoteVersions) {
   ].join('\n');
 }
 
+function migrationListJson(remoteVersions) {
+  const remote = new Set(remoteVersions);
+  return JSON.stringify({
+    migrations: expectedMigrations.map((name) => ({
+      local: version(name),
+      remote: remote.has(version(name)) ? version(name) : null,
+      time: version(name),
+    })),
+    message: 'Migrations listed',
+  });
+}
+
 function git(root, ...args) {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 }
@@ -131,6 +143,14 @@ function validResponses() {
   ];
 }
 
+function validJsonResponses() {
+  return [
+    { action: 'list', stdout: migrationListJson(expectedMigrations.slice(0, 10).map(version)) },
+    { action: 'push' },
+    { action: 'list', stdout: migrationListJson(expectedMigrations.map(version)) },
+  ];
+}
+
 function withFixture(responses, check) {
   const fixture = createFixture(responses);
   try {
@@ -151,6 +171,41 @@ test('accepts the exact gameplay ref', () => {
     }
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+test('accepts the actual JSON migration-list format and pushes exactly once when 011 and 012 are pending', () => {
+  withFixture(validJsonResponses(), (fixture) => {
+    const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 1);
+  });
+});
+
+test('treats the actual JSON format with all reviewed migrations applied as a no-op', () => {
+  withFixture([{ action: 'list', stdout: migrationListJson(expectedMigrations.map(version)) }], (fixture) => {
+    const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 0);
+    assert.match(result.stdout, /already applied; no database push is required/i);
+  });
+});
+
+test('rejects malformed JSON migration-list output', () => {
+  withFixture([{ action: 'list', stdout: '{"migrations":' }], (fixture) => {
+    const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
+    assert.notEqual(result.status, 0);
+    assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 0);
+  });
+});
+
+test('rejects an unexpected remote migration in JSON migration-list output', () => {
+  const rows = JSON.parse(migrationListJson(expectedMigrations.map(version)));
+  rows.migrations.push({ local: null, remote: '202608090013', time: '202608090013' });
+  withFixture([{ action: 'list', stdout: JSON.stringify(rows) }], (fixture) => {
+    const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
+    assert.notEqual(result.status, 0);
+    assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 0);
   });
 });
 
