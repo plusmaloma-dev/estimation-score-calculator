@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { delimiter, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 
@@ -57,6 +57,9 @@ if (response?.stdout) process.stdout.write(response.stdout);
 if (response?.stderr) process.stderr.write(response.stderr);
 process.exit(response?.status ?? 0);
 `);
+  const unixShim = join(bin, 'npx');
+  writeFileSync(unixShim, `#!/usr/bin/env node\nimport './fake-npx.mjs';\n`);
+  chmodSync(unixShim, 0o755);
   writeFileSync(join(bin, 'npx.cmd'), `@echo off\r\nnode "${fake}" %*\r\n`);
 }
 
@@ -89,13 +92,15 @@ function createFixture(responses) {
   createFakeNpx(bin);
   return {
     root,
+    bin,
     sha,
     log,
     run(args, extraEnvironment = {}) {
       const environment = { ...process.env, ...extraEnvironment };
+      const systemPath = process.env.PATH ?? process.env.Path ?? '';
       delete environment.PATH;
       delete environment.Path;
-      environment.Path = `${bin};${process.env.Path ?? process.env.PATH ?? ''}`;
+      environment[process.platform === 'win32' ? 'Path' : 'PATH'] = `${bin}${delimiter}${systemPath}`;
       return spawnSync(process.execPath, [wrapper, ...args], {
         cwd: root,
         encoding: 'utf8',
@@ -137,6 +142,13 @@ function withFixture(responses, check) {
 
 test('accepts the exact gameplay ref', () => {
   withFixture(validResponses(), (fixture) => {
+    assert.equal(existsSync(join(fixture.bin, 'npx.cmd')), true);
+    assert.equal(existsSync(join(fixture.bin, 'npx')), true);
+    assert.match(readFileSync(join(fixture.bin, 'npx.cmd'), 'utf8'), /fake-npx\.mjs/);
+    assert.match(readFileSync(join(fixture.bin, 'npx'), 'utf8'), /fake-npx\.mjs/);
+    if (process.platform !== 'win32') {
+      assert.notEqual(statSync(join(fixture.bin, 'npx')).mode & 0o111, 0);
+    }
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.equal(result.status, 0, result.stderr);
   });
