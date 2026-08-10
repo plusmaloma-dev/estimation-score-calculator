@@ -74,6 +74,9 @@ test('next-round activation remains an additive database-only service boundary',
 });
 
 test('runbook verifies only the isolated gameplay migration workspace and guarded Functions', () => {
+  assert.match(runbook, /npm run deploy:gameplay-migrations/i);
+  assert.doesNotMatch(runbook, /^\s*npx\s+supabase\s+(?:--workdir\s+supabase-gameplay\s+)?db\s+push/im);
+  assert.match(runbook, /migrations[\s\S]*gameplay-round-command[\s\S]*legalBidOptions[\s\S]*frontend[\s\S]*fresh UAT table/is);
   assert.match(runbook, /gameplay-target-guard\.mjs[\s\S]*supabase \$newGameplayRef/i);
   assert.match(runbook, /supabase --workdir supabase-gameplay migration list --linked/i);
   assert.match(runbook, /deploy-gameplay-function\.mjs[\s\S]*gameplay-start/i);
@@ -91,6 +94,9 @@ test('runbook verifies only the isolated gameplay migration workspace and guarde
     '202607260007_active_game_control_rpc.sql',
     '202607260008_gameplay_round_state.sql',
     '202607260009_gameplay_round_rpc.sql',
+    '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
+    '202607290011_active_round_next_round.sql',
+    '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
   ]) {
     assert.match(runbook, expectText(migration), `Missing migration ${migration}.`);
   }

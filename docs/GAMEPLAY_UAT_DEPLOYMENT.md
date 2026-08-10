@@ -115,9 +115,9 @@ if ($LASTEXITCODE -ne 0) {
 
 The guard must reject `lexewcehptnmikwfizhj` and any checkout other than the dedicated gameplay checkout.
 
-## 5. Verify the nine gameplay migrations
+## 5. Guarded gameplay database migration deployment
 
-The linked gameplay project must contain exactly these applied migrations:
+The reviewed gameplay migration inventory contains exactly these twelve migrations:
 
 1. `202607260001_gameplay_identity.sql`
 2. `202607260002_gameplay_identity_rls.sql`
@@ -128,14 +128,27 @@ The linked gameplay project must contain exactly these applied migrations:
 7. `202607260007_active_game_control_rpc.sql`
 8. `202607260008_gameplay_round_state.sql`
 9. `202607260009_gameplay_round_rpc.sql`
+10. `202607280010_fix_gameplay_start_seat_number_ambiguity.sql`
+11. `202607290011_active_round_next_round.sql`
+12. `202608080012_fix_gameplay_round_table_id_ambiguity.sql`
 
-Read-only verification:
+For the later hosted deployment represented by this branch, the reviewed pending set is exactly migrations 011 and 012. The only authorized database mutation path is the guarded wrapper:
+
+```powershell
+npm run deploy:gameplay-migrations -- `
+  stedjwppoanbmhxsfhcg `
+  --expected-sha $testedSha
+```
+
+Do not run a direct operator database push. The wrapper runs the gameplay target guard before linked migration-state inspection and again immediately before the mutation boundary, requires the exact twelve-file local inventory and exact 011/012 pending set, uses only `supabase-gameplay`, and re-reads linked state afterward. Read-only migration-list commands are allowed for investigation; ambiguous, remote-only, out-of-order, score-sheet, or unexpected migration state is a stop condition.
+
+For read-only inspection only, use:
 
 ```powershell
 npx supabase --workdir supabase-gameplay migration list --linked
 ```
 
-Stop if any score-sheet persistence object, unexpected migration, destructive change, or mismatched target appears.
+Migration SQL is forward-only. If an application failure occurs after a migration deployment, stop and preserve the migration state. Redeploy previously verified Function or frontend artifacts only through their guarded wrappers if needed; design any database remediation separately. Do not describe or attempt destructive automatic SQL rollback.
 
 ## 6. Verify the authenticated gameplay Functions
 
@@ -159,6 +172,19 @@ node scripts/isolation/deploy-gameplay-function.mjs `
 ```
 
 Do not use direct Function deployment commands from the repository root.
+
+### Required later hosted deployment order
+
+The later hosted deployment must proceed in this order:
+
+1. guarded gameplay migrations;
+2. guarded `gameplay-round-command` Function deployment;
+3. verify that the authoritative round snapshot includes `legalBidOptions`;
+4. guarded gameplay frontend deployment;
+5. create a fresh UAT table;
+6. perform authenticated UAT.
+
+The frontend intentionally does not reconstruct bidding legality when `legalBidOptions` is absent, so it must not precede the compatible backend projection. Preserve all previous evidence tables: do not repair, reuse, terminate, delete, or mutate failed Start evidence tables, split-state human-boundary tables, or other preserved defect evidence.
 
 ## 7. Verify the isolated Auth users and workspace
 

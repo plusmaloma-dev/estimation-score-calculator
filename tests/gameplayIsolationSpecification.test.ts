@@ -35,8 +35,19 @@ test('aggregate isolation command covers every independent boundary', () => {
   assert.match(staticCommand, /gameplayIsolationSpecification\.test\.js/i);
   assert.match(staticCommand, /gameplaySupabaseWorkspaceIsolation\.test\.js/i);
   assert.match(staticCommand, /gameplayTargetGuard\.test\.js/i);
+  assert.match(staticCommand, /gameplayMigrationDeploymentWorkspace\.test\.js/i);
   assert.match(staticCommand, /scoreUatBaseline\.test\.js/i);
   assert.match(staticCommand, /scoreEngineImportBoundary\.test\.js/i);
+});
+
+test('gameplay migration writes use only the guarded gameplay wrapper', () => {
+  const migrationCommand = script('deploy:gameplay-migrations');
+  assert.match(migrationCommand, /deploy-gameplay-migrations\.mjs/i);
+  assert.doesNotMatch(migrationCommand, /--db-url|DATABASE_URL/i);
+  assert.doesNotMatch(migrationCommand, /supabase\s+db\s+push/i);
+
+  const isolationCommand = script('test:isolation-static');
+  assert.match(isolationCommand, /gameplayMigrationDeploymentWorkspace\.test\.js/i);
 });
 
 test('GitHub Actions runs the isolation gate after the complete package gate', () => {
