@@ -18,6 +18,10 @@ import {
   type GameplayRoundRealtimeClient,
 } from '../../online/gameplay/GameplayRoundRealtimeSynchronizer.js';
 import {
+  GameplayTableRealtimeSynchronizer,
+  type GameplayTableRealtimeClient,
+} from '../../online/gameplay/GameplayTableRealtimeSynchronizer.js';
+import {
   OnlineGameplayRoundService,
   type GameplayRoundFunctionClient,
 } from '../../online/gameplay/OnlineGameplayRoundService.js';
@@ -39,6 +43,10 @@ export function createGameplayServicesForClient(
   return {
     auth: new AuthService(client, config.workspaceSlug),
     onlineSessionFactory: (session): GameplaySessionServices => {
+      const gameplayTables = new OnlineGameplayTableService(
+        client as unknown as OnlineGameplayTableDatabase,
+        session,
+      );
       const activeGameControl = new ActiveGameControlService(
         client as unknown as ActiveGameControlDatabase,
         session,
@@ -48,9 +56,10 @@ export function createGameplayServicesForClient(
       );
 
       return {
-        gameplayTables: new OnlineGameplayTableService(
-          client as unknown as OnlineGameplayTableDatabase,
-          session,
+        gameplayTables,
+        gameplayTableRealtime: new GameplayTableRealtimeSynchronizer(
+          client as unknown as GameplayTableRealtimeClient,
+          gameplayTables,
         ),
         activeGameControl,
         activeGameRealtime: new ActiveGameRealtimeSynchronizer(

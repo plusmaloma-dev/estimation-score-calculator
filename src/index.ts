@@ -52,6 +52,7 @@ export * from './online/gameplay/types.js';
 export * from './online/gameplay/roundTypes.js';
 export * from './online/gameplay/OnlineGameplayRoundService.js';
 export * from './online/gameplay/GameplayRoundRealtimeSynchronizer.js';
+export * from './online/gameplay/GameplayTableRealtimeSynchronizer.js';
 export * from './online/gameplay/BotDirectiveCoordinator.js';
 export * from './persistence/types.js';
 export * from './persistence/InMemoryScoreSheetRepository.js';

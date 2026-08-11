@@ -9,6 +9,7 @@ import type { AuthResult, AuthSessionState } from '../../online/auth/types.js';
 import type { ActiveGameControlService } from '../../online/gameplay/ActiveGameControlService.js';
 import type { ActiveGameRealtimeSynchronizer } from '../../online/gameplay/ActiveGameRealtimeSynchronizer.js';
 import type { GameplayRoundRealtimeSynchronizer } from '../../online/gameplay/GameplayRoundRealtimeSynchronizer.js';
+import type { GameplayTableRealtimeSynchronizer } from '../../online/gameplay/GameplayTableRealtimeSynchronizer.js';
 import type { OnlineGameplayRoundService } from '../../online/gameplay/OnlineGameplayRoundService.js';
 import type { OnlineGameplayTableService } from '../../online/gameplay/OnlineGameplayTableService.js';
 
@@ -72,8 +73,15 @@ export type GameplayRoundRealtimePort = Pick<GameplayRoundRealtimeSynchronizer,
   | 'runMutation'
 >;
 
+export type GameplayTableRealtimePort = Pick<GameplayTableRealtimeSynchronizer,
+  | 'connect'
+  | 'disconnect'
+  | 'refresh'
+>;
+
 export interface GameplaySessionServices {
   readonly gameplayTables?: GameplayTablePort;
+  readonly gameplayTableRealtime?: GameplayTableRealtimePort;
   readonly activeGameControl?: ActiveGameControlPort;
   readonly activeGameRealtime?: ActiveGameRealtimePort;
   readonly gameplayRound?: GameplayRoundPort;

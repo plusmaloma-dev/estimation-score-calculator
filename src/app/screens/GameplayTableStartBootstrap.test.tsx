@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
@@ -33,6 +33,10 @@ function tableSnapshot(): OnlineGameplayTableSnapshot {
   };
 }
 
+function tableSnapshotAt(version: number): OnlineGameplayTableSnapshot {
+  return { ...tableSnapshot(), version };
+}
+
 function roundSnapshot(): OnlineGameplayRoundSnapshot {
   return {
     tableId: 'table-1',
@@ -61,6 +65,10 @@ function roundSnapshot(): OnlineGameplayRoundSnapshot {
 function services(input: {
   readonly startGame?: ReturnType<typeof vi.fn>;
   readonly startTable?: ReturnType<typeof vi.fn>;
+  readonly tableRealtime?: {
+    readonly connect: ReturnType<typeof vi.fn>;
+    readonly disconnect: ReturnType<typeof vi.fn>;
+  };
 }): AppServices {
   return {
     shell: {
@@ -82,6 +90,7 @@ function services(input: {
       getSnapshot: vi.fn(), submitBid: vi.fn(), playCard: vi.fn(),
       startGame: input.startGame,
     },
+    gameplayTableRealtime: input.tableRealtime,
   } as unknown as AppServices;
 }
 
@@ -139,5 +148,81 @@ describe('GameplayTableScreen secure Start bootstrap', () => {
 
     expect(await screen.findByText('Secure deal could not be initialized.')).toBeVisible();
     expect(screen.getByLabelText('Current route')).toHaveTextContent('gameplay-table:');
+  });
+
+  it('uses the realtime-reconciled table version when the host clicks the actual Start Game button', async () => {
+    const user = userEvent.setup();
+    let publish: ((snapshot: OnlineGameplayTableSnapshot) => void) | undefined;
+    const tableRealtime = {
+      connect: vi.fn(async (
+        _tableId: string,
+        onSnapshot: (snapshot: OnlineGameplayTableSnapshot) => void,
+      ) => {
+        publish = onSnapshot;
+      }),
+      disconnect: vi.fn(async () => undefined),
+    };
+    const startGame = vi.fn(async () => ({
+      valid: true,
+      errors: [],
+      value: roundSnapshot(),
+    }));
+    let currentTable = tableSnapshotAt(0);
+    const appServices = services({ startGame, tableRealtime });
+    const openTable = appServices.gameplayTables!.openTable as ReturnType<typeof vi.fn>;
+    openTable.mockImplementation(async () => ({ valid: true, errors: [], value: currentTable }));
+    renderTable(appServices);
+
+    await screen.findByRole('button', { name: 'Start game' });
+    await waitFor(() => expect(tableRealtime.connect).toHaveBeenCalled());
+    act(() => {
+      currentTable = tableSnapshotAt(1);
+      publish?.(currentTable);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Start game' }));
+
+    expect(startGame).toHaveBeenCalledWith(
+      'table-1',
+      1,
+      expect.stringMatching(/^start-game:/),
+    );
+  });
+
+  it('refreshes a definitive Start version conflict without retrying until the host clicks again', async () => {
+    const user = userEvent.setup();
+    let currentTable = tableSnapshotAt(0);
+    const startGame = vi.fn(async (_tableId: string, expectedVersion: number) => {
+      if (startGame.mock.calls.length === 1) {
+        expect(expectedVersion).toBe(0);
+        currentTable = tableSnapshotAt(1);
+        return {
+          valid: false,
+          errors: ['expected_version 0 does not match current version 1'],
+        };
+      }
+      return { valid: true, errors: [], value: roundSnapshot() };
+    });
+    const appServices = services({ startGame });
+    const openTable = appServices.gameplayTables!.openTable as ReturnType<typeof vi.fn>;
+    openTable.mockImplementation(async () => ({ valid: true, errors: [], value: currentTable }));
+    renderTable(appServices);
+
+    const start = await screen.findByRole('button', { name: 'Start game' });
+    await user.click(start);
+
+    expect(await screen.findByText('Table changed. Please try Start Game again.')).toBeVisible();
+    expect(startGame).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Start game' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Start game' }));
+
+    expect(startGame).toHaveBeenCalledTimes(2);
+    expect(startGame).toHaveBeenLastCalledWith(
+      'table-1',
+      1,
+      expect.stringMatching(/^start-game:/),
+    );
+    expect(screen.getByLabelText('Current route')).toHaveTextContent('active-game:table-1');
   });
 });

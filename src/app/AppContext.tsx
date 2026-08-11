@@ -23,6 +23,7 @@ import {
   type GameplayNavigationController,
   type GameplayRoundPort as GameplayRoundServicePort,
   type GameplayRoundRealtimePort as GameplayRoundRealtimeServicePort,
+  type GameplayTableRealtimePort as GameplayTableRealtimeServicePort,
   type GameplayRoute,
   type GameplaySessionServices,
   type GameplayTablePort as GameplayTableServicePort,
@@ -62,6 +63,7 @@ export type ActiveGameControlPort = GameplayActiveGameControlPort;
 export type ActiveGameRealtimePort = GameplayActiveGameRealtimePort;
 export type GameplayRoundPort = GameplayRoundServicePort;
 export type GameplayRoundRealtimePort = GameplayRoundRealtimeServicePort;
+export type GameplayTableRealtimePort = GameplayTableRealtimeServicePort;
 
 export interface SessionApplicationServices extends GameplaySessionServices {
   readonly shell: BrowserShellPort;
@@ -108,6 +110,7 @@ function selectGameplaySessionServices(
 ): GameplaySessionServices {
   return {
     gameplayTables: services.gameplayTables,
+    gameplayTableRealtime: services.gameplayTableRealtime,
     activeGameControl: services.activeGameControl,
     activeGameRealtime: services.activeGameRealtime,
     gameplayRound: services.gameplayRound,

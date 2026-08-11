@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type {
   DisconnectGraceSeconds,
   TurnTimerSeconds,
@@ -34,7 +34,7 @@ export function GameplayTableScreen({
   const [turnTimerSeconds, setTurnTimerSeconds] = useState<TurnTimerSeconds>(45);
   const [disconnectGraceSeconds, setDisconnectGraceSeconds] = useState<DisconnectGraceSeconds>(60);
 
-  function applySnapshot(snapshot: OnlineGameplayTableSnapshot) {
+  const applySnapshot = useCallback((snapshot: OnlineGameplayTableSnapshot) => {
     setTable(snapshot);
     setTurnTimerSeconds(snapshot.turnTimerSeconds);
     setDisconnectGraceSeconds(snapshot.disconnectGraceSeconds);
@@ -42,7 +42,7 @@ export function GameplayTableScreen({
     if (snapshot.lifecycle === 'active' || snapshot.lifecycle === 'paused') {
       openActiveGame(snapshot.tableId);
     }
-  }
+  }, [openActiveGame]);
 
   useEffect(() => {
     let active = true;
@@ -71,7 +71,43 @@ export function GameplayTableScreen({
     return () => {
       active = false;
     };
-  }, [services.gameplayTables, tableId]);
+  }, [applySnapshot, services.gameplayTables, tableId]);
+
+  useEffect(() => {
+    const realtime = services.gameplayTableRealtime;
+    if (realtime === undefined) return undefined;
+    let active = true;
+    void realtime.connect(
+      tableId,
+      (snapshot) => {
+        if (active) applySnapshot(snapshot);
+      },
+      (realtimeErrors) => {
+        if (active) setErrors(realtimeErrors);
+      },
+    );
+    return () => {
+      active = false;
+      void realtime.disconnect();
+    };
+  }, [applySnapshot, services.gameplayTableRealtime, tableId]);
+
+  async function refreshTable(): Promise<OnlineGameplayTableSnapshot | undefined> {
+    const service = services.gameplayTables;
+    if (service === undefined) return undefined;
+    try {
+      const result = await service.openTable(tableId);
+      if (!result.valid || result.value === undefined) {
+        setErrors(result.errors);
+        return undefined;
+      }
+      applySnapshot(result.value);
+      return result.value;
+    } catch (reason: unknown) {
+      setErrors([reason instanceof Error ? reason.message : 'Gameplay table could not be loaded.']);
+      return undefined;
+    }
+  }
 
   async function mutate(
     operation: () => Promise<{
@@ -156,12 +192,21 @@ export function GameplayTableScreen({
       setBusy(true);
       setErrors([]);
       try {
+        const currentTable = await refreshTable();
+        if (currentTable === undefined || currentTable.lifecycle !== 'lobby') return;
         const result = await secureService.startGame(
-          table.tableId,
-          table.version,
+          currentTable.tableId,
+          currentTable.version,
           newCommandId('start-game'),
         );
         if (!result.valid || result.value === undefined) {
+          if (result.errors.some((error) => /expected_version\s+\d+\s+does not match current version\s+\d+/i.test(error))) {
+            const refreshed = await refreshTable();
+            if (refreshed?.lifecycle === 'lobby') {
+              setErrors(['Table changed. Please try Start Game again.']);
+            }
+            return;
+          }
           setErrors(result.errors);
           return;
         }
