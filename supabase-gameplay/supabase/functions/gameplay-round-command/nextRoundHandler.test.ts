@@ -2,6 +2,10 @@ import {
   handleStartNextRound,
   type NextRoundCommandPorts,
 } from './nextRoundHandler.ts';
+import { GameplayRoundSnapshotProjector } from '../../../../src/gameplay/GameplayRoundSnapshotProjector.ts';
+import { HouseRulesRoundEngine } from '../../../../src/gameplay/HouseRulesRoundEngine.ts';
+import { GameplaySessionBootstrapService } from '../../../../src/gameplay/session/GameplaySessionBootstrapService.ts';
+import type { HouseRulesRoundState, SeatIndex } from '../../../../src/gameplay/types.ts';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -246,4 +250,108 @@ Deno.test('maps stale transactional failures to a stable privacy-safe error', as
   equal(result.valid, false, 'Stale result must be invalid');
   equal(result.errors[0], 'NEXT_ROUND_STALE', 'Stale error code');
   equal('value' in result, false, 'Stale response must not include private state');
+});
+
+Deno.test('starts exactly one canonical auction round after a real scored round', async () => {
+  const tableId = request.tableId;
+  const players = [
+    { seat: 0, playerId: 'host-user' },
+    { seat: 1, playerId: 'bot-1' },
+    { seat: 2, playerId: 'bot-2' },
+    { seat: 3, playerId: 'bot-3' },
+  ] as const;
+  const engine = new HouseRulesRoundEngine();
+  const bootstrap = await new GameplaySessionBootstrapService().bootstrap({
+    tableId,
+    roundNumber: 1,
+    seats: players,
+    seedHex: '11'.repeat(32),
+    dealId: 'round-one-deal',
+    nonce: 'round-one-nonce',
+    initialization: { kind: 'subsequent-round', dealerSeat: 0, roundMultiplier: 1 },
+  });
+  let scored: HouseRulesRoundState = bootstrap.state;
+  const accepted = (result: { readonly valid: boolean; readonly errors: readonly string[]; readonly state: HouseRulesRoundState }) => {
+    assert(result.valid, result.errors.join(' '));
+    return result.state;
+  };
+
+  scored = accepted(engine.submitAuctionAction(scored, 1, { type: 'contract', tricks: 4, trumpSuit: 'clubs' }));
+  scored = accepted(engine.submitAuctionAction(scored, 2, { type: 'pass' }));
+  scored = accepted(engine.submitAuctionAction(scored, 3, { type: 'pass' }));
+  scored = accepted(engine.submitAuctionAction(scored, 0, { type: 'pass' }));
+  assert(scored.phase === 'estimate', 'Round one must reach estimate after the auction resolves');
+  for (const [seat, playerId, tricks] of [[2, 'bot-2', 2], [3, 'bot-3', 3], [0, 'host-user', 3]] as const) {
+    scored = accepted(engine.submitBid(scored, seat, { playerId, bidType: 'normal', tricks }));
+  }
+  while (scored.phase === 'playing') {
+    const seat = scored.currentTurnSeat;
+    assert(seat !== undefined, 'Playing round must have an active seat');
+    const card = engine.legalCards(scored, seat)[0];
+    assert(card !== undefined, 'Active player must have a legal card');
+    scored = accepted(engine.playCard(scored, seat, card));
+  }
+  equal(scored.phase, 'scored', 'Round one must reach scored through authoritative gameplay');
+
+  let currentRound = scored;
+  let activeRound = scored;
+  const commandLedger = new Map<string, boolean>();
+  let createdRounds = 1;
+  const integrationPorts: NextRoundCommandPorts = {
+    resolveActor: async () => ({ userId: 'host-user' }),
+    loadCommand: async (_tableId, commandId) => commandLedger.has(commandId)
+      ? {
+          actorUserId: 'host-user', commandType: 'START_NEXT_ROUND', expectedRoundNumber: 1,
+          expectedRoundVersion: 19, expectedControlVersion: 23, accepted: true,
+        }
+      : undefined,
+    loadCurrentRound: async () => ({
+      tableLifecycle: 'active', controlLifecycle: 'active', hostUserId: 'host-user', controlVersion: 23,
+      turnId: null, roundNumber: currentRound.roundNumber, roundVersion: 19, phase: currentRound.phase,
+      dealerSeat: currentRound.dealerSeat, players, nextRoundMultiplier: 1,
+    }),
+    randomBytes: () => new Uint8Array(32).fill(22),
+    randomUuid: () => 'round-two-private-id',
+    bootstrap: async (input) => {
+      const result = await new GameplaySessionBootstrapService().bootstrap({
+        ...input,
+        seats: input.seats as typeof players,
+        initialization: {
+          ...input.initialization,
+          dealerSeat: input.initialization.dealerSeat as SeatIndex,
+        },
+      });
+      return { aggregate: result.state, firstBidSeat: result.firstTurn.seat };
+    },
+    validateAggregate: (aggregate) => {
+      const state = aggregate as Partial<HouseRulesRoundState>;
+      return state.phase === 'auction' && state.auctionActiveSeat !== undefined ? [] : ['incomplete'];
+    },
+    startNextRound: async (input) => {
+      if (commandLedger.has(input.commandId)) return { valid: true, errors: [] };
+      activeRound = input.aggregate as HouseRulesRoundState;
+      currentRound = activeRound;
+      commandLedger.set(input.commandId, true);
+      createdRounds += 1;
+      return { valid: true, errors: [] };
+    },
+    projectViewer: async () => ({
+      valid: true,
+      errors: [],
+      value: new GameplayRoundSnapshotProjector().project(tableId, activeRound, 0, 0) as unknown as Readonly<Record<string, unknown>>,
+    }),
+  };
+  const first = await handleStartNextRound({ ...request, expectedRoundNumber: 1 }, integrationPorts);
+  const retry = await handleStartNextRound({ ...request, expectedRoundNumber: 1 }, integrationPorts);
+
+  assert(first.valid && first.value !== undefined, 'First start-next-round command must succeed');
+  assert(retry.valid && retry.duplicate, 'Matching retry must return the existing round');
+  equal(createdRounds, 2, 'One deliberate next-round command must create exactly one Round 2');
+  equal(activeRound.roundNumber, 2, 'Round 2 number');
+  equal(activeRound.dealerSeat, 1, 'Dealer rotates from Round 1');
+  equal(activeRound.phase, 'auction', 'Round 2 starts in canonical auction');
+  equal(activeRound.auctionActiveSeat, 2, 'Second player from the new dealer opens the auction');
+  equal(activeRound.callerSeat, undefined, 'Round 2 caller remains unresolved');
+  equal(activeRound.trumpSuit, undefined, 'Round 2 trump remains unresolved');
+  equal((first.value as { readonly phase?: string }).phase, 'auction', 'Returned viewer projection is canonical');
 });

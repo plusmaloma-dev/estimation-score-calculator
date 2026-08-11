@@ -27,14 +27,6 @@ function snapshot(overrides: Partial<OnlineGameplayRoundSnapshot> = {}): OnlineG
     ],
     ownHand: createCanonicalDeck().slice(0, 13),
     legalNormalEstimates: [0, 1, 2, 3, 4, 5],
-    legalBidOptions: [
-      { tricks: 0, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      { tricks: 1, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      { tricks: 2, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      { tricks: 3, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      { tricks: 5, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-    ],
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -105,7 +97,6 @@ describe('GameplayBidPanel', () => {
         auctionActiveSeat: 2,
         nextBidSeat: 2,
         legalNormalEstimates: [],
-        legalBidOptions: [],
         legalAuctionActions: actions.map((action) => ({ action })),
       }),
     });
@@ -129,16 +120,26 @@ describe('GameplayBidPanel', () => {
     expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
   });
 
+  it('uses only the phase-safe numeric estimate projection', () => {
+    const value = {
+      ...snapshot({
+      legalNormalEstimates: [0, 1],
+      }),
+      legalBidOptions: [
+        { tricks: 5, bidType: 'normal', requiresContractSuit: true, legalContractSuits: ['clubs'] },
+      ],
+    } as unknown as OnlineGameplayRoundSnapshot;
+    renderPanel({ value });
+
+    const estimate = screen.getByRole('combobox', { name: 'Estimate' });
+    expect(within(estimate).getByRole('option', { name: '0' })).toBeVisible();
+    expect(within(estimate).getByRole('option', { name: '1' })).toBeVisible();
+    expect(within(estimate).queryByRole('option', { name: '5' })).not.toBeInTheDocument();
+  });
+
   it('does not offer a final estimate that would make total estimates exactly thirteen', () => {
     renderPanel({ value: snapshot({
       legalNormalEstimates: [0, 1, 2, 4, 5],
-      legalBidOptions: [
-        { tricks: 0, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-        { tricks: 1, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-        { tricks: 2, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-        { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-        { tricks: 5, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      ],
     }) });
 
     expect(screen.queryByRole('option', { name: '3' })).not.toBeInTheDocument();

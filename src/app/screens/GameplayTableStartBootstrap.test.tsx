@@ -37,12 +37,13 @@ function roundSnapshot(): OnlineGameplayRoundSnapshot {
   return {
     tableId: 'table-1',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'auction',
     version: 0,
     viewerSeat: 0,
-    bidOwnerSeat: 2,
     dealCommitment: 'ab'.repeat(32),
     nextBidSeat: 2,
+    auctionActiveSeat: 2,
+    legalAuctionActions: [],
     players: [
       { seat: 0, playerId: 'host-user', cardCount: 13, actualTricks: 0 },
       { seat: 1, playerId: 'bot-1', cardCount: 13, actualTricks: 0 },

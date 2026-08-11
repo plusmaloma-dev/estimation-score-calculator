@@ -180,7 +180,7 @@ The later hosted deployment must proceed in this order:
 
 1. guarded gameplay migrations;
 2. guarded `gameplay-round-command` Function deployment;
-3. verify that the authoritative round snapshot includes `legalAuctionActions` during auction and `legalBidOptions` during estimate;
+3. verify that the authoritative round snapshot includes `legalAuctionActions` during auction and numeric-only `legalNormalEstimates` during estimate;
 4. guarded gameplay frontend deployment;
 5. create a fresh UAT table;
 6. perform authenticated UAT.

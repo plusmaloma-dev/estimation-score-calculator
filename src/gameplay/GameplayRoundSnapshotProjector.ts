@@ -47,9 +47,9 @@ export class GameplayRoundSnapshotProjector {
 
     const currentTrick = state.currentTrick.map((entry) => this.copyEntry(entry));
     const completedTricks = state.completedTricks.map((trick) => this.copyCompletedTrick(trick));
-    const legalBidOptions = this.bidOptionsService.legalOptions(state, viewerSeat);
+    const legalEstimateOptions = this.bidOptionsService.legalOptions(state, viewerSeat);
     const legalAuctionActions = this.bidOptionsService.legalAuctionActions(state, viewerSeat);
-    const legalNormalEstimates = legalBidOptions
+    const legalNormalEstimates = legalEstimateOptions
       .filter((option) => option.bidType === 'normal')
       .map((option) => option.tricks);
     const legalCards = state.phase === 'playing' && state.currentTurnSeat === viewerSeat
@@ -82,7 +82,6 @@ export class GameplayRoundSnapshotProjector {
       players,
       ownHand: state.hands[viewerSeat].cards.map((card) => this.copyCard(card)),
       legalNormalEstimates,
-      legalBidOptions: legalBidOptions.map((option) => ({ ...option })),
       legalAuctionActions: legalAuctionActions.map((option) => ({ action: { ...option.action } })),
       legalCards,
       currentTrick,

@@ -21,6 +21,7 @@ function actionMessage(
   }
 
   if (presentation.viewerActionRequired) {
+    if (presentation.phase === 'auction') return t('submitAuctionAction');
     return presentation.actionKind === 'bid'
       ? t('submitYourEstimate')
       : t('playACard');

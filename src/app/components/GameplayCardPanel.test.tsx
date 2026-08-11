@@ -26,7 +26,6 @@ function snapshot(overrides: Partial<OnlineGameplayRoundSnapshot> = {}): OnlineG
       { suit: 'clubs', rank: '2' },
     ],
     legalNormalEstimates: [],
-    legalBidOptions: [],
     legalCards: [{ suit: 'hearts', rank: 'A' }],
     currentTrick: [{ seat: 2, card: { suit: 'hearts', rank: '4' } }],
     completedTricks: [],

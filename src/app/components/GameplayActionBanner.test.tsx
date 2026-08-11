@@ -8,7 +8,7 @@ function presentation(
   overrides: Partial<ActiveRoundPresentation> = {},
 ): ActiveRoundPresentation {
   return {
-    phase: 'bidding',
+    phase: 'auction',
     tableId: 'table-1',
     roundNumber: 2,
     viewerSeat: 2,
@@ -47,11 +47,11 @@ function renderBanner(value: ActiveRoundPresentation) {
 }
 
 describe('GameplayActionBanner', () => {
-  it('makes the viewer estimate action and active-control countdown prominent in one status region', () => {
+  it('makes the viewer auction action and active-control countdown prominent in one status region', () => {
     renderBanner(presentation());
 
     expect(screen.getAllByRole('status')).toHaveLength(1);
-    expect(screen.getByRole('status')).toHaveTextContent('Submit your estimate');
+    expect(screen.getByRole('status')).toHaveTextContent('Submit contract action');
     expect(screen.getByLabelText('Turn countdown')).toHaveTextContent('11 seconds');
     expect(screen.getByLabelText('Turn countdown')).toHaveClass('gameplay-countdown');
   });

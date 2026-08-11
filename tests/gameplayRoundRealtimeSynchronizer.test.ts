@@ -14,7 +14,7 @@ function snapshot(version: number): OnlineGameplayRoundSnapshot {
   return {
     tableId: 'table-1',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'estimate',
     version,
     viewerSeat: 2,
     bidOwnerSeat: 2,

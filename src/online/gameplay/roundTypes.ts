@@ -19,14 +19,6 @@ export interface OnlineGameplayRoundPlayer {
   readonly actualTricks: number;
 }
 
-export interface OnlineGameplayBidOption {
-  readonly tricks: number;
-  readonly bidType: 'normal' | 'with';
-  readonly requiresContractSuit: boolean;
-  readonly legalContractSuits: readonly ContractSuit[];
-  readonly withTargetPlayerId?: string;
-}
-
 export interface OnlineGameplayAuctionOption {
   readonly action: GameplayAuctionAction;
 }
@@ -53,7 +45,6 @@ export interface OnlineGameplayRoundSnapshot {
   readonly players: readonly OnlineGameplayRoundPlayer[];
   readonly ownHand: readonly Card[];
   readonly legalNormalEstimates: readonly number[];
-  readonly legalBidOptions?: readonly OnlineGameplayBidOption[];
   readonly legalAuctionActions?: readonly OnlineGameplayAuctionOption[];
   readonly legalCards: readonly Card[];
   readonly currentTrick: readonly GameplayTrickEntry[];

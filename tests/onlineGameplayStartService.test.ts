@@ -31,13 +31,13 @@ function initialSnapshot(): Readonly<Record<string, unknown>> {
   return {
     tableId: '11111111-1111-4111-8111-111111111111',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'auction',
     version: 0,
     viewerSeat: 0,
-    bidOwnerSeat: 2,
-    riskSeat: 1,
     dealCommitment: 'ab'.repeat(32),
     nextBidSeat: 2,
+    auctionActiveSeat: 2,
+    legalAuctionActions: [],
     players: [
       { seat: 0, playerId: 'human-0', cardCount: 13, actualTricks: 0 },
       { seat: 1, playerId: 'bot-1', cardCount: 13, actualTricks: 0 },

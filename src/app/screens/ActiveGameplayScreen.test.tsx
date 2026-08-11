@@ -2,6 +2,10 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
+import {
+  OnlineGameplayRoundService,
+  type GameplayRoundFunctionClient,
+} from '../../online/gameplay/OnlineGameplayRoundService.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
@@ -110,7 +114,7 @@ function scoredControlSnapshot(
   });
 }
 
-function biddingControlSnapshot(
+function auctionControlSnapshot(
   overrides: Partial<OnlineActiveGameControlSnapshot> = {},
 ): OnlineActiveGameControlSnapshot {
   return activeSnapshot({
@@ -175,16 +179,21 @@ function scoredRoundSnapshot(
   } as OnlineGameplayRoundSnapshot;
 }
 
-function biddingRoundSnapshot(
+function auctionRoundSnapshot(
   overrides: Partial<OnlineGameplayRoundSnapshot> = {},
 ): OnlineGameplayRoundSnapshot {
   return {
     ...roundSnapshot(),
     roundNumber: 2,
-    phase: 'bidding',
+    phase: 'auction',
     version: 1,
     nextBidSeat: 1,
     currentTurnSeat: undefined,
+    bidOwnerSeat: undefined,
+    callerSeat: undefined,
+    trumpSuit: undefined,
+    riskSeat: undefined,
+    auctionActiveSeat: 1,
     players: [
       { seat: 0, playerId: 'host-user', cardCount: 13, actualTricks: 0 },
       { seat: 1, playerId: 'bot-1', cardCount: 13, actualTricks: 0 },
@@ -193,6 +202,7 @@ function biddingRoundSnapshot(
     ],
     ownHand: [],
     legalNormalEstimates: [],
+    legalAuctionActions: [],
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -480,11 +490,11 @@ describe('ActiveGameplayScreen', () => {
     const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
       valid: true,
       errors: [],
-      value: biddingRoundSnapshot(),
+      value: auctionRoundSnapshot(),
     }));
     const roundGetSnapshot = vi.fn()
       .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
-      .mockResolvedValueOnce({ valid: true, errors: [], value: biddingRoundSnapshot() });
+      .mockResolvedValueOnce({ valid: true, errors: [], value: auctionRoundSnapshot() });
     const appServices = services(
       scoredControlSnapshot(),
       {},
@@ -514,6 +524,33 @@ describe('ActiveGameplayScreen', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
   });
 
+  it('keeps the production next-round service validator receiver when the host starts a round', async () => {
+    const user = userEvent.setup();
+    const invoke = vi.fn(async () => ({
+      data: { valid: false, errors: ['NEXT_ROUND_STALE'] },
+      error: null,
+    }));
+    const productionRoundService = new OnlineGameplayRoundService({ functions: { invoke } } as GameplayRoundFunctionClient);
+    vi.spyOn(productionRoundService, 'getSnapshot').mockResolvedValue({
+      valid: true,
+      errors: [],
+      value: scoredRoundSnapshot(),
+    });
+    const appServices: AppServices = {
+      ...services(scoredControlSnapshot()),
+      gameplayRound: productionRoundService,
+    };
+    renderActive(appServices, 'host-user');
+
+    await user.click(await screen.findByRole('button', { name: 'Start Next Round' }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('gameplay-round-command', expect.objectContaining({
+      body: expect.objectContaining({ action: 'start-next-round' }),
+    })));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Next round state changed. Refresh and try again.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('validateNextRoundCommand');
+  });
+
   it('retains one pending next-round command ID and ignores duplicate clicks', async () => {
     const user = userEvent.setup();
     let resolveStart: ((value: { valid: boolean; errors: readonly string[]; value: OnlineGameplayRoundSnapshot }) => void) | undefined;
@@ -538,14 +575,14 @@ describe('ActiveGameplayScreen', () => {
     expect(startNextRound).toHaveBeenCalledTimes(1);
     const firstCommandId = startNextRound.mock.calls[0]?.[4];
     expect(firstCommandId).toEqual(expect.stringMatching(/^start-next-round:/));
-    resolveStart?.({ valid: true, errors: [], value: biddingRoundSnapshot() });
+    resolveStart?.({ valid: true, errors: [], value: auctionRoundSnapshot() });
   });
 
   it('does not automatically start from render, countdown, Realtime, or scored reconnect', async () => {
     const startNextRound = vi.fn<StartNextRoundMock>(async () => ({
       valid: true,
       errors: [],
-      value: biddingRoundSnapshot(),
+      value: auctionRoundSnapshot(),
     }));
     renderActive(services(
       scoredControlSnapshot(),
@@ -639,14 +676,14 @@ describe('ActiveGameplayScreen', () => {
       valid: true,
       errors: [],
       terminal: true,
-      value: biddingRoundSnapshot({ version: 2, nextBidSeat: 2 }),
+      value: auctionRoundSnapshot({ version: 2, nextBidSeat: 2, auctionActiveSeat: 2 }),
     }));
     const controlGetSnapshot = vi.fn()
       .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() })
       .mockResolvedValueOnce({ valid: true, errors: [], value: scoredControlSnapshot() });
     const roundGetSnapshot = vi.fn()
       .mockResolvedValueOnce({ valid: true, errors: [], value: scoredRoundSnapshot() })
-      .mockResolvedValueOnce({ valid: true, errors: [], value: biddingRoundSnapshot() });
+      .mockResolvedValueOnce({ valid: true, errors: [], value: auctionRoundSnapshot() });
     const appServices = {
       ...services(
         scoredControlSnapshot(),
@@ -656,7 +693,7 @@ describe('ActiveGameplayScreen', () => {
           startNextRound: vi.fn<StartNextRoundMock>(async () => ({
             valid: true,
             errors: [],
-            value: biddingRoundSnapshot(),
+            value: auctionRoundSnapshot(),
           })),
           processBotDirective,
         },
@@ -681,9 +718,9 @@ describe('ActiveGameplayScreen', () => {
     expect(screen.queryByText('Standard bot in Seat 2 is acting')).not.toBeInTheDocument();
 
     act(() => {
-      publishControl?.(biddingControlSnapshot({
+      publishControl?.(auctionControlSnapshot({
         turn: {
-          ...biddingControlSnapshot().turn!,
+          ...auctionControlSnapshot().turn!,
           status: 'assistant-pending',
         },
       }));

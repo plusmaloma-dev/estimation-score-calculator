@@ -101,7 +101,7 @@ function roundSnapshot(
   };
 }
 
-function biddingControlSnapshot(
+function estimateControlSnapshot(
   overrides: Partial<OnlineActiveGameControlSnapshot> = {},
 ): OnlineActiveGameControlSnapshot {
   return controlSnapshot({
@@ -117,11 +117,11 @@ function biddingControlSnapshot(
   });
 }
 
-function biddingRoundSnapshot(
+function estimateRoundSnapshot(
   overrides: Partial<OnlineGameplayRoundSnapshot> = {},
 ): OnlineGameplayRoundSnapshot {
   return roundSnapshot({
-    phase: 'bidding',
+    phase: 'estimate',
     currentTurnSeat: undefined,
     nextBidSeat: 0,
     players: [
@@ -137,16 +137,6 @@ function biddingRoundSnapshot(
       { seat: 3, playerId: 'bot-3', cardCount: 2, actualTricks: 0 },
     ],
     legalNormalEstimates: [4, 5],
-    legalBidOptions: [
-      { tricks: 4, bidType: 'normal', requiresContractSuit: false, legalContractSuits: [] },
-      {
-        tricks: 5,
-        bidType: 'with',
-        requiresContractSuit: false,
-        legalContractSuits: [],
-        withTargetPlayerId: 'bot-2',
-      },
-    ],
     legalCards: [],
     ...overrides,
   });
@@ -223,10 +213,10 @@ describe('ActiveGameplayScreen round Realtime', () => {
     const getSnapshot = vi.fn(async () => ({
       valid: true,
       errors: [],
-      value: biddingRoundSnapshot(),
+      value: estimateRoundSnapshot(),
     }));
     renderActive(services({
-      activeControl: biddingControlSnapshot(),
+      activeControl: estimateControlSnapshot(),
       roundRealtime: realtime,
       getSnapshot,
     }));
@@ -236,7 +226,7 @@ describe('ActiveGameplayScreen round Realtime', () => {
     expect(document.activeElement).toBe(estimate);
 
     act(() => {
-      publish?.(biddingRoundSnapshot({
+      publish?.(estimateRoundSnapshot({
         players: [
           { seat: 0, playerId: 'human-0', cardCount: 2, actualTricks: 0 },
           { seat: 1, playerId: 'human-1', cardCount: 2, actualTricks: 0 },
@@ -271,12 +261,12 @@ describe('ActiveGameplayScreen round Realtime', () => {
       runMutation: vi.fn(),
     };
     renderActive(services({
-      activeControl: biddingControlSnapshot(),
+      activeControl: estimateControlSnapshot(),
       roundRealtime: realtime,
       getSnapshot: vi.fn(async () => ({
         valid: true,
         errors: [],
-        value: biddingRoundSnapshot(),
+        value: estimateRoundSnapshot(),
       })),
     }));
 
@@ -284,11 +274,10 @@ describe('ActiveGameplayScreen round Realtime', () => {
     estimate.focus();
 
     act(() => {
-      publish?.(biddingRoundSnapshot({
+      publish?.(estimateRoundSnapshot({
         version: 9,
         nextBidSeat: 1,
         legalNormalEstimates: [],
-        legalBidOptions: [],
       }));
     });
 
@@ -386,7 +375,7 @@ describe('ActiveGameplayScreen round Realtime', () => {
     const startNextRound = vi.fn(async () => ({
       valid: true,
       errors: [],
-      value: roundSnapshot({ phase: 'bidding', version: 1, nextBidSeat: 1, currentTurnSeat: undefined }),
+      value: roundSnapshot({ phase: 'auction', version: 1, nextBidSeat: 1, auctionActiveSeat: 1, currentTurnSeat: undefined }),
     }));
     const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
       connect: vi.fn(async (

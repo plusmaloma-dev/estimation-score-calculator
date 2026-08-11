@@ -76,7 +76,7 @@ test('next-round activation remains an additive database-only service boundary',
 test('runbook verifies only the isolated gameplay migration workspace and guarded Functions', () => {
   assert.match(runbook, /npm run deploy:gameplay-migrations/i);
   assert.doesNotMatch(runbook, /^\s*npx\s+supabase\s+(?:--workdir\s+supabase-gameplay\s+)?db\s+push/im);
-  assert.match(runbook, /migrations[\s\S]*gameplay-round-command[\s\S]*legalAuctionActions[\s\S]*legalBidOptions[\s\S]*frontend[\s\S]*fresh UAT table/is);
+  assert.match(runbook, /migrations[\s\S]*gameplay-round-command[\s\S]*legalAuctionActions[\s\S]*legalNormalEstimates[\s\S]*frontend[\s\S]*fresh UAT table/is);
   assert.match(runbook, /gameplay-target-guard\.mjs[\s\S]*supabase \$newGameplayRef/i);
   assert.match(runbook, /supabase --workdir supabase-gameplay migration list --linked/i);
   assert.match(runbook, /deploy-gameplay-function\.mjs[\s\S]*gameplay-start/i);

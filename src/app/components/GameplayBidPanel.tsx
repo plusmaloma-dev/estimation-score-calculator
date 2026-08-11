@@ -33,19 +33,19 @@ export function GameplayBidPanel({
   readonly onSubmitAuctionAction?: (action: GameplayAuctionAction) => Promise<void>;
 }) {
   const { t } = useI18n();
-  const estimates = snapshot.legalBidOptions ?? [];
+  const estimates = snapshot.legalNormalEstimates;
   const auctionActions = snapshot.legalAuctionActions ?? [];
-  const [selectedEstimate, setSelectedEstimate] = useState(String(estimates[0]?.tricks ?? ''));
+  const [selectedEstimate, setSelectedEstimate] = useState(String(estimates[0] ?? ''));
   const [selectedAuctionAction, setSelectedAuctionAction] = useState(auctionActions[0] === undefined ? '' : auctionActionKey(auctionActions[0].action));
   const isAuction = snapshot.phase === 'auction';
-  const isEstimate = snapshot.phase === 'estimate' || snapshot.phase === 'bidding';
+  const isEstimate = snapshot.phase === 'estimate';
 
   useEffect(() => {
-    setSelectedEstimate(String((snapshot.legalBidOptions ?? [])[0]?.tricks ?? ''));
+    setSelectedEstimate(String(snapshot.legalNormalEstimates[0] ?? ''));
     setSelectedAuctionAction((snapshot.legalAuctionActions ?? [])[0] === undefined
       ? ''
       : auctionActionKey(snapshot.legalAuctionActions![0]!.action));
-  }, [snapshot.legalAuctionActions, snapshot.legalBidOptions, snapshot.version]);
+  }, [snapshot.legalAuctionActions, snapshot.legalNormalEstimates, snapshot.version]);
 
   async function submitEstimate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,7 +96,7 @@ export function GameplayBidPanel({
           <label>
             {t('estimate')}
             <select value={selectedEstimate} disabled={busy} onChange={(event) => setSelectedEstimate(event.target.value)}>
-              {estimates.map((option) => <option key={option.tricks} value={option.tricks}>{option.tricks}</option>)}
+              {estimates.map((estimate) => <option key={estimate} value={estimate}>{estimate}</option>)}
             </select>
           </label>
           <button className="primary-button" type="submit" disabled={busy || selectedEstimate === ''}>{t('submitEstimate')}</button>

@@ -71,7 +71,7 @@ describe('GameplayNextRoundPanel', () => {
     expect(button).toHaveAttribute('type', 'button');
   });
 
-  it.each(['bidding', 'playing', 'synchronizing', 'paused', 'terminated'] as const)(
+  it.each(['auction', 'estimate', 'playing', 'synchronizing', 'paused', 'terminated'] as const)(
     'does not render a start control while %s',
     (phase) => {
       renderPanel({

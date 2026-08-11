@@ -19,7 +19,6 @@ import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
 import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
 import type { OnlineGameplayResult } from './types.js';
 import type {
-  OnlineGameplayBidOption,
   OnlineGameplayAuctionOption,
   OnlineGameplayRoundPlayer,
   OnlineGameplayRoundSnapshot,
@@ -44,7 +43,7 @@ export interface OnlineStartNextRoundResult
   readonly failureKind?: NextRoundFailureKind;
 }
 
-const PHASES = ['auction', 'estimate', 'playing', 'scored', 'bidding'] as const;
+const PHASES = ['auction', 'estimate', 'playing', 'scored'] as const;
 const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
 const PROHIBITED_KEYS = new Set([
@@ -352,8 +351,6 @@ export class OnlineGameplayRoundService {
       || !Array.isArray(row.ownHand)
       || !Array.isArray(row.legalNormalEstimates)
       || row.legalBidOptions !== undefined
-        && row.legalBidOptions !== null
-        && !Array.isArray(row.legalBidOptions)
       || !Array.isArray(row.legalCards)
       || !Array.isArray(row.currentTrick)
       || !Array.isArray(row.completedTricks)
@@ -383,22 +380,6 @@ export class OnlineGameplayRoundService {
       if (parsed === undefined || parsed > 12 || legalNormalEstimates.includes(parsed)) return undefined;
       legalNormalEstimates.push(parsed);
     }
-    const legalBidOptions: OnlineGameplayBidOption[] = [];
-    for (const item of row.legalBidOptions ?? []) {
-      const option = this.parseBidOption(item);
-      if (
-        option === undefined
-        || legalBidOptions.some((candidate) => candidate.tricks === option.tricks)
-      ) return undefined;
-      legalBidOptions.push(option);
-    }
-    if (
-      legalBidOptions.length > 0
-      &&
-      legalNormalEstimates.some((estimate) => (
-        legalBidOptions.find((option) => option.tricks === estimate)?.bidType !== 'normal'
-      ))
-    ) return undefined;
     const legalAuctionActions: OnlineGameplayAuctionOption[] = [];
     if (row.legalAuctionActions !== undefined && row.legalAuctionActions !== null && !Array.isArray(row.legalAuctionActions)) return undefined;
     for (const item of row.legalAuctionActions ?? []) {
@@ -450,7 +431,6 @@ export class OnlineGameplayRoundService {
       players,
       ownHand,
       legalNormalEstimates,
-      legalBidOptions,
       legalAuctionActions,
       legalCards,
       currentTrick,
@@ -593,48 +573,6 @@ export class OnlineGameplayRoundService {
     }
     if (!commandId.trim()) errors.push('Gameplay command ID is required.');
     return errors;
-  }
-
-  private parseBidOption(value: unknown): OnlineGameplayBidOption | undefined {
-    const row = this.object(value);
-    if (row === undefined) return undefined;
-    const tricks = this.nonNegativeInteger(row.tricks);
-    const bidType = this.oneOf(row.bidType, ['normal', 'with'] as const);
-    const requiresContractSuit = typeof row.requiresContractSuit === 'boolean'
-      ? row.requiresContractSuit
-      : undefined;
-    if (
-      tricks === undefined
-      || tricks > 12
-      || bidType === undefined
-      || requiresContractSuit === undefined
-      || !Array.isArray(row.legalContractSuits)
-    ) return undefined;
-
-    const legalContractSuits: ContractSuit[] = [];
-    for (const suit of row.legalContractSuits) {
-      const parsed = this.contractSuit(suit);
-      if (parsed === undefined || legalContractSuits.includes(parsed)) return undefined;
-      legalContractSuits.push(parsed);
-    }
-
-    const withTargetPlayerId = row.withTargetPlayerId === null || row.withTargetPlayerId === undefined
-      ? undefined
-      : this.string(row.withTargetPlayerId);
-    if (row.withTargetPlayerId !== null && row.withTargetPlayerId !== undefined && withTargetPlayerId === undefined) {
-      return undefined;
-    }
-    if (requiresContractSuit !== (legalContractSuits.length > 0)) return undefined;
-    if (bidType === 'normal' && withTargetPlayerId !== undefined) return undefined;
-    if (bidType === 'with' && withTargetPlayerId === undefined) return undefined;
-
-    return {
-      tricks,
-      bidType,
-      requiresContractSuit,
-      legalContractSuits,
-      ...(withTargetPlayerId === undefined ? {} : { withTargetPlayerId }),
-    };
   }
 
   private parseSeats(value: unknown): SeatIndex[] | undefined {

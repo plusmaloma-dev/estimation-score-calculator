@@ -94,7 +94,6 @@ test('auction snapshot exposes only the viewer hand and allow-listed public stat
   assert.deepEqual(snapshot.ownHand, state.hands[2].cards);
   assert.deepEqual(snapshot.players.map((player) => player.cardCount), [13, 13, 13, 13]);
   assert.deepEqual(snapshot.legalNormalEstimates, []);
-  assert.deepEqual(snapshot.legalBidOptions, []);
   assert.ok(snapshot.legalAuctionActions);
   assert.deepEqual(snapshot.legalAuctionActions[0], { action: { type: 'pass' } });
   assert.ok(snapshot.legalAuctionActions.some((option) => option.action.type === 'contract'
@@ -123,16 +122,7 @@ test('only the acting bidder receives legal estimates and the fourth bidder cann
   assert.equal(acting.legalNormalEstimates.includes(3), false);
   assert.equal(acting.legalNormalEstimates.includes(2), true);
   assert.equal(acting.legalNormalEstimates.includes(4), true);
-  assert.ok(acting.legalBidOptions);
-  assert.equal(acting.legalBidOptions.some((option) => option.tricks === 3), false);
-  assert.deepEqual(acting.legalBidOptions.find((option) => option.tricks === 5), {
-    tricks: 5,
-    bidType: 'normal',
-    requiresContractSuit: false,
-    legalContractSuits: [],
-  });
   assert.deepEqual(waiting.legalNormalEstimates, []);
-  assert.deepEqual(waiting.legalBidOptions, []);
 });
 
 test('playing snapshot exposes legal cards only to the current seat and keeps played cards public', async () => {

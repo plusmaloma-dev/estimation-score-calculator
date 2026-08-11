@@ -8,6 +8,7 @@ import type {
   OnlineBotActionDirective,
 } from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
+import type { OnlineStartNextRoundResult } from '../../online/gameplay/OnlineGameplayRoundService.js';
 import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
 import { GameplayActionBanner } from '../components/GameplayActionBanner.js';
 import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
@@ -485,12 +486,10 @@ export function ActiveGameplayScreen({
   async function submitAuctionAction(action: GameplayAuctionAction) {
     const service = services.gameplayRound;
     if (service === undefined || service.submitAuctionAction === undefined || roundSnapshot === undefined || roundBusy) return;
-    const submitAction = service.submitAuctionAction;
-
     setRoundBusy(true);
     setRoundErrors([]);
     try {
-      const operation = () => submitAction(
+      const operation = () => service.submitAuctionAction!(
         tableId,
         roundSnapshot.version,
         commandId('submit-auction-action'),
@@ -560,23 +559,21 @@ export function ActiveGameplayScreen({
       || !presentation.canStartNextRound
       || presentation.roundNumber === undefined
     ) return;
-    const startNextRoundCommand = service.startNextRound;
-
     const command = pendingNextRoundCommandId.current ?? commandId('start-next-round');
     pendingNextRoundCommandId.current = command;
     setNextRoundBusy(true);
     setNextRoundError(undefined);
     try {
-      const operation = () => startNextRoundCommand(
+      const operation = (): Promise<OnlineStartNextRoundResult> => service.startNextRound!(
         tableId,
         presentation.roundNumber!,
         roundSnapshot.version,
         snapshot.version,
         command,
       );
-      const result = services.gameplayRoundRealtime === undefined
+      const result: OnlineStartNextRoundResult = services.gameplayRoundRealtime === undefined
         ? await operation()
-        : await services.gameplayRoundRealtime.runMutation(operation) as Awaited<ReturnType<typeof startNextRoundCommand>>;
+        : await services.gameplayRoundRealtime.runMutation(operation);
       if (!result.valid || result.value === undefined) {
         if (result.failureKind === 'definitive-rejection') {
           pendingNextRoundCommandId.current = undefined;
@@ -656,7 +653,7 @@ export function ActiveGameplayScreen({
             <>
               <GameplayBidPanel
                 snapshot={roundSnapshot}
-                canSubmit={(presentation.phase === 'auction' || presentation.phase === 'estimate' || presentation.phase === 'bidding')
+                canSubmit={(presentation.phase === 'auction' || presentation.phase === 'estimate')
                   && presentation.viewerActionRequired}
                 busy={roundBusy || presentation.phase === 'paused'}
                 onSubmit={submitEstimate}

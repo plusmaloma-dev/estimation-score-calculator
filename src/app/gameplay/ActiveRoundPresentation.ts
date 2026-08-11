@@ -25,7 +25,6 @@ export type ActiveRoundPresentationPhase =
   | 'synchronizing'
   | 'auction'
   | 'estimate'
-  | 'bidding'
   | 'playing'
   | 'scored'
   | 'paused'
@@ -37,7 +36,8 @@ export type ActiveRoundSynchronizationReason =
   | 'risk-seat-missing'
   | 'turn-mismatch'
   | 'scored-turn-present'
-  | 'completed-estimates-total-thirteen';
+  | 'completed-estimates-total-thirteen'
+  | 'legacy-phase';
 
 export type EstimateStatus = 'under' | 'over' | 'at-13';
 
@@ -195,10 +195,10 @@ function expectedTurn(round: OnlineGameplayRoundSnapshot): {
   readonly actionKind: ActiveTurnActionKind;
   readonly turnId: string;
 } | undefined {
-  const seat = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding'
+  const seat = round.phase === 'auction' || round.phase === 'estimate'
     ? round.nextBidSeat
     : round.currentTurnSeat;
-  const actionKind = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding'
+  const actionKind = round.phase === 'auction' || round.phase === 'estimate'
     ? 'bid'
     : round.phase === 'playing'
       ? 'card'
@@ -325,6 +325,9 @@ export function createActiveRoundPresentation({
   }
   if (activeControl.tableId !== round.tableId) {
     return synchronizing(base, activeControl, round, 'table-mismatch');
+  }
+  if (round.phase === 'bidding') {
+    return synchronizing(base, activeControl, round, 'legacy-phase');
   }
 
   if (activeControl.lifecycle === 'terminated') {

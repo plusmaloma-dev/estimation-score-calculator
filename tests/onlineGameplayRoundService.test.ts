@@ -37,7 +37,7 @@ function snapshot(overrides: Readonly<Record<string, unknown>> = {}): Readonly<R
   return {
     tableId: '11111111-1111-4111-8111-111111111111',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'estimate',
     version: 2,
     viewerSeat: 2,
     bidOwnerSeat: 2,
@@ -51,12 +51,6 @@ function snapshot(overrides: Readonly<Record<string, unknown>> = {}): Readonly<R
     ],
     ownHand,
     legalNormalEstimates: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    legalBidOptions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((tricks) => ({
-      tricks,
-      bidType: 'normal',
-      requiresContractSuit: true,
-      legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
-    })),
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -74,12 +68,7 @@ test('getSnapshot calls the authenticated Edge Function without actor spoofing f
   assert.equal(result.value?.viewerSeat, 2);
   assert.equal(result.value?.riskSeat, 1);
   assert.equal(result.value?.ownHand.length, 13);
-  assert.deepEqual(result.value?.legalBidOptions?.[5], {
-    tricks: 5,
-    bidType: 'normal',
-    requiresContractSuit: true,
-    legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
-  });
+  assert.deepEqual(result.value?.legalNormalEstimates, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   assert.deepEqual(database.calls, [{
     name: 'gameplay-round-command',
     body: {
@@ -127,6 +116,16 @@ test('submitBid and playCard route command identity and expected version exactly
   ]);
 });
 
+test('rejects a legacy bidding snapshot instead of reconstructing it as an estimate action', async () => {
+  const database = client([{ data: { valid: true, errors: [], value: snapshot({ phase: 'bidding' }) }, error: null }]);
+  const service = new OnlineGameplayRoundService(database);
+
+  const result = await service.getSnapshot('11111111-1111-4111-8111-111111111111');
+
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.errors, ['Gameplay round snapshot is incomplete.']);
+});
+
 test('submitAuctionAction routes the projected public contract action exactly', async () => {
   const auction = snapshot({
     phase: 'auction',
@@ -137,7 +136,6 @@ test('submitAuctionAction routes the projected public contract action exactly', 
     auctionActiveSeat: 2,
     nextBidSeat: 2,
     legalNormalEstimates: [],
-    legalBidOptions: [],
     legalAuctionActions: [{ action: { type: 'contract', tricks: 4, trumpSuit: 'diamonds' } }],
   });
   const database = client([{ data: { valid: true, errors: [], duplicate: false, value: auction }, error: null }]);
@@ -168,7 +166,7 @@ test('startNextRound sends only the public authenticated command contract and pa
         valid: true,
         errors: [],
         duplicate: false,
-        value: snapshot({ roundNumber: 6, phase: 'bidding', version: 1 }),
+        value: snapshot({ roundNumber: 6, phase: 'auction', version: 1, legalNormalEstimates: [] }),
       },
       error: null,
     },

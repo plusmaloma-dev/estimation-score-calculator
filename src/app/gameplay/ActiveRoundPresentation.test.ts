@@ -81,7 +81,7 @@ function roundSnapshot(
   return {
     tableId: 'table-1',
     roundNumber: 2,
-    phase: 'bidding',
+    phase: 'estimate',
     version: 7,
     viewerSeat: 2,
     bidOwnerSeat: 0,
@@ -208,7 +208,7 @@ describe('createActiveRoundPresentation', () => {
     expect(presentation.isSynchronizing).toBe(false);
   });
 
-  it('derives compatible bidding action, seat estimates, caller, trump, total, Risk, and connection state', () => {
+  it('derives a compatible estimate action, seat estimates, caller, trump, total, Risk, and connection state', () => {
     const presentation = createActiveRoundPresentation({
       activeControl: activeControl(),
       round: roundSnapshot(),
@@ -217,7 +217,7 @@ describe('createActiveRoundPresentation', () => {
     });
 
     expect(presentation).toMatchObject({
-      phase: 'bidding',
+      phase: 'estimate',
       roundNumber: 2,
       viewerSeat: 2,
       viewerActionRequired: true,

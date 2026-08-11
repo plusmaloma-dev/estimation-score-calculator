@@ -8,7 +8,7 @@ function presentation(
   overrides: Partial<ActiveRoundPresentation> = {},
 ): ActiveRoundPresentation {
   return {
-    phase: 'bidding',
+    phase: 'estimate',
     tableId: 'table-1',
     roundNumber: 3,
     viewerSeat: 2,
@@ -96,9 +96,11 @@ describe('GameplayRoundStatus', () => {
     const status = screen.getByRole('region', { name: /Round 3/ });
     expect(status).toHaveClass('gameplay-round-status');
     expect(screen.getAllByRole('region', { name: /Round 3/ })).toHaveLength(1);
-    expect(status).toHaveTextContent('Bidding');
+    expect(status).toHaveTextContent('Estimate');
     expect(status).toHaveTextContent('Active');
     expect(status).toHaveTextContent('Seat 3');
+    expect(status).toHaveTextContent('Seat 3 · Bid');
+    expect(status).not.toHaveTextContent('Â');
     expect(status).toHaveTextContent('Bid');
     expect(status).toHaveTextContent('20 seconds');
     expect(status).not.toHaveTextContent('Submit your estimate');

@@ -3,41 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createCanonicalDeck } from '../../gameplay/CanonicalDeck.js';
 import type { OnlineActiveGameControlSnapshot } from '../../online/gameplay/activeControlTypes.js';
+import {
+  OnlineGameplayRoundService,
+  type GameplayRoundFunctionClient,
+} from '../../online/gameplay/OnlineGameplayRoundService.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { AppProvider, type AppServices } from '../AppContext.js';
 import { I18nProvider } from '../i18n/I18nContext.js';
 import { ActiveGameplayScreen } from './ActiveGameplayScreen.js';
 
-function ownerBidOptions(tricks: readonly number[]) {
-  return tricks.map((value) => ({
-    tricks: value,
-    bidType: 'normal' as const,
-    requiresContractSuit: true,
-    legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'] as const,
-  }));
-}
-
-function nonOwnerBidOptions(tricks: readonly number[], ownerTricks = 5) {
-  return tricks.map((value) => value === ownerTricks
-    ? {
-        tricks: value,
-        bidType: 'with' as const,
-        requiresContractSuit: false,
-        legalContractSuits: [] as const,
-        withTargetPlayerId: 'p2',
-      }
-    : {
-        tricks: value,
-        bidType: 'normal' as const,
-        requiresContractSuit: false,
-        legalContractSuits: [] as const,
-      });
-}
-
 function controlSnapshot(
   round: OnlineGameplayRoundSnapshot = roundSnapshot(),
 ): OnlineActiveGameControlSnapshot {
-  const isBidPhase = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding';
+  const isBidPhase = round.phase === 'auction' || round.phase === 'estimate';
   const actionKind = isBidPhase ? 'bid' : 'card';
   const seat = isBidPhase
     ? round.nextBidSeat ?? 0
@@ -109,7 +87,7 @@ function roundSnapshot(
   return {
     tableId: 'table-1',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'estimate',
     version: 2,
     viewerSeat: 2,
     bidOwnerSeat: 2,
@@ -123,7 +101,6 @@ function roundSnapshot(
     ],
     ownHand: createCanonicalDeck().slice(0, 13),
     legalNormalEstimates: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    legalBidOptions: ownerBidOptions([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
     legalCards: [],
     currentTrick: [],
     completedTricks: [],
@@ -190,7 +167,6 @@ describe('ActiveGameplayScreen bidding', () => {
       version: 3,
       nextBidSeat: 3,
       legalNormalEstimates: [],
-      legalBidOptions: [],
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0 },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
@@ -246,7 +222,6 @@ describe('ActiveGameplayScreen bidding', () => {
       auctionActiveSeat: 2,
       nextBidSeat: 2,
       legalNormalEstimates: [],
-      legalBidOptions: [],
       legalAuctionActions: [
         { action: { type: 'pass' } },
         { action: { type: 'contract', tricks: 4, trumpSuit: 'diamonds' } },
@@ -281,13 +256,79 @@ describe('ActiveGameplayScreen bidding', () => {
     );
   });
 
+  it('keeps the production auction service validator receiver when the screen submits', async () => {
+    const user = userEvent.setup();
+    const initial = roundSnapshot({
+      phase: 'auction',
+      bidOwnerSeat: undefined,
+      callerSeat: undefined,
+      trumpSuit: undefined,
+      riskSeat: undefined,
+      auctionActiveSeat: 2,
+      nextBidSeat: 2,
+      legalNormalEstimates: [],
+      legalAuctionActions: [{ action: { type: 'pass' } }],
+    });
+    const accepted = { ...initial, version: 3, auctionActiveSeat: 3 as const, nextBidSeat: 3 as const, legalAuctionActions: [] };
+    const invoke = vi.fn(async (_name: string, options: { readonly body: Readonly<Record<string, unknown>> }) => ({
+      data: {
+        valid: true,
+        errors: [],
+        value: options.body.action === 'snapshot' ? initial : accepted,
+      },
+      error: null,
+    }));
+    const productionRoundService = new OnlineGameplayRoundService({ functions: { invoke } } as GameplayRoundFunctionClient);
+    const appServices: AppServices = {
+      ...services(initial, {}, [controlSnapshot(initial), controlSnapshot(accepted)], [initial, accepted]),
+      gameplayRound: productionRoundService,
+    };
+    renderScreen(appServices);
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Contract auction' }), JSON.stringify({ type: 'pass' }));
+    await user.click(screen.getByRole('button', { name: 'Submit contract action' }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('gameplay-round-command', expect.objectContaining({
+      body: expect.objectContaining({ action: 'submit-auction-action', auctionAction: { type: 'pass' } }),
+    })));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('uses the production estimate command path and surfaces a controlled rejection', async () => {
+    const user = userEvent.setup();
+    const initial = roundSnapshot({
+      legalNormalEstimates: [4, 5],
+      legalAuctionActions: [],
+    });
+    const invoke = vi.fn(async (_name: string, options: { readonly body: Readonly<Record<string, unknown>> }) => ({
+      data: options.body.action === 'snapshot'
+        ? { valid: true, errors: [], value: initial }
+        : { valid: false, errors: ['Seat 3 must submit the next estimate.'] },
+      error: null,
+    }));
+    const productionRoundService = new OnlineGameplayRoundService({ functions: { invoke } } as GameplayRoundFunctionClient);
+    const appServices: AppServices = {
+      ...services(initial, {}, [controlSnapshot(initial)], [initial]),
+      gameplayRound: productionRoundService,
+    };
+    renderScreen(appServices);
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Estimate' }), '4');
+    await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('gameplay-round-command', expect.objectContaining({
+      body: expect.objectContaining({ action: 'submit-bid', bid: { playerId: 'p2', bidType: 'normal', tricks: 4 } }),
+    })));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Seat 3 must submit the next estimate.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('validateCommand');
+  });
+
   it('shows controls only to the acting seat and preserves the server-projected total-13 exclusion', async () => {
     const acting = roundSnapshot({
       version: 5,
       viewerSeat: 1,
       nextBidSeat: 1,
       legalNormalEstimates: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      legalBidOptions: nonOwnerBidOptions([0, 1, 2, 4, 5]),
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0, bid: { playerId: 'p0', bidType: 'normal', tricks: 2 } },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0 },
@@ -302,7 +343,7 @@ describe('ActiveGameplayScreen bidding', () => {
     expect(screen.queryByLabelText('Contract suit')).not.toBeInTheDocument();
     unmount();
 
-    renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [], legalBidOptions: [] }), 'user-0');
+    renderScreen(services({ ...acting, viewerSeat: 0, legalNormalEstimates: [] }), 'user-0');
     expect(await screen.findByRole('heading', { name: 'Estimate' })).toBeVisible();
     expect(screen.queryByRole('combobox', { name: 'Estimate' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 2');
@@ -315,7 +356,6 @@ describe('ActiveGameplayScreen bidding', () => {
       nextBidSeat: 1,
       version: 5,
       legalNormalEstimates: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      legalBidOptions: nonOwnerBidOptions([0, 1, 2, 4, 5]),
     });
     const playing = roundSnapshot({
       viewerSeat: 1,
@@ -324,7 +364,6 @@ describe('ActiveGameplayScreen bidding', () => {
       nextBidSeat: undefined,
       currentTurnSeat: 0,
       legalNormalEstimates: [],
-      legalBidOptions: [],
       players: [
         { seat: 0, playerId: 'p0', cardCount: 13, actualTricks: 0, bid: { playerId: 'p0', bidType: 'normal', tricks: 2 } },
         { seat: 1, playerId: 'p1', cardCount: 13, actualTricks: 0, bid: { playerId: 'p1', bidType: 'normal', tricks: 1 } },
