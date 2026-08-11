@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  HouseRulesRoundEngine,
   GameplayRoundSnapshotProjector,
   GameplaySessionBootstrapService,
   type GameplayFirstRoundBootstrapInput,
   type GameplaySessionBootstrapRequest,
 } from '../src/index.js';
+import { HouseRulesBidOptionsService } from '../src/gameplay/HouseRulesBidOptionsService.js';
 
 const seats = [
   { seat: 0, playerId: 'human-host' },
@@ -123,6 +125,74 @@ test('subsequent bootstrap accepts server-derived seat 1 after seat 0 with the e
     seat: 2,
     actionKind: 'bid',
   });
+});
+
+test('each dealer position opens the auction with the seat immediately to its right in canonical table order', async () => {
+  const service = new GameplaySessionBootstrapService();
+
+  for (const [dealerSeat, firstAuctionSeat] of [[0, 1], [1, 2], [2, 3], [3, 0]] as const) {
+    const result = await service.bootstrap(subsequentInput({
+      dealerSeat,
+      roundNumber: dealerSeat + 2,
+    }));
+
+    assert.equal(result.state.dealerSeat, dealerSeat);
+    assert.equal(result.state.auctionActiveSeat, firstAuctionSeat);
+    assert.equal(result.firstTurn.seat, firstAuctionSeat);
+    assert.deepEqual(result.state.auctionOrder, [
+      firstAuctionSeat,
+      ((firstAuctionSeat + 1) % 4) as 0 | 1 | 2 | 3,
+      ((firstAuctionSeat + 2) % 4) as 0 | 1 | 2 | 3,
+      ((firstAuctionSeat + 3) % 4) as 0 | 1 | 2 | 3,
+    ]);
+  }
+});
+
+test('a fresh round-two auction, estimates, and first trick use the resolved caller as leader', async () => {
+  const bootstrap = await new GameplaySessionBootstrapService().bootstrap(subsequentInput({
+    dealerSeat: 1,
+    roundNumber: 2,
+  }));
+  const engine = new HouseRulesRoundEngine();
+  const bidOptions = new HouseRulesBidOptionsService();
+  let state = bootstrap.state;
+
+  const acceptAuction = (seat: 0 | 1 | 2 | 3, action: Parameters<HouseRulesRoundEngine['submitAuctionAction']>[2]) => {
+    const result = engine.submitAuctionAction(state, seat, action);
+    assert.equal(result.valid, true, result.errors.join('\n'));
+    state = result.state;
+  };
+  const acceptEstimate = (seat: 0 | 1 | 2 | 3, tricks: number) => {
+    const result = engine.submitBid(state, seat, {
+      playerId: seats[seat].playerId,
+      bidType: 'normal',
+      tricks,
+    });
+    assert.equal(result.valid, true, result.errors.join('\n'));
+    state = result.state;
+  };
+
+  assert.equal(state.auctionActiveSeat, 2);
+  acceptAuction(2, { type: 'pass' });
+  acceptAuction(3, { type: 'contract', tricks: 4, trumpSuit: 'clubs' });
+  acceptAuction(0, { type: 'pass' });
+  acceptAuction(1, { type: 'pass' });
+  acceptAuction(3, { type: 'pass' });
+
+  assert.equal(state.phase, 'estimate');
+  assert.equal(state.callerSeat, 3);
+  assert.equal(state.trumpSuit, 'clubs');
+  assert.deepEqual(state.estimateOrder, [0, 1, 2]);
+  acceptEstimate(0, 3);
+  acceptEstimate(1, 3);
+  assert.equal(bidOptions.legalOptions(state, 2).some((option) => option.tricks === 3), false);
+  acceptEstimate(2, 2);
+
+  assert.equal(state.phase, 'playing');
+  assert.equal(state.currentTurnSeat, 3);
+  const callerCard = engine.legalCards(state, 3)[0]!;
+  assert.equal(engine.playCard(state, 0, engine.legalCards(state, 0)[0]!).valid, false);
+  assert.equal(engine.playCard(state, 3, callerCard).valid, true);
 });
 
 test('subsequent bootstrap carries the scored round multiplier into a fresh valid deal', async () => {

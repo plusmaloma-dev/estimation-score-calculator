@@ -254,7 +254,11 @@ function validSeats(value: readonly { readonly seat: number; readonly playerId: 
 }
 
 function nextSeat(seat: number): number {
-  return validSeat(seat) ? (seat + 1) % 4 : -1;
+  // Keep dealer rotation aligned with the explicit canonical table order used
+  // by the round bootstrap; the next seat is immediately to the dealer's right.
+  const canonicalTableOrder = [0, 1, 2, 3];
+  const index = canonicalTableOrder.indexOf(seat);
+  return index === -1 ? -1 : canonicalTableOrder[(index + 1) % canonicalTableOrder.length]!;
 }
 
 function bytesToHex(value: Uint8Array): string {

@@ -37,7 +37,7 @@ export class HouseRulesRoundEngine {
     this.validateCreateInput(input);
     const dealerSeat = input.dealerSeat ?? input.bidOwnerSeat ?? input.bidOrder[3]!;
     const auctionFirstSeat = this.nextSeat(input.playOrder, dealerSeat);
-    const auctionOrder = this.rotatingOrder(auctionFirstSeat);
+    const auctionOrder = this.rotatingOrder(input.playOrder, auctionFirstSeat);
 
     return {
       roundNumber: input.roundNumber,
@@ -193,7 +193,10 @@ export class HouseRulesRoundEngine {
       bids: tentativeBids,
       currentEstimateIndex: nextEstimateIndex,
       currentBidIndex: 4,
-      currentTurnSeat: state.firstLeadSeat,
+      // A resolved contract has an authoritative caller. Only an all-pass
+      // No-Trump round has no caller and therefore retains its established
+      // dealer-relative first-lead behavior.
+      currentTurnSeat: state.callerSeat ?? state.firstLeadSeat,
     });
   }
 
@@ -266,7 +269,10 @@ export class HouseRulesRoundEngine {
   ): GameplayStateTransition {
     const contract = state.currentHighestContract;
     if (contract === undefined) throw new Error('A resolved contract auction requires a highest contract.');
-    const estimateOrder = this.rotatingOrder(this.nextSeat(state.playOrder, contract.seat)).filter((seat) => seat !== contract.seat);
+    const estimateOrder = this.rotatingOrder(
+      state.playOrder,
+      this.nextSeat(state.playOrder, contract.seat),
+    ).filter((seat) => seat !== contract.seat);
     const callerBid: EstimationBid = {
       playerId: contract.playerId,
       bidType: 'normal',
@@ -304,7 +310,7 @@ export class HouseRulesRoundEngine {
       auctionHistory,
       passedAuctionSeats,
       consecutiveAuctionPasses,
-      estimateOrder: this.rotatingOrder(state.dealerSeat),
+      estimateOrder: this.rotatingOrder(state.playOrder, state.dealerSeat),
       currentEstimateIndex: 0,
       currentBidIndex: 0,
       allPassAuction: true,
@@ -412,8 +418,15 @@ export class HouseRulesRoundEngine {
     return order[(index + 1) % order.length]!;
   }
 
-  private rotatingOrder(firstSeat: SeatIndex): SeatOrder {
-    return [firstSeat, ((firstSeat + 1) % 4) as SeatIndex, ((firstSeat + 2) % 4) as SeatIndex, ((firstSeat + 3) % 4) as SeatIndex];
+  private rotatingOrder(order: SeatOrder, firstSeat: SeatIndex): SeatOrder {
+    const index = order.indexOf(firstSeat);
+    if (index === -1) throw new Error(`Seat ${firstSeat} does not exist in the play order.`);
+    return [
+      order[index]!,
+      order[(index + 1) % order.length]!,
+      order[(index + 2) % order.length]!,
+      order[(index + 3) % order.length]!,
+    ];
   }
 
   private contractSuit(state: HouseRulesRoundState): ContractSuit {

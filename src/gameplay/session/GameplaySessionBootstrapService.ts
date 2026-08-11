@@ -41,9 +41,13 @@ export class GameplaySessionBootstrapService {
     dealerSeat: SeatIndex,
     roundMultiplier: number | undefined,
   ): Promise<GameplaySessionBootstrapResult> {
-    const firstLeadSeat = this.nextSeat(dealerSeat);
-    const bidOrder = this.rotatingOrder(this.nextSeat(dealerSeat));
+    // This explicit order is the canonical table rotation: the next entry is
+    // the seat immediately to the dealer's right for auction, deal, and lead
+    // ordering. Do not derive it from a rendered table layout.
     const playOrder: SeatOrder = [0, 1, 2, 3];
+    const firstAuctionSeat = this.nextSeat(playOrder, dealerSeat);
+    const firstLeadSeat = firstAuctionSeat;
+    const bidOrder = this.rotatingOrder(playOrder, firstAuctionSeat);
     const players = this.orderPlayers(input.seats);
 
     const deal = await this.fairDealService.deal({
@@ -151,21 +155,21 @@ export class GameplaySessionBootstrapService {
     }) as unknown as GameplaySeatPlayers;
   }
 
-  private rotatingOrder(firstSeat: SeatIndex): SeatOrder {
+  private rotatingOrder(order: SeatOrder, firstSeat: SeatIndex): SeatOrder {
+    const index = order.indexOf(firstSeat);
+    if (index === -1) throw new Error(`Seat ${firstSeat} is not in the canonical table rotation.`);
     return [
-      firstSeat,
-      this.offsetSeat(firstSeat, 1),
-      this.offsetSeat(firstSeat, 2),
-      this.offsetSeat(firstSeat, 3),
+      order[index]!,
+      order[(index + 1) % order.length]!,
+      order[(index + 2) % order.length]!,
+      order[(index + 3) % order.length]!,
     ];
   }
 
-  private nextSeat(seat: SeatIndex): SeatIndex {
-    return this.offsetSeat(seat, 1);
-  }
-
-  private offsetSeat(seat: SeatIndex, offset: number): SeatIndex {
-    return ((seat + offset) % 4) as SeatIndex;
+  private nextSeat(order: SeatOrder, seat: SeatIndex): SeatIndex {
+    const index = order.indexOf(seat);
+    if (index === -1) throw new Error(`Seat ${seat} is not in the canonical table rotation.`);
+    return order[(index + 1) % order.length]!;
   }
 
   private hexToBytes(value: string): Uint8Array {

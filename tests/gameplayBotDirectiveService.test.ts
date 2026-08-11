@@ -38,7 +38,9 @@ async function roundInput(): Promise<CreateHouseRulesRoundInput> {
     bidOrder: [1, 2, 3, 0],
     playOrder: [0, 1, 2, 3],
     dealerSeat: 0,
-    firstLeadSeat: 1,
+    // The normal contract path must use the resolved caller instead of this
+    // all-pass fallback lead. The bot caller below is seat 1.
+    firstLeadSeat: 2,
   };
 }
 

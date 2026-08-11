@@ -71,10 +71,10 @@ test('final estimate that makes total thirteen is rejected without committing it
   assert.ok(result.errors.includes('Total estimates cannot equal 13. The round must be Over or Under.'));
 });
 
-test('three estimates after caller fixed contract move the round to card play', async () => {
+test('three estimates after caller fixed contract move the round to card play with the caller leading trick one', async () => {
   const state = completeValidEstimates(new HouseRulesRoundEngine(), new HouseRulesRoundEngine().create(await fixture()));
   assert.equal(state.phase, 'playing');
-  assert.equal(state.currentTurnSeat, 0);
+  assert.equal(state.currentTurnSeat, 2);
   assert.equal(state.bids.length, 4);
   assert.equal(state.bids.find((bid) => bid.playerId === 'p2')?.tricks, 5);
 });
@@ -82,16 +82,18 @@ test('three estimates after caller fixed contract move the round to card play', 
 test('only current play seat can act and accepted play does not mutate prior state', async () => {
   const engine = new HouseRulesRoundEngine();
   const playing = completeValidEstimates(engine, engine.create(await fixture()));
-  const originalFirstHand = playing.hands[0].cards;
-  const wrongSeatResult = engine.playCard(playing, 1, engine.legalCards(playing, 1)[0]!);
+  const activeSeat = playing.currentTurnSeat!;
+  const wrongSeat = ((activeSeat + 1) % 4) as 0 | 1 | 2 | 3;
+  const originalActiveHand = playing.hands[activeSeat].cards;
+  const wrongSeatResult = engine.playCard(playing, wrongSeat, engine.legalCards(playing, wrongSeat)[0]!);
   assert.equal(wrongSeatResult.valid, false);
   assert.equal(wrongSeatResult.state, playing);
-  const selectedCard = engine.legalCards(playing, 0)[0]!;
-  const result = engine.playCard(playing, 0, selectedCard);
+  const selectedCard = engine.legalCards(playing, activeSeat)[0]!;
+  const result = engine.playCard(playing, activeSeat, selectedCard);
   assert.equal(result.valid, true, result.errors.join('\n'));
-  assert.equal(playing.hands[0].cards, originalFirstHand);
-  assert.equal(result.state.hands[0].cards.length, 12);
-  assert.equal(result.state.currentTurnSeat, 1);
+  assert.equal(playing.hands[activeSeat].cards, originalActiveHand);
+  assert.equal(result.state.hands[activeSeat].cards.length, 12);
+  assert.equal(result.state.currentTurnSeat, 3);
 });
 
 test('completed trick increments winner count and winner leads next trick', async () => {

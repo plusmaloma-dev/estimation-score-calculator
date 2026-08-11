@@ -51,9 +51,13 @@ function phaseLabel(phase: ActiveRoundPresentation['phase'], t: (key: Translatio
   }
 }
 
-function actionLabel(action: ActiveRoundPresentation['actionKind'], t: (key: TranslationKey) => string): string {
+function actionLabel(
+  phase: ActiveRoundPresentation['phase'],
+  action: ActiveRoundPresentation['actionKind'],
+  t: (key: TranslationKey) => string,
+): string {
   switch (action) {
-    case 'bid': return t('bid');
+    case 'bid': return phase === 'estimate' ? t('estimate') : t('bid');
     case 'card': return t('card');
     case undefined: return t('pending');
   }
@@ -79,7 +83,7 @@ export function GameplayRoundStatus({
           <span className="rule-chip">{phaseLabel(presentation.phase, t)}</span>
           {presentation.activeSeat !== undefined && (
             <span className="rule-chip">
-              {t('active')}: {t('seat')} {presentation.activeSeat + 1} · {actionLabel(presentation.actionKind, t)}
+              {t('active')}: {t('seat')} {presentation.activeSeat + 1} · {actionLabel(presentation.phase, presentation.actionKind, t)}
             </span>
           )}
           {presentation.phase !== 'paused'

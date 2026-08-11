@@ -99,9 +99,9 @@ describe('GameplayRoundStatus', () => {
     expect(status).toHaveTextContent('Estimate');
     expect(status).toHaveTextContent('Active');
     expect(status).toHaveTextContent('Seat 3');
-    expect(status).toHaveTextContent('Seat 3 · Bid');
+    expect(status).toHaveTextContent('Seat 3 · Estimate');
     expect(status).not.toHaveTextContent('Â');
-    expect(status).toHaveTextContent('Bid');
+    expect(status).not.toHaveTextContent('Seat 3 · Bid');
     expect(status).toHaveTextContent('20 seconds');
     expect(status).not.toHaveTextContent('Submit your estimate');
   });

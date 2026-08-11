@@ -133,21 +133,21 @@ test('playing snapshot exposes legal cards only to the current seat and keeps pl
   state = accepted(engine.submitBid(state, 0, bid('p0', 2)));
   state = accepted(engine.submitBid(state, 1, bid('p1', 1)));
 
-  const seatZero = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 4, 0);
-  const seatTwo = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 4, 2);
+  const caller = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 4, 2);
+  const nonCaller = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 4, 0);
 
-  assert.equal(seatZero.phase, 'playing');
-  assert.equal(seatZero.currentTurnSeat, 0);
-  assert.deepEqual(seatZero.legalCards, engine.legalCards(state, 0));
-  assert.deepEqual(seatTwo.legalCards, []);
+  assert.equal(caller.phase, 'playing');
+  assert.equal(caller.currentTurnSeat, 2);
+  assert.deepEqual(caller.legalCards, engine.legalCards(state, 2));
+  assert.deepEqual(nonCaller.legalCards, []);
 
-  const playedCard = seatZero.legalCards[0]!;
-  state = accepted(engine.playCard(state, 0, playedCard));
+  const playedCard = caller.legalCards[0]!;
+  state = accepted(engine.playCard(state, 2, playedCard));
   const afterPlay = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 5, 2);
 
-  assert.deepEqual(afterPlay.currentTrick, [{ seat: 0, card: playedCard }]);
-  assert.equal(afterPlay.players[0]?.cardCount, 12);
-  assert.equal(afterPlay.players[2]?.cardCount, 13);
+  assert.deepEqual(afterPlay.currentTrick, [{ seat: 2, card: playedCard }]);
+  assert.equal(afterPlay.players[2]?.cardCount, 12);
+  assert.equal(afterPlay.players[0]?.cardCount, 13);
   assert.deepEqual(afterPlay.ownHand, state.hands[2].cards);
   assert.deepEqual(afterPlay.legalCards, []);
 });
