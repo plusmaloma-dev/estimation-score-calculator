@@ -1,10 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { EstimationBid } from '../../domain/bid.js';
 import type { ContractSuit } from '../../domain/card.js';
-import type {
-  OnlineGameplayBidOption,
-  OnlineGameplayRoundSnapshot,
-} from '../../online/gameplay/roundTypes.js';
+import type { GameplayAuctionAction } from '../../gameplay/types.js';
+import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import { useI18n } from '../i18n/I18nContext.js';
 import type { TranslationKey } from '../i18n/translations.js';
 import { GameplayHand } from './GameplayHand.js';
@@ -19,116 +17,89 @@ function contractLabelKey(contract: ContractSuit): TranslationKey {
   }
 }
 
-function optionKey(option: OnlineGameplayBidOption): string {
-  return `${option.tricks}:${option.bidType}:${option.withTargetPlayerId ?? ''}`;
-}
-
-function optionLabel(option: OnlineGameplayBidOption, t: (key: TranslationKey) => string): string {
-  return option.bidType === 'with'
-    ? `${option.tricks} · ${t('with')}`
-    : String(option.tricks);
-}
+function auctionActionKey(action: GameplayAuctionAction): string { return JSON.stringify(action); }
 
 export function GameplayBidPanel({
   snapshot,
   canSubmit,
   busy,
   onSubmit,
+  onSubmitAuctionAction,
 }: {
   readonly snapshot: OnlineGameplayRoundSnapshot;
   readonly canSubmit: boolean;
   readonly busy: boolean;
   readonly onSubmit: (bid: EstimationBid) => Promise<void>;
+  readonly onSubmitAuctionAction?: (action: GameplayAuctionAction) => Promise<void>;
 }) {
   const { t } = useI18n();
-  const legalBidOptions = snapshot.legalBidOptions ?? [];
-  const firstOption = legalBidOptions[0];
-  const [selectedOptionKey, setSelectedOptionKey] = useState(firstOption === undefined ? '' : optionKey(firstOption));
-  const [contractSuit, setContractSuit] = useState<ContractSuit | ''>('');
-  const selectedOption = legalBidOptions.find((option) => optionKey(option) === selectedOptionKey);
+  const estimates = snapshot.legalBidOptions ?? [];
+  const auctionActions = snapshot.legalAuctionActions ?? [];
+  const [selectedEstimate, setSelectedEstimate] = useState(String(estimates[0]?.tricks ?? ''));
+  const [selectedAuctionAction, setSelectedAuctionAction] = useState(auctionActions[0] === undefined ? '' : auctionActionKey(auctionActions[0].action));
+  const isAuction = snapshot.phase === 'auction';
+  const isEstimate = snapshot.phase === 'estimate' || snapshot.phase === 'bidding';
 
   useEffect(() => {
-    const next = snapshot.legalBidOptions?.[0];
-    setSelectedOptionKey(next === undefined ? '' : optionKey(next));
-    setContractSuit('');
-  }, [snapshot.legalBidOptions, snapshot.version]);
+    setSelectedEstimate(String((snapshot.legalBidOptions ?? [])[0]?.tricks ?? ''));
+    setSelectedAuctionAction((snapshot.legalAuctionActions ?? [])[0] === undefined
+      ? ''
+      : auctionActionKey(snapshot.legalAuctionActions![0]!.action));
+  }, [snapshot.legalAuctionActions, snapshot.legalBidOptions, snapshot.version]);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submitEstimate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const player = snapshot.players.find((candidate) => candidate.seat === snapshot.viewerSeat);
-    if (player === undefined || selectedOption === undefined) return;
-    if (selectedOption.requiresContractSuit && contractSuit === '') return;
+    const tricks = Number(selectedEstimate);
+    if (player === undefined || !Number.isInteger(tricks)) return;
+    await onSubmit({ playerId: player.playerId, bidType: 'normal', tricks });
+  }
 
-    await onSubmit({
-      playerId: player.playerId,
-      bidType: selectedOption.bidType,
-      tricks: selectedOption.tricks,
-      ...(selectedOption.requiresContractSuit ? { trumpSuit: contractSuit as ContractSuit } : {}),
-      ...(selectedOption.withTargetPlayerId === undefined
-        ? {}
-        : { withTargetPlayerId: selectedOption.withTargetPlayerId }),
-    });
+  async function submitAuction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const action = auctionActions.find((option) => auctionActionKey(option.action) === selectedAuctionAction)?.action;
+    if (action === undefined || onSubmitAuctionAction === undefined) return;
+    await onSubmitAuctionAction(action);
+  }
+
+  function auctionLabel(action: GameplayAuctionAction): string {
+    if (action.type === 'pass') return t('pass');
+    if (action.type === 'with') return t('with');
+    return `${action.tricks} ${t(contractLabelKey(action.trumpSuit))}`;
   }
 
   return (
     <section className="gameplay-bid-panel" aria-labelledby="round-estimates-heading">
       <div className="gameplay-round-heading">
-        <h3 id="round-estimates-heading">{t('estimate')}</h3>
+        <h3 id="round-estimates-heading">{isAuction ? t('auction') : t('estimate')}</h3>
         <span className="rule-chip">{t('version')} {snapshot.version}</span>
       </div>
 
-      {snapshot.phase === 'bidding' && (
-        <GameplayHand
-          ownHand={snapshot.ownHand}
-          mode="read-only"
-          legalCardIds={new Set()}
-        />
+      {(isAuction || isEstimate) && <GameplayHand ownHand={snapshot.ownHand} mode="read-only" legalCardIds={new Set()} />}
+
+      {isAuction && canSubmit && (
+        <form className="gameplay-bid-form" onSubmit={(event) => void submitAuction(event)}>
+          <label>
+            {t('auction')}
+            <select value={selectedAuctionAction} disabled={busy} onChange={(event) => setSelectedAuctionAction(event.target.value)}>
+              {auctionActions.map((option) => <option key={auctionActionKey(option.action)} value={auctionActionKey(option.action)}>{auctionLabel(option.action)}</option>)}
+            </select>
+          </label>
+          <button className="primary-button" type="submit" disabled={busy || selectedAuctionAction === '' || onSubmitAuctionAction === undefined}>
+            {t('submitAuctionAction')}
+          </button>
+        </form>
       )}
 
-      {snapshot.phase === 'bidding' && canSubmit && (
-        <form className="gameplay-bid-form" onSubmit={(event) => void submit(event)}>
-          <div className="gameplay-form-grid">
-            <label>
-              {t('estimate')}
-              <select
-                value={selectedOptionKey}
-                disabled={busy}
-                onChange={(event) => {
-                  setSelectedOptionKey(event.target.value);
-                  setContractSuit('');
-                }}
-              >
-                {legalBidOptions.map((option) => (
-                  <option key={optionKey(option)} value={optionKey(option)}>
-                    {optionLabel(option, t)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {selectedOption?.requiresContractSuit === true && (
-              <label>
-                {t('contractSuit')}
-                <select
-                  value={contractSuit}
-                  disabled={busy}
-                  required
-                  onChange={(event) => setContractSuit(event.target.value as ContractSuit | '')}
-                >
-                  <option value="">{t('selectContract')}</option>
-                  {selectedOption.legalContractSuits.map((option) => (
-                    <option key={option} value={option}>{t(contractLabelKey(option))}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
-          <button
-            className="primary-button"
-            type="submit"
-            disabled={busy || selectedOption === undefined || selectedOption.requiresContractSuit && contractSuit === ''}
-          >
-            {t('submitEstimate')}
-          </button>
+      {isEstimate && canSubmit && (
+        <form className="gameplay-bid-form" onSubmit={(event) => void submitEstimate(event)}>
+          <label>
+            {t('estimate')}
+            <select value={selectedEstimate} disabled={busy} onChange={(event) => setSelectedEstimate(event.target.value)}>
+              {estimates.map((option) => <option key={option.tricks} value={option.tricks}>{option.tricks}</option>)}
+            </select>
+          </label>
+          <button className="primary-button" type="submit" disabled={busy || selectedEstimate === ''}>{t('submitEstimate')}</button>
         </form>
       )}
     </section>

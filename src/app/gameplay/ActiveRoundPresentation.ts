@@ -23,6 +23,8 @@ import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
 export type ActiveRoundPresentationPhase =
   | 'loading'
   | 'synchronizing'
+  | 'auction'
+  | 'estimate'
   | 'bidding'
   | 'playing'
   | 'scored'
@@ -125,9 +127,9 @@ function deriveRound(round: OnlineGameplayRoundSnapshot): RoundDerivedPresentati
       playerId: player.playerId,
       ...(player.bid === undefined ? {} : { estimate: player.bid.tricks }),
       isViewer: player.seat === round.viewerSeat,
-      isCaller: player.seat === round.bidOwnerSeat,
+      isCaller: player.seat === (round.callerSeat ?? round.bidOwnerSeat),
     }));
-  const callerBid = round.players.find((player) => player.seat === round.bidOwnerSeat)?.bid;
+  const callerBid = round.players.find((player) => player.seat === (round.callerSeat ?? round.bidOwnerSeat))?.bid;
   const totalEstimatedTricks = round.players.reduce(
     (total, player) => total + (player.bid?.tricks ?? 0),
     0,
@@ -147,7 +149,7 @@ function deriveRound(round: OnlineGameplayRoundSnapshot): RoundDerivedPresentati
   return {
     estimatesBySeat,
     ...(callerBid === undefined ? {} : { callerEstimate: callerBid.tricks }),
-    ...(callerBid?.trumpSuit === undefined ? {} : { trump: callerBid.trumpSuit }),
+    ...(round.trumpSuit ?? callerBid?.trumpSuit) === undefined ? {} : { trump: round.trumpSuit ?? callerBid?.trumpSuit },
     totalEstimatedTricks,
     estimateStatus: estimateStatus(totalEstimatedTricks),
     estimateDistanceFrom13: Math.abs(13 - totalEstimatedTricks),
@@ -193,8 +195,10 @@ function expectedTurn(round: OnlineGameplayRoundSnapshot): {
   readonly actionKind: ActiveTurnActionKind;
   readonly turnId: string;
 } | undefined {
-  const seat = round.phase === 'bidding' ? round.nextBidSeat : round.currentTurnSeat;
-  const actionKind = round.phase === 'bidding'
+  const seat = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding'
+    ? round.nextBidSeat
+    : round.currentTurnSeat;
+  const actionKind = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding'
     ? 'bid'
     : round.phase === 'playing'
       ? 'card'
@@ -249,7 +253,7 @@ function basePresentation(
     ...(round === undefined ? {} : {
       roundNumber: round.roundNumber,
       viewerSeat: round.viewerSeat,
-      callerSeat: round.bidOwnerSeat,
+      ...(round.callerSeat ?? round.bidOwnerSeat) === undefined ? {} : { callerSeat: round.callerSeat ?? round.bidOwnerSeat },
       currentTrick: round.currentTrick,
       ownHand: round.ownHand,
       legalNormalEstimates: round.legalNormalEstimates,
@@ -339,7 +343,7 @@ export function createActiveRoundPresentation({
   if (viewerControl === undefined || viewerControl.seat !== round.viewerSeat) {
     return synchronizing(base, activeControl, round, 'viewer-seat-mismatch');
   }
-  if (round.riskSeat === undefined) {
+  if ((round.phase === 'estimate' || round.phase === 'playing' || round.phase === 'scored') && round.riskSeat === undefined) {
     return synchronizing(base, activeControl, round, 'risk-seat-missing');
   }
   if (base.estimatesComplete && base.totalEstimatedTricks === 13) {

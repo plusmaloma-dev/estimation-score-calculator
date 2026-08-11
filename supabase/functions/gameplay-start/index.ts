@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { GameplayRoundApplicationService } from '../../../src/gameplay/GameplayRoundApplicationService.ts';
 import type {
   GameplayRoundActor,
@@ -37,7 +37,7 @@ interface StartedSeatRow {
   readonly bot_id: string | null;
 }
 
-type ServiceClient = ReturnType<typeof createClient>;
+type ServiceClient = SupabaseClient<any>;
 
 class ReadOnlyGameplayRoundRepository implements GameplayRoundRepository {
   constructor(private readonly client: ServiceClient) {}
@@ -176,7 +176,7 @@ async function initializeRound(
     initialization: { kind: 'first-round' },
   });
   const occurredAt = new Date().toISOString();
-  const initialized = await rpc(client, 'initialize_gameplay_round_state', {
+  const initialized = await rpc(client, 'initialize_gameplay_auction_round_state', {
     p_table_id: tableId,
     p_actor_user_id: actorUserId,
     p_round_number: bootstrap.state.roundNumber,
@@ -196,8 +196,8 @@ function firstTurnFromState(state: HouseRulesRoundState): {
   readonly seat: SeatIndex;
   readonly actionKind: 'bid';
 } | undefined {
-  if (state.phase !== 'bidding' || state.currentBidIndex !== 0) return undefined;
-  const seat = state.bidOrder[0];
+  if (state.phase !== 'auction' || state.auctionActiveSeat === undefined) return undefined;
+  const seat = state.auctionActiveSeat;
   return {
     turnId: `round-${state.roundNumber}:bid:0:${seat}`,
     seat,

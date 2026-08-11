@@ -9,6 +9,9 @@ import {
 import type { EstimationBid } from '../../domain/bid.js';
 import type {
   CompletedGameplayTrick,
+  GameplayAuctionAction,
+  GameplayAuctionContract,
+  GameplayAuctionHistoryEntry,
   GameplayTrickEntry,
   SeatIndex,
 } from '../../gameplay/types.js';
@@ -17,6 +20,7 @@ import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
 import type { OnlineGameplayResult } from './types.js';
 import type {
   OnlineGameplayBidOption,
+  OnlineGameplayAuctionOption,
   OnlineGameplayRoundPlayer,
   OnlineGameplayRoundSnapshot,
 } from './roundTypes.js';
@@ -40,7 +44,7 @@ export interface OnlineStartNextRoundResult
   readonly failureKind?: NextRoundFailureKind;
 }
 
-const PHASES = ['bidding', 'playing', 'scored'] as const;
+const PHASES = ['auction', 'estimate', 'playing', 'scored', 'bidding'] as const;
 const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
 const PROHIBITED_KEYS = new Set([
@@ -123,6 +127,24 @@ export class OnlineGameplayRoundService {
       expectedVersion,
       commandId: commandId.trim(),
       card,
+    });
+  }
+
+  async submitAuctionAction(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+    auctionAction: GameplayAuctionAction,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (this.parseAuctionAction(auctionAction) === undefined) errors.push('Gameplay auction action is invalid.');
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'submit-auction-action',
+      tableId: tableId.trim(),
+      expectedVersion,
+      commandId: commandId.trim(),
+      auctionAction,
     });
   }
 
@@ -294,8 +316,15 @@ export class OnlineGameplayRoundService {
     const phase = this.oneOf(row.phase, PHASES);
     const version = this.nonNegativeInteger(row.version);
     const viewerSeat = this.seat(row.viewerSeat);
-    const bidOwnerSeat = this.seat(row.bidOwnerSeat);
-    const riskSeat = this.seat(row.riskSeat);
+    const bidOwnerSeat = row.bidOwnerSeat === null || row.bidOwnerSeat === undefined ? undefined : this.seat(row.bidOwnerSeat);
+    const dealerSeat = row.dealerSeat === null || row.dealerSeat === undefined ? undefined : this.seat(row.dealerSeat);
+    const callerSeat = row.callerSeat === null || row.callerSeat === undefined ? undefined : this.seat(row.callerSeat);
+    const riskSeat = row.riskSeat === null || row.riskSeat === undefined ? undefined : this.seat(row.riskSeat);
+    const trumpSuit = row.trumpSuit === null || row.trumpSuit === undefined ? undefined : this.contractSuit(row.trumpSuit);
+    const passedAuctionSeats = row.passedAuctionSeats === undefined ? undefined : this.parseSeats(row.passedAuctionSeats);
+    const consecutiveAuctionPasses = row.consecutiveAuctionPasses === undefined ? undefined : this.nonNegativeInteger(row.consecutiveAuctionPasses);
+    const auctionHistory = row.auctionHistory === undefined ? undefined : this.parseAuctionHistory(row.auctionHistory);
+    const currentHighestContract = row.currentHighestContract === undefined ? undefined : this.parseAuctionContract(row.currentHighestContract);
     const dealCommitment = row.dealCommitment === null || row.dealCommitment === undefined
       ? undefined
       : this.sha256Hex(row.dealCommitment);
@@ -305,8 +334,15 @@ export class OnlineGameplayRoundService {
       || phase === undefined
       || version === undefined
       || viewerSeat === undefined
-      || bidOwnerSeat === undefined
-      || riskSeat === undefined
+      || row.bidOwnerSeat !== null && row.bidOwnerSeat !== undefined && bidOwnerSeat === undefined
+      || row.dealerSeat !== null && row.dealerSeat !== undefined && dealerSeat === undefined
+      || row.callerSeat !== null && row.callerSeat !== undefined && callerSeat === undefined
+      || row.riskSeat !== null && row.riskSeat !== undefined && riskSeat === undefined
+      || row.trumpSuit !== null && row.trumpSuit !== undefined && trumpSuit === undefined
+      || row.passedAuctionSeats !== undefined && passedAuctionSeats === undefined
+      || row.consecutiveAuctionPasses !== undefined && consecutiveAuctionPasses === undefined
+      || row.auctionHistory !== undefined && auctionHistory === undefined
+      || row.currentHighestContract !== undefined && currentHighestContract === undefined
       || (requireDealCommitment && dealCommitment === undefined)
       || (row.dealCommitment !== null
         && row.dealCommitment !== undefined
@@ -363,6 +399,13 @@ export class OnlineGameplayRoundService {
         legalBidOptions.find((option) => option.tricks === estimate)?.bidType !== 'normal'
       ))
     ) return undefined;
+    const legalAuctionActions: OnlineGameplayAuctionOption[] = [];
+    if (row.legalAuctionActions !== undefined && row.legalAuctionActions !== null && !Array.isArray(row.legalAuctionActions)) return undefined;
+    for (const item of row.legalAuctionActions ?? []) {
+      const action = this.parseAuctionAction(this.object(item)?.action);
+      if (action === undefined) return undefined;
+      legalAuctionActions.push({ action });
+    }
 
     const currentTrick = this.parseTrickEntries(row.currentTrick, false);
     if (currentTrick === undefined) return undefined;
@@ -392,8 +435,15 @@ export class OnlineGameplayRoundService {
       phase,
       version,
       viewerSeat,
-      bidOwnerSeat,
-      riskSeat,
+      ...(dealerSeat === undefined ? {} : { dealerSeat }),
+      ...(bidOwnerSeat === undefined ? {} : { bidOwnerSeat }),
+      ...(callerSeat === undefined ? {} : { callerSeat }),
+      ...(trumpSuit === undefined ? {} : { trumpSuit }),
+      ...(riskSeat === undefined ? {} : { riskSeat }),
+      ...(passedAuctionSeats === undefined ? {} : { passedAuctionSeats }),
+      ...(consecutiveAuctionPasses === undefined ? {} : { consecutiveAuctionPasses }),
+      ...(auctionHistory === undefined ? {} : { auctionHistory }),
+      ...(currentHighestContract === undefined ? {} : { currentHighestContract }),
       ...(dealCommitment === undefined ? {} : { dealCommitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(currentTurnSeat === undefined ? {} : { currentTurnSeat }),
@@ -401,6 +451,7 @@ export class OnlineGameplayRoundService {
       ownHand,
       legalNormalEstimates,
       legalBidOptions,
+      legalAuctionActions,
       legalCards,
       currentTrick,
       completedTricks,
@@ -584,6 +635,63 @@ export class OnlineGameplayRoundService {
       legalContractSuits,
       ...(withTargetPlayerId === undefined ? {} : { withTargetPlayerId }),
     };
+  }
+
+  private parseSeats(value: unknown): SeatIndex[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const seats: SeatIndex[] = [];
+    for (const item of value) {
+      const seat = this.seat(item);
+      if (seat === undefined || seats.includes(seat)) return undefined;
+      seats.push(seat);
+    }
+    return seats;
+  }
+
+  private parseAuctionAction(value: unknown): GameplayAuctionAction | undefined {
+    const row = this.object(value);
+    if (row === undefined || typeof row.type !== 'string') return undefined;
+    if (row.type === 'pass') return { type: 'pass' };
+    if (row.type === 'contract') {
+      const tricks = this.nonNegativeInteger(row.tricks);
+      const trumpSuit = this.contractSuit(row.trumpSuit);
+      return tricks === undefined || tricks < 4 || tricks > 13 || trumpSuit === undefined
+        ? undefined
+        : { type: 'contract', tricks, trumpSuit };
+    }
+    if (row.type === 'with') {
+      const referenceSeat = this.seat(row.referenceSeat);
+      return referenceSeat === undefined ? undefined : { type: 'with', referenceSeat };
+    }
+    return undefined;
+  }
+
+  private parseAuctionContract(value: unknown): GameplayAuctionContract | undefined {
+    const row = this.object(value);
+    const seat = this.seat(row?.seat);
+    const playerId = this.string(row?.playerId);
+    const tricks = this.nonNegativeInteger(row?.tricks);
+    const trumpSuit = this.contractSuit(row?.trumpSuit);
+    return seat === undefined || playerId === undefined || tricks === undefined || tricks < 4 || tricks > 13 || trumpSuit === undefined
+      ? undefined
+      : { seat, playerId, tricks, trumpSuit };
+  }
+
+  private parseAuctionHistory(value: unknown): GameplayAuctionHistoryEntry[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const history: GameplayAuctionHistoryEntry[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const seat = this.seat(row?.seat);
+      const playerId = this.string(row?.playerId);
+      const action = this.parseAuctionAction(row?.action);
+      const referencedContract = row?.referencedContract === undefined
+        ? undefined
+        : this.parseAuctionContract(row.referencedContract);
+      if (seat === undefined || playerId === undefined || action === undefined || row?.referencedContract !== undefined && referencedContract === undefined) return undefined;
+      history.push({ seat, playerId, action, ...(referencedContract === undefined ? {} : { referencedContract }) });
+    }
+    return history;
   }
 
   private validateNextRoundCommand(

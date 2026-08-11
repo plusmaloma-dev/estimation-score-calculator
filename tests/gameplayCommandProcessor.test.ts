@@ -30,22 +30,21 @@ async function createRound(): Promise<HouseRulesRoundState> {
     hands: deal.hands,
     bidOrder: [2, 3, 0, 1],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 2,
+    dealerSeat: 1,
     firstLeadSeat: 0,
   };
   return new HouseRulesRoundEngine().create(input);
 }
 
-function firstBid(commandId = 'command-1', expectedVersion = 0): GameplayCommandEnvelope {
+function firstAuctionAction(commandId = 'command-1', expectedVersion = 0): GameplayCommandEnvelope {
   return {
     commandId,
     expectedVersion,
     command: {
-      type: 'SUBMIT_BID',
+      type: 'SUBMIT_AUCTION_ACTION',
       seat: 2,
-      bid: {
-        playerId: 'p2',
-        bidType: 'normal',
+      action: {
+        type: 'contract',
         tricks: 5,
         trumpSuit: 'spades',
       },
@@ -57,12 +56,19 @@ test('accepted command increments the version by exactly one and appends its rec
   const processor = new GameplayCommandProcessor();
   const state = await createRound();
 
-  const result = processor.process(state, 0, [], firstBid());
+  const result = processor.process(state, 0, [], firstAuctionAction());
 
   assert.equal(result.valid, true, result.errors.join('\n'));
   assert.equal(result.duplicate, false);
   assert.equal(result.version, 1);
-  assert.equal(result.state.bids.length, 1);
+  assert.equal(result.state.phase, 'auction');
+  assert.equal(result.state.auctionHistory.length, 1);
+  assert.deepEqual(result.state.currentHighestContract, {
+    seat: 2,
+    playerId: 'p2',
+    tricks: 5,
+    trumpSuit: 'spades',
+  });
   assert.equal(result.records.length, 1);
   assert.equal(result.record?.accepted, true);
   assert.equal(result.record?.resultingVersion, 1);
@@ -71,7 +77,7 @@ test('accepted command increments the version by exactly one and appends its rec
 test('same command id and payload returns the original record without applying twice', async () => {
   const processor = new GameplayCommandProcessor();
   const state = await createRound();
-  const envelope = firstBid();
+  const envelope = firstAuctionAction();
   const first = processor.process(state, 0, [], envelope);
 
   const duplicate = processor.process(first.state, first.version, first.records, envelope);
@@ -79,7 +85,7 @@ test('same command id and payload returns the original record without applying t
   assert.equal(duplicate.valid, true);
   assert.equal(duplicate.duplicate, true);
   assert.equal(duplicate.version, 1);
-  assert.equal(duplicate.state.bids.length, 1);
+  assert.equal(duplicate.state.auctionHistory.length, 1);
   assert.equal(duplicate.records.length, 1);
   assert.deepEqual(duplicate.record, first.record);
 });
@@ -87,15 +93,14 @@ test('same command id and payload returns the original record without applying t
 test('reusing a command id with different payload is rejected as an idempotency conflict', async () => {
   const processor = new GameplayCommandProcessor();
   const state = await createRound();
-  const first = processor.process(state, 0, [], firstBid());
+  const first = processor.process(state, 0, [], firstAuctionAction());
   const conflicting: GameplayCommandEnvelope = {
-    ...firstBid(),
+    ...firstAuctionAction(),
     command: {
-      type: 'SUBMIT_BID',
+      type: 'SUBMIT_AUCTION_ACTION',
       seat: 2,
-      bid: {
-        playerId: 'p2',
-        bidType: 'normal',
+      action: {
+        type: 'contract',
         tricks: 6,
         trumpSuit: 'spades',
       },
@@ -114,15 +119,15 @@ test('reusing a command id with different payload is rejected as an idempotency 
 test('stale expected version is rejected without changing state or version', async () => {
   const processor = new GameplayCommandProcessor();
   const state = await createRound();
-  const first = processor.process(state, 0, [], firstBid());
+  const first = processor.process(state, 0, [], firstAuctionAction());
 
   const stale = processor.process(first.state, first.version, first.records, {
     commandId: 'command-2',
     expectedVersion: 0,
     command: {
-      type: 'SUBMIT_BID',
+      type: 'SUBMIT_AUCTION_ACTION',
       seat: 3,
-      bid: { playerId: 'p3', bidType: 'normal', tricks: 3 },
+      action: { type: 'pass' },
     },
   });
 
@@ -142,9 +147,9 @@ test('domain-rejected command is recorded but does not increment the version', a
     commandId: 'wrong-turn',
     expectedVersion: 0,
     command: {
-      type: 'SUBMIT_BID',
+      type: 'SUBMIT_AUCTION_ACTION',
       seat: 1,
-      bid: { playerId: 'p1', bidType: 'normal', tricks: 2 },
+      action: { type: 'pass' },
     },
   });
 
@@ -153,5 +158,5 @@ test('domain-rejected command is recorded but does not increment the version', a
   assert.equal(result.state, state);
   assert.equal(result.records.length, 1);
   assert.equal(result.record?.accepted, false);
-  assert.ok(result.errors.includes('Seat 2 must submit the next estimate.'));
+  assert.ok(result.errors.includes('Seat 2 must take the next auction action.'));
 });

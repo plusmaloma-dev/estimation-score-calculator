@@ -157,9 +157,9 @@ function initializeRoundBlock(source: string): string {
 
 function rpcArgumentNames(source: string): readonly string[] {
   const match = initializeRoundBlock(source).match(
-    /await rpc\(\s*client,\s*['"]initialize_gameplay_round_state['"],\s*\{([\s\S]*?)\n\s*\}\s*\)/,
+    /await rpc\(\s*client,\s*['"]initialize_gameplay_auction_round_state['"],\s*\{([\s\S]*?)\n\s*\}\s*\)/,
   );
-  assert.ok(match, 'Missing initialize_gameplay_round_state RPC call.');
+  assert.ok(match, 'Missing initialize_gameplay_auction_round_state RPC call.');
   return Array.from(
     match[1].matchAll(/^\s*(p_[a-z_]+)\s*:/gm),
     (parameter) => parameter[1],

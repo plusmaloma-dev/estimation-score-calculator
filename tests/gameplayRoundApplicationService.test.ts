@@ -7,6 +7,7 @@ import {
   HouseRulesRoundEngine,
   type CreateHouseRulesRoundInput,
   type EstimationBid,
+  type GameplayAuctionAction,
   type GameplayRoundActor,
   type GameplayRoundAggregate,
   type GameplayRoundCommitInput,
@@ -36,7 +37,7 @@ async function roundInput(): Promise<CreateHouseRulesRoundInput> {
     hands: deal.hands,
     bidOrder: [2, 3, 0, 1],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 2,
+    dealerSeat: 1,
     firstLeadSeat: 0,
   };
 }
@@ -87,12 +88,33 @@ class MemoryRoundRepository implements GameplayRoundRepository {
 }
 
 const actor = (userId: string): GameplayRoundActor => ({ userId });
-const ownerBid = (tricks = 5): EstimationBid => ({
-  playerId: 'p2',
-  bidType: 'normal',
+const openingContract = (tricks = 5): GameplayAuctionAction => ({
+  type: 'contract',
   tricks,
   trumpSuit: 'spades',
 });
+
+const estimateFor = (playerId: string, tricks: number): EstimationBid => ({
+  playerId,
+  bidType: 'normal',
+  tricks,
+});
+
+async function resolvedEstimateState() {
+  const engine = new HouseRulesRoundEngine();
+  let state = engine.create(await roundInput());
+  for (const [seat, action] of [
+    [2, openingContract()],
+    [3, { type: 'pass' }],
+    [0, { type: 'pass' }],
+    [1, { type: 'pass' }],
+  ] as const) {
+    const result = engine.submitAuctionAction(state, seat, action);
+    assert.equal(result.valid, true, result.errors.join('\n'));
+    state = result.state;
+  }
+  return state;
+}
 
 test('authorized actor receives only their seat-scoped snapshot', async () => {
   const initial = await aggregate();
@@ -108,32 +130,38 @@ test('authorized actor receives only their seat-scoped snapshot', async () => {
   assert.equal(repository.commits.length, 0);
 });
 
-test('accepted bid is processed by the round engine and committed once', async () => {
+test('accepted auction action is processed by the round engine and committed once', async () => {
   const repository = new MemoryRoundRepository(await aggregate());
   const service = new GameplayRoundApplicationService(repository);
 
-  const result = await service.submitBid(
-    'table-1', actor('user-2'), 'bid-command-1', 0, ownerBid(),
+  const result = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'auction-command-1', 0, openingContract(),
   );
 
   assert.equal(result.valid, true, result.errors.join('\n'));
   assert.equal(result.duplicate, false);
   assert.equal(result.value?.version, 1);
-  assert.equal(result.value?.players[2]?.bid?.tricks, 5);
+  assert.equal(result.value?.callerSeat, undefined);
+  assert.deepEqual(result.value?.currentHighestContract, {
+    seat: 2,
+    playerId: 'p2',
+    tricks: 5,
+    trumpSuit: 'spades',
+  });
   assert.equal(repository.commits.length, 1);
   assert.equal(repository.commits[0]?.record.accepted, true);
-  assert.equal(repository.commits[0]?.record.command.type, 'SUBMIT_BID');
+  assert.equal(repository.commits[0]?.record.command.type, 'SUBMIT_AUCTION_ACTION');
 });
 
-test('same command retry is deterministic and does not create a second commit', async () => {
+test('same auction command retry is deterministic and does not create a second commit', async () => {
   const repository = new MemoryRoundRepository(await aggregate());
   const service = new GameplayRoundApplicationService(repository);
 
-  const first = await service.submitBid(
-    'table-1', actor('user-2'), 'bid-command-1', 0, ownerBid(),
+  const first = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'auction-command-1', 0, openingContract(),
   );
-  const retry = await service.submitBid(
-    'table-1', actor('user-2'), 'bid-command-1', 0, ownerBid(),
+  const retry = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'auction-command-1', 0, openingContract(),
   );
 
   assert.equal(first.valid, true);
@@ -147,8 +175,8 @@ test('stale version rejection is recorded without changing round version', async
   const repository = new MemoryRoundRepository(await aggregate());
   const service = new GameplayRoundApplicationService(repository);
 
-  const result = await service.submitBid(
-    'table-1', actor('user-2'), 'stale-command', 4, ownerBid(),
+  const result = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'stale-command', 4, openingContract(),
   );
 
   assert.equal(result.valid, false);
@@ -162,10 +190,10 @@ test('stale version rejection is recorded without changing round version', async
 test('conflicting reuse of a command id is rejected without another commit', async () => {
   const repository = new MemoryRoundRepository(await aggregate());
   const service = new GameplayRoundApplicationService(repository);
-  await service.submitBid('table-1', actor('user-2'), 'shared-id', 0, ownerBid(5));
+  await service.submitAuctionAction('table-1', actor('user-2'), 'shared-id', 0, openingContract(5));
 
-  const conflict = await service.submitBid(
-    'table-1', actor('user-2'), 'shared-id', 0, ownerBid(6),
+  const conflict = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'shared-id', 0, openingContract(6),
   );
 
   assert.equal(conflict.valid, false);
@@ -186,22 +214,30 @@ test('missing seat, temporary bot ownership, paused lifecycle, and player spoofi
   const service = new GameplayRoundApplicationService(repository);
 
   const missing = await service.getSnapshot('table-1', actor('unknown-user'));
-  const takeover = await service.submitBid(
-    'table-1', actor('user-2'), 'takeover-command', 0, ownerBid(),
+  const takeover = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'takeover-command', 0, openingContract(),
   );
   repository.value = await aggregate({ lifecycle: 'paused' });
-  const paused = await service.submitBid(
-    'table-1', actor('user-2'), 'paused-command', 0, ownerBid(),
+  const paused = await service.submitAuctionAction(
+    'table-1', actor('user-2'), 'paused-command', 0, openingContract(),
   );
-  repository.value = await aggregate();
+  repository.value = await aggregate({
+    state: await resolvedEstimateState(),
+    seatControls: [
+      { seat: 0, humanUserId: 'user-0', controlOwner: 'human' },
+      { seat: 1, humanUserId: 'user-1', controlOwner: 'human' },
+      { seat: 2, humanUserId: 'user-2', controlOwner: 'human' },
+      { seat: 3, humanUserId: 'user-3', controlOwner: 'human' },
+    ],
+  });
   const spoofed = await service.submitBid(
-    'table-1', actor('user-2'), 'spoof-command', 0,
-    { ...ownerBid(), playerId: 'p1' },
+    'table-1', actor('user-3'), 'spoof-command', 0,
+    estimateFor('p1', 3),
   );
 
   assert.deepEqual(missing.errors, ['Authenticated user does not occupy a human seat at this table.']);
   assert.deepEqual(takeover.errors, ['Seat 2 is currently controlled by a temporary bot.']);
   assert.deepEqual(paused.errors, ['Gameplay commands are only accepted while the table is active.']);
-  assert.ok(spoofed.errors.includes('Seat 2 is assigned to player p2.'));
+  assert.ok(spoofed.errors.includes('Seat 3 is assigned to player p3.'));
   assert.equal(repository.commits.length, 1, 'Only the domain-rejected spoof command should be recorded.');
 });

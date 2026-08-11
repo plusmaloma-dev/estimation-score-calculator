@@ -32,7 +32,7 @@ async function createInitialRound(): Promise<HouseRulesRoundState> {
     hands: deal.hands,
     bidOrder: [2, 3, 0, 1],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 2,
+    dealerSeat: 1,
     firstLeadSeat: 0,
   };
   return new HouseRulesRoundEngine().create(input);
@@ -51,19 +51,46 @@ async function completeRoundHistory(): Promise<{
   let version = 0;
   let records: readonly GameplayCommandRecord[] = [];
 
-  const bids: readonly GameplayCommandEnvelope[] = [
+  const auctionAndEstimates: readonly GameplayCommandEnvelope[] = [
     {
-      commandId: 'bid-1',
+      commandId: 'auction-1',
       expectedVersion: 0,
       command: {
-        type: 'SUBMIT_BID',
+        type: 'SUBMIT_AUCTION_ACTION',
         seat: 2,
-        bid: { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+        action: { type: 'contract', tricks: 5, trumpSuit: 'spades' },
       },
     },
     {
-      commandId: 'bid-2',
+      commandId: 'auction-2',
       expectedVersion: 1,
+      command: {
+        type: 'SUBMIT_AUCTION_ACTION',
+        seat: 3,
+        action: { type: 'pass' },
+      },
+    },
+    {
+      commandId: 'auction-3',
+      expectedVersion: 2,
+      command: {
+        type: 'SUBMIT_AUCTION_ACTION',
+        seat: 0,
+        action: { type: 'pass' },
+      },
+    },
+    {
+      commandId: 'auction-4',
+      expectedVersion: 3,
+      command: {
+        type: 'SUBMIT_AUCTION_ACTION',
+        seat: 1,
+        action: { type: 'pass' },
+      },
+    },
+    {
+      commandId: 'estimate-1',
+      expectedVersion: 4,
       command: {
         type: 'SUBMIT_BID',
         seat: 3,
@@ -71,8 +98,8 @@ async function completeRoundHistory(): Promise<{
       },
     },
     {
-      commandId: 'bid-3',
-      expectedVersion: 2,
+      commandId: 'estimate-2',
+      expectedVersion: 5,
       command: {
         type: 'SUBMIT_BID',
         seat: 0,
@@ -80,8 +107,8 @@ async function completeRoundHistory(): Promise<{
       },
     },
     {
-      commandId: 'bid-4',
-      expectedVersion: 3,
+      commandId: 'estimate-3',
+      expectedVersion: 6,
       command: {
         type: 'SUBMIT_BID',
         seat: 1,
@@ -90,7 +117,7 @@ async function completeRoundHistory(): Promise<{
     },
   ];
 
-  for (const envelope of bids) {
+  for (const envelope of auctionAndEstimates) {
     const result = processor.process(state, version, records, envelope);
     assert.equal(result.valid, true, result.errors.join('\n'));
     state = result.state;
@@ -123,7 +150,7 @@ test('complete accepted history deterministically rebuilds the scored round', as
   const replay = new GameplayReplayService().replay(history.initial, history.records);
 
   assert.equal(replay.valid, true, replay.errors.join('\n'));
-  assert.equal(replay.version, 56);
+  assert.equal(replay.version, 59);
   assert.deepEqual(replay.state, history.final);
 });
 
@@ -133,9 +160,9 @@ test('replay rejects an altered command payload', async () => {
   const altered: GameplayCommandRecord = {
     ...first,
     command: {
-      type: 'SUBMIT_BID',
+      type: 'SUBMIT_AUCTION_ACTION',
       seat: 2,
-      bid: { playerId: 'p2', bidType: 'normal', tricks: 6, trumpSuit: 'spades' },
+      action: { type: 'contract', tricks: 6, trumpSuit: 'spades' },
     },
   };
 
@@ -155,7 +182,7 @@ test('replay rejects an accepted-version gap', async () => {
   const replay = new GameplayReplayService().replay(history.initial, missingSecondCommand);
 
   assert.equal(replay.valid, false);
-  assert.ok(replay.errors.includes('Accepted command bid-3 must result in version 2, not 3.'));
+  assert.ok(replay.errors.includes('Accepted command auction-3 must result in version 2, not 3.'));
 });
 
 test('replay rejects duplicate accepted versions', async () => {
@@ -173,5 +200,5 @@ test('replay rejects duplicate accepted versions', async () => {
   ]);
 
   assert.equal(replay.valid, false);
-  assert.ok(replay.errors.includes('Accepted command bid-2 must result in version 2, not 1.'));
+  assert.ok(replay.errors.includes('Accepted command auction-2 must result in version 2, not 1.'));
 });

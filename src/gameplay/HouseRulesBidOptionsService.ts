@@ -1,86 +1,62 @@
-import type { EstimationBid } from '../domain/bid.js';
-import { CONTRACT_SUIT_PRIORITY, type ContractSuit } from '../domain/card.js';
-import type { HouseRulesRoundState, SeatIndex } from './types.js';
+import type { ContractSuit } from '../domain/card.js';
+import type { GameplayAuctionAction, HouseRulesRoundState, SeatIndex } from './types.js';
 
+const CONTRACT_ORDER: readonly ContractSuit[] = ['clubs', 'diamonds', 'hearts', 'spades', 'no-trump'];
 const NORMAL_ESTIMATES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export interface HouseRulesBidOption {
   readonly tricks: number;
-  readonly bidType: 'normal' | 'with';
-  readonly requiresContractSuit: boolean;
-  readonly legalContractSuits: readonly ContractSuit[];
-  readonly withTargetPlayerId?: string;
+  readonly bidType: 'normal';
+  readonly requiresContractSuit: false;
+  readonly legalContractSuits: readonly [];
+}
+
+export interface HouseRulesAuctionOption {
+  readonly action: GameplayAuctionAction;
 }
 
 export class HouseRulesBidOptionsService {
-  legalOptions(
-    state: HouseRulesRoundState,
-    seat: SeatIndex,
-  ): readonly HouseRulesBidOption[] {
-    if (state.phase !== 'bidding') return [];
-    if (state.bidOrder[state.currentBidIndex] !== seat) return [];
-
-    const playerId = state.players[seat].playerId;
-    const ownerPlayer = state.players[state.bidOwnerSeat];
-    const candidates = seat === state.bidOwnerSeat
-      ? this.ownerOptions()
-      : this.nonOwnerOptions(state, ownerPlayer.playerId);
-
-    if (state.currentBidIndex !== 3) return candidates;
-
+  legalOptions(state: HouseRulesRoundState, seat: SeatIndex): readonly HouseRulesBidOption[] {
+    if (state.phase !== 'estimate' || state.estimateOrder[state.currentEstimateIndex] !== seat) return [];
     const currentTotal = state.bids.reduce((total, bid) => total + bid.tricks, 0);
-    return candidates.filter((option) => currentTotal + option.tricks !== 13);
-  }
-
-  private ownerOptions(): readonly HouseRulesBidOption[] {
-    return NORMAL_ESTIMATES.map((tricks) => ({
-      tricks,
-      bidType: 'normal',
-      requiresContractSuit: true,
-      legalContractSuits: [...CONTRACT_SUIT_PRIORITY],
-    }));
-  }
-
-  private nonOwnerOptions(
-    state: HouseRulesRoundState,
-    ownerPlayerId: string,
-  ): readonly HouseRulesBidOption[] {
-    const ownerBid = state.bids.find((bid) => bid.playerId === ownerPlayerId);
-    if (ownerBid === undefined) return [];
-
-    const lowerOptions = NORMAL_ESTIMATES
-      .filter((tricks) => tricks < ownerBid.tricks)
-      .map((tricks): HouseRulesBidOption => ({
+    const isFinalEstimate = state.currentEstimateIndex === state.estimateOrder.length - 1;
+    const maxEstimate = state.currentHighestContract?.tricks ?? 12;
+    return NORMAL_ESTIMATES
+      .filter((tricks) => tricks <= maxEstimate)
+      .filter((tricks) => !isFinalEstimate || currentTotal + tricks !== 13)
+      .map((tricks) => ({
         tricks,
-        bidType: 'normal',
-        requiresContractSuit: false,
-        legalContractSuits: [],
+        bidType: 'normal' as const,
+        requiresContractSuit: false as const,
+        legalContractSuits: [] as const,
       }));
-    const withOption: HouseRulesBidOption = {
-      tricks: ownerBid.tricks,
-      bidType: 'with',
-      requiresContractSuit: false,
-      legalContractSuits: [],
-      withTargetPlayerId: ownerPlayerId,
-    };
-
-    return [...lowerOptions, withOption];
   }
 
-  bidForOption(
-    playerId: string,
-    option: HouseRulesBidOption,
-    contractSuit?: ContractSuit,
-  ): EstimationBid | undefined {
-    if (option.requiresContractSuit && contractSuit === undefined) return undefined;
-    return {
-      playerId,
-      bidType: option.bidType,
-      tricks: option.tricks,
-      ...(contractSuit === undefined ? {} : { trumpSuit: contractSuit }),
-      ...(option.withTargetPlayerId === undefined
-        ? {}
-        : { withTargetPlayerId: option.withTargetPlayerId }),
-    };
+  legalAuctionActions(state: HouseRulesRoundState, seat: SeatIndex): readonly HouseRulesAuctionOption[] {
+    if (state.phase !== 'auction' || state.auctionActiveSeat !== seat || state.passedAuctionSeats.includes(seat)) return [];
+    const options: HouseRulesAuctionOption[] = [{ action: { type: 'pass' } }];
+    for (let tricks = 4; tricks <= 13; tricks += 1) {
+      for (const trumpSuit of CONTRACT_ORDER) {
+        if (this.outranks(tricks, trumpSuit, state.currentHighestContract)) {
+          options.push({ action: { type: 'contract', tricks, trumpSuit } });
+        }
+      }
+    }
+    if (state.currentHighestContract !== undefined && state.currentHighestContract.seat !== seat) {
+      options.push({ action: { type: 'with', referenceSeat: state.currentHighestContract.seat } });
+    }
+    return options;
   }
+
+  private outranks(
+    tricks: number,
+    trumpSuit: ContractSuit,
+    current: HouseRulesRoundState['currentHighestContract'],
+  ): boolean {
+    if (current === undefined) return true;
+    return tricks > current.tricks || (
+      tricks === current.tricks && CONTRACT_ORDER.indexOf(trumpSuit) > CONTRACT_ORDER.indexOf(current.trumpSuit)
+    );
+  }
+
 }

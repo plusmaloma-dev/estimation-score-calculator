@@ -1,5 +1,6 @@
 import { GameplayCommandProcessor } from '../GameplayCommandProcessor.js';
 import { GameplayRoundSnapshotProjector } from '../GameplayRoundSnapshotProjector.js';
+import { HouseRulesBidOptionsService } from '../HouseRulesBidOptionsService.js';
 import type {
   GameplayCommand,
   GameplayCommandRecord,
@@ -24,6 +25,7 @@ export interface GameplayBotDirectiveApplicationResult
 
 export class GameplayBotDirectiveService {
   private readonly botPolicy: StandardBotPolicy;
+  private readonly bidOptions = new HouseRulesBidOptionsService();
 
   constructor(
     private readonly repository: GameplayRoundRepository,
@@ -85,7 +87,11 @@ export class GameplayBotDirectiveService {
     const phaseError = this.phaseError(aggregate.state.phase, directive.actionKind);
     if (phaseError !== undefined) return this.failure([phaseError]);
     const activeSeat = directive.actionKind === 'bid'
-      ? aggregate.state.bidOrder[aggregate.state.currentBidIndex]
+      ? aggregate.state.phase === 'auction'
+        ? aggregate.state.auctionActiveSeat
+        : aggregate.state.phase === 'estimate'
+          ? aggregate.state.estimateOrder[aggregate.state.currentEstimateIndex]
+          : undefined
       : aggregate.state.currentTurnSeat;
     if (activeSeat !== directive.seat) {
       return this.failure(['Bot directive does not match the authoritative active seat.']);
@@ -158,6 +164,25 @@ export class GameplayBotDirectiveService {
     directive: BotActionDirective,
   ): { readonly command: GameplayCommand; readonly audit: BotDecisionAudit } {
     if (directive.actionKind === 'bid') {
+      if (state.phase === 'auction') {
+        const options = this.bidOptions.legalAuctionActions(state, directive.seat);
+        const selected = state.currentHighestContract === undefined
+          ? options.find((option) => option.action.type === 'contract')
+          : options.find((option) => option.action.type === 'pass');
+        if (selected === undefined) throw new Error('Authoritative auction did not provide a legal bot action.');
+        return {
+          command: { type: 'SUBMIT_AUCTION_ACTION', seat: directive.seat, action: selected.action },
+          audit: {
+            policyVersion: 'STANDARD_V1',
+            actionSource: directive.source,
+            reasonCode: 'EXPECTED_UTILITY_BID',
+            legalActionIds: options.map((option) => JSON.stringify(option.action)),
+            selectedActionId: JSON.stringify(selected.action),
+            durationMs: 0,
+            fallbackUsed: false,
+          },
+        };
+      }
       const result = this.botPolicy.decideBid(
         this.bidObservationService.create(state, directive.seat),
         directive.source,
@@ -203,11 +228,11 @@ export class GameplayBotDirectiveService {
   }
 
   private phaseError(
-    phase: 'bidding' | 'playing' | 'scored',
+    phase: Parameters<BotBidObservationService['create']>[0]['phase'],
     actionKind: BotActionDirective['actionKind'],
   ): string | undefined {
     if (
-      actionKind === 'bid' && phase !== 'bidding'
+      actionKind === 'bid' && phase !== 'auction' && phase !== 'estimate'
       || actionKind === 'card' && phase !== 'playing'
     ) return 'Bot directive does not match the authoritative round phase.';
     return undefined;

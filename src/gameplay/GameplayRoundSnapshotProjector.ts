@@ -29,9 +29,11 @@ export class GameplayRoundSnapshotProjector {
       throw new Error('Gameplay round version must be a non-negative integer.');
     }
 
-    const nextBidSeat = state.phase === 'bidding'
-      ? state.bidOrder[state.currentBidIndex]
-      : undefined;
+    const nextBidSeat = state.phase === 'auction'
+      ? state.auctionActiveSeat
+      : state.phase === 'estimate'
+        ? state.estimateOrder[state.currentEstimateIndex]
+        : undefined;
     const players: OnlineGameplayRoundPlayer[] = state.players.map(({ seat, playerId }) => {
       const playerBid = state.bids.find((bid) => bid.playerId === playerId);
       return {
@@ -46,6 +48,7 @@ export class GameplayRoundSnapshotProjector {
     const currentTrick = state.currentTrick.map((entry) => this.copyEntry(entry));
     const completedTricks = state.completedTricks.map((trick) => this.copyCompletedTrick(trick));
     const legalBidOptions = this.bidOptionsService.legalOptions(state, viewerSeat);
+    const legalAuctionActions = this.bidOptionsService.legalAuctionActions(state, viewerSeat);
     const legalNormalEstimates = legalBidOptions
       .filter((option) => option.bidType === 'normal')
       .map((option) => option.tricks);
@@ -59,8 +62,20 @@ export class GameplayRoundSnapshotProjector {
       phase: state.phase,
       version,
       viewerSeat,
-      bidOwnerSeat: state.bidOwnerSeat,
-      riskSeat: state.bidOrder[3],
+      dealerSeat: state.dealerSeat,
+      ...(state.bidOwnerSeat === undefined ? {} : { bidOwnerSeat: state.bidOwnerSeat }),
+      ...(state.callerSeat === undefined ? {} : { callerSeat: state.callerSeat }),
+      ...(state.trumpSuit === undefined ? {} : { trumpSuit: state.trumpSuit }),
+      ...(state.estimateOrder.length === 0 ? {} : { riskSeat: state.estimateOrder.at(-1) }),
+      ...(state.auctionActiveSeat === undefined ? {} : { auctionActiveSeat: state.auctionActiveSeat }),
+      passedAuctionSeats: [...state.passedAuctionSeats],
+      consecutiveAuctionPasses: state.consecutiveAuctionPasses,
+      auctionHistory: state.auctionHistory.map((entry) => ({
+        ...entry,
+        action: { ...entry.action },
+        ...(entry.referencedContract === undefined ? {} : { referencedContract: { ...entry.referencedContract } }),
+      })),
+      ...(state.currentHighestContract === undefined ? {} : { currentHighestContract: { ...state.currentHighestContract } }),
       ...(state.dealAudit === undefined ? {} : { dealCommitment: state.dealAudit.commitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(state.currentTurnSeat === undefined ? {} : { currentTurnSeat: state.currentTurnSeat }),
@@ -68,6 +83,7 @@ export class GameplayRoundSnapshotProjector {
       ownHand: state.hands[viewerSeat].cards.map((card) => this.copyCard(card)),
       legalNormalEstimates,
       legalBidOptions: legalBidOptions.map((option) => ({ ...option })),
+      legalAuctionActions: legalAuctionActions.map((option) => ({ action: { ...option.action } })),
       legalCards,
       currentTrick,
       completedTricks,

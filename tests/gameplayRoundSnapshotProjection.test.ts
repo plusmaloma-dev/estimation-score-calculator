@@ -35,7 +35,7 @@ async function fixture(): Promise<CreateHouseRulesRoundInput> {
     hands: deal.hands,
     bidOrder: [2, 3, 0, 1],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 2,
+    dealerSeat: 1,
     firstLeadSeat: 0,
   };
 }
@@ -49,8 +49,11 @@ function bid(playerId: string, tricks: number): EstimationBid {
   return { playerId, bidType: 'normal', tricks };
 }
 
-function ownerBid(tricks = 5): EstimationBid {
-  return { playerId: 'p2', bidType: 'normal', tricks, trumpSuit: 'spades' };
+function resolvedAuction(engine: HouseRulesRoundEngine, state: HouseRulesRoundState): HouseRulesRoundState {
+  state = accepted(engine.submitAuctionAction(state, 2, { type: 'contract', tricks: 5, trumpSuit: 'spades' }));
+  state = accepted(engine.submitAuctionAction(state, 3, { type: 'pass' }));
+  state = accepted(engine.submitAuctionAction(state, 0, { type: 'pass' }));
+  return accepted(engine.submitAuctionAction(state, 1, { type: 'pass' }));
 }
 
 function cardsIn(value: unknown): Card[] {
@@ -76,29 +79,26 @@ function cardsIn(value: unknown): Card[] {
   return cards;
 }
 
-test('bidding snapshot exposes only the viewer hand and allow-listed public state', async () => {
+test('auction snapshot exposes only the viewer hand and allow-listed public state', async () => {
   const engine = new HouseRulesRoundEngine();
   const state = engine.create(await fixture());
   const snapshot = new GameplayRoundSnapshotProjector().project('table-1', state, 0, 2);
 
   assert.equal(snapshot.tableId, 'table-1');
   assert.equal(snapshot.roundNumber, 1);
-  assert.equal(snapshot.phase, 'bidding');
+  assert.equal(snapshot.phase, 'auction');
   assert.equal(snapshot.version, 0);
   assert.equal(snapshot.viewerSeat, 2);
   assert.equal(snapshot.nextBidSeat, 2);
-  assert.equal(snapshot.riskSeat, 1);
+  assert.equal(snapshot.riskSeat, undefined);
   assert.deepEqual(snapshot.ownHand, state.hands[2].cards);
   assert.deepEqual(snapshot.players.map((player) => player.cardCount), [13, 13, 13, 13]);
-  assert.deepEqual(snapshot.legalNormalEstimates, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-  assert.ok(snapshot.legalBidOptions);
-  assert.equal(snapshot.legalBidOptions.length, 13);
-  assert.deepEqual(snapshot.legalBidOptions[5], {
-    tricks: 5,
-    bidType: 'normal',
-    requiresContractSuit: true,
-    legalContractSuits: ['no-trump', 'spades', 'hearts', 'diamonds', 'clubs'],
-  });
+  assert.deepEqual(snapshot.legalNormalEstimates, []);
+  assert.deepEqual(snapshot.legalBidOptions, []);
+  assert.ok(snapshot.legalAuctionActions);
+  assert.deepEqual(snapshot.legalAuctionActions[0], { action: { type: 'pass' } });
+  assert.ok(snapshot.legalAuctionActions.some((option) => option.action.type === 'contract'
+    && option.action.tricks === 4 && option.action.trumpSuit === 'clubs'));
   assert.deepEqual(snapshot.legalCards, []);
 
   const exposedCards = cardsIn(snapshot);
@@ -112,7 +112,7 @@ test('bidding snapshot exposes only the viewer hand and allow-listed public stat
 test('only the acting bidder receives legal estimates and the fourth bidder cannot make total thirteen', async () => {
   const engine = new HouseRulesRoundEngine();
   let state = engine.create(await fixture());
-  state = accepted(engine.submitBid(state, 2, ownerBid(5)));
+  state = resolvedAuction(engine, state);
   state = accepted(engine.submitBid(state, 3, bid('p3', 3)));
   state = accepted(engine.submitBid(state, 0, bid('p0', 2)));
 
@@ -127,10 +127,9 @@ test('only the acting bidder receives legal estimates and the fourth bidder cann
   assert.equal(acting.legalBidOptions.some((option) => option.tricks === 3), false);
   assert.deepEqual(acting.legalBidOptions.find((option) => option.tricks === 5), {
     tricks: 5,
-    bidType: 'with',
+    bidType: 'normal',
     requiresContractSuit: false,
     legalContractSuits: [],
-    withTargetPlayerId: 'p2',
   });
   assert.deepEqual(waiting.legalNormalEstimates, []);
   assert.deepEqual(waiting.legalBidOptions, []);
@@ -139,7 +138,7 @@ test('only the acting bidder receives legal estimates and the fourth bidder cann
 test('playing snapshot exposes legal cards only to the current seat and keeps played cards public', async () => {
   const engine = new HouseRulesRoundEngine();
   let state = engine.create(await fixture());
-  state = accepted(engine.submitBid(state, 2, ownerBid(5)));
+  state = resolvedAuction(engine, state);
   state = accepted(engine.submitBid(state, 3, bid('p3', 3)));
   state = accepted(engine.submitBid(state, 0, bid('p0', 2)));
   state = accepted(engine.submitBid(state, 1, bid('p1', 1)));

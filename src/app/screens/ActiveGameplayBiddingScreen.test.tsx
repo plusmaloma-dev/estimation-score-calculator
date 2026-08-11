@@ -37,8 +37,9 @@ function nonOwnerBidOptions(tricks: readonly number[], ownerTricks = 5) {
 function controlSnapshot(
   round: OnlineGameplayRoundSnapshot = roundSnapshot(),
 ): OnlineActiveGameControlSnapshot {
-  const actionKind = round.phase === 'bidding' ? 'bid' : 'card';
-  const seat = round.phase === 'bidding'
+  const isBidPhase = round.phase === 'auction' || round.phase === 'estimate' || round.phase === 'bidding';
+  const actionKind = isBidPhase ? 'bid' : 'card';
+  const seat = isBidPhase
     ? round.nextBidSeat ?? 0
     : round.currentTurnSeat ?? 0;
   return {
@@ -165,6 +166,7 @@ function services(
         value: roundSnapshots[Math.min(roundSnapshotIndex++, roundSnapshots.length - 1)],
       })),
       submitBid: vi.fn(),
+      submitAuctionAction: vi.fn(),
       playCard: vi.fn(),
       ...overrides,
     },
@@ -182,7 +184,7 @@ function renderScreen(appServices: AppServices, currentUserId = 'user-2') {
 }
 
 describe('ActiveGameplayScreen bidding', () => {
-  it('shows one authoritative estimate-by-seat list and lets the acting bid owner submit estimate and contract suit', async () => {
+  it('shows one authoritative estimate-by-seat list and lets the acting estimator submit a normal estimate', async () => {
     const user = userEvent.setup();
     const accepted = roundSnapshot({
       version: 3,
@@ -219,19 +221,64 @@ describe('ActiveGameplayScreen bidding', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Submit your estimate');
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Estimate' }), '5');
-    await user.selectOptions(screen.getByLabelText('Contract suit'), 'spades');
     await user.click(screen.getByRole('button', { name: 'Submit estimate' }));
 
     expect(submitBid).toHaveBeenCalledWith(
       'table-1',
       2,
       expect.any(String),
-      { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' },
+      { playerId: 'p2', bidType: 'normal', tricks: 5 },
     );
     await waitFor(() => {
       expect(screen.getByRole('status')).toHaveTextContent('Standard bot in Seat 4 is acting');
     });
     expect(screen.queryByRole('button', { name: 'Submit estimate' })).not.toBeInTheDocument();
+  });
+
+  it('submits a projected higher contract through the authoritative auction command', async () => {
+    const user = userEvent.setup();
+    const initial = roundSnapshot({
+      phase: 'auction',
+      bidOwnerSeat: undefined,
+      callerSeat: undefined,
+      trumpSuit: undefined,
+      riskSeat: undefined,
+      auctionActiveSeat: 2,
+      nextBidSeat: 2,
+      legalNormalEstimates: [],
+      legalBidOptions: [],
+      legalAuctionActions: [
+        { action: { type: 'pass' } },
+        { action: { type: 'contract', tricks: 4, trumpSuit: 'diamonds' } },
+        { action: { type: 'contract', tricks: 4, trumpSuit: 'hearts' } },
+        { action: { type: 'contract', tricks: 5, trumpSuit: 'clubs' } },
+      ],
+    });
+    const accepted = {
+      ...initial,
+      version: 3,
+      auctionActiveSeat: 3 as const,
+      nextBidSeat: 3 as const,
+      legalAuctionActions: [],
+    };
+    const submitAuctionAction = vi.fn(async () => ({ valid: true, errors: [], value: accepted }));
+    renderScreen(services(
+      initial,
+      { submitAuctionAction },
+      [controlSnapshot(initial), controlSnapshot(accepted)],
+      [initial, accepted],
+    ));
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Contract auction' }),
+      JSON.stringify({ type: 'contract', tricks: 4, trumpSuit: 'diamonds' }));
+    await user.click(screen.getByRole('button', { name: 'Submit contract action' }));
+
+    expect(submitAuctionAction).toHaveBeenCalledWith(
+      'table-1',
+      2,
+      expect.any(String),
+      { type: 'contract', tricks: 4, trumpSuit: 'diamonds' },
+    );
   });
 
   it('shows controls only to the acting seat and preserves the server-projected total-13 exclusion', async () => {
@@ -261,7 +308,7 @@ describe('ActiveGameplayScreen bidding', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for Seat 2');
   });
 
-  it('renders the authoritative transition to card play after the fourth accepted estimate', async () => {
+  it('renders the authoritative transition to card play after the final non-caller estimate', async () => {
     const user = userEvent.setup();
     const fourth = roundSnapshot({
       viewerSeat: 1,

@@ -41,7 +41,7 @@ export class BidValidationService {
       errors.push('Trick bid must be an integer.');
     } else if (bid.tricks < 0) {
       errors.push('Trick bid cannot be negative.');
-    } else if (mode === 'round-estimates' && bid.tricks > MAX_ROUND_ESTIMATE) {
+    } else if ((mode === 'round-estimates' || mode === 'round-estimates-no-owner') && bid.tricks > MAX_ROUND_ESTIMATE) {
       errors.push('Round estimates must be between 0 and 12 tricks.');
     } else if (mode === 'auction-calls' && bid.tricks > options.cardsPerPlayer) {
       errors.push('Trick bid cannot exceed cards per player.');
@@ -134,6 +134,32 @@ export class BidValidationService {
           if (bid.tricks !== highest && bid.bidType === 'with') {
             errors.push(`Player ${bid.playerId} cannot be marked With without matching the highest estimate.`);
           }
+        }
+      }
+    } else if (mode === 'resolved-contract-estimates') {
+      const owner = bids.find((bid) => bid.playerId === options.bidOwnerPlayerId);
+      if (options.bidOwnerPlayerId === undefined) {
+        errors.push('Resolved contract owner player id is required.');
+      } else if (owner === undefined) {
+        errors.push('Resolved contract owner must have a fixed estimate.');
+      } else {
+        if (owner.bidType !== 'normal' || owner.withTargetPlayerId !== undefined) {
+          errors.push('Resolved contract owner must remain a normal estimate.');
+        }
+        if (owner.trumpSuit === undefined || !isValidContractSuit(owner.trumpSuit)) {
+          errors.push('Resolved contract owner must retain the resolved trump.');
+        }
+        for (const bid of bids) {
+          if (bid.playerId === owner.playerId || bid.bidType !== 'with') continue;
+          if (bid.tricks !== owner.tricks || bid.withTargetPlayerId !== owner.playerId) {
+            errors.push(`Player ${bid.playerId} has an invalid With relationship to the resolved contract owner.`);
+          }
+        }
+      }
+    } else if (mode === 'round-estimates-no-owner') {
+      for (const bid of bids) {
+        if (bid.bidType !== 'normal' || bid.trumpSuit !== undefined || bid.withTargetPlayerId !== undefined) {
+          errors.push('All-pass round estimates must be ordinary estimates without an auction owner.');
         }
       }
     }

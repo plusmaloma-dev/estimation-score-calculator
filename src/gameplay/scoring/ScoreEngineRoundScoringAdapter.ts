@@ -30,7 +30,7 @@ export class ScoreEngineRoundScoringAdapter implements RoundScoringPort {
       ...input,
       profile: houseRulesV1ScoringProfile,
       ruleSet: HOUSE_RULES_V1,
-      bidValidationMode: 'round-estimates',
+      bidValidationMode: input.bidValidationMode ?? 'round-estimates',
     });
   }
 }

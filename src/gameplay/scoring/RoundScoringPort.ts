@@ -13,8 +13,9 @@ export interface GameplayRoundScoringInput {
   readonly roundNumber: number;
   readonly bids: readonly EstimationBid[];
   readonly actualResults: readonly PlayerRoundActualResult[];
-  readonly bidOwnerPlayerId: string;
+  readonly bidOwnerPlayerId?: string;
   readonly riskPlayerId: string;
+  readonly bidValidationMode?: 'round-estimates' | 'resolved-contract-estimates' | 'round-estimates-no-owner';
   readonly roundMultiplier?: number;
   readonly multipleWithMultiplier?: 1 | 2;
 }
@@ -32,7 +33,7 @@ export interface RoundScoringPort {
     bids: readonly EstimationBid[],
     options: {
       readonly mode: BidValidationMode;
-      readonly bidOwnerPlayerId: string;
+      readonly bidOwnerPlayerId?: string;
     },
   ): RoundBidValidationResult;
 

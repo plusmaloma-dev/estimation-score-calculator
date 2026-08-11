@@ -102,7 +102,7 @@ function snapshot(
   return {
     tableId: 'table-1',
     roundNumber: 1,
-    phase: 'bidding',
+    phase: 'auction',
     version: 3,
     viewerSeat: 0,
     bidOwnerSeat: 2,

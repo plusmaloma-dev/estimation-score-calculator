@@ -55,7 +55,7 @@ export interface BotBidObservation {
   readonly hand: readonly Card[];
   readonly legalBids: readonly EstimationBid[];
   readonly priorBids: readonly EstimationBid[];
-  readonly bidOwnerPlayerId: string;
+  readonly bidOwnerPlayerId?: string;
   readonly isLastBidder: boolean;
   readonly currentScores: Readonly<Record<string, number>>;
 }

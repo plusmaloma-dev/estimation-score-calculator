@@ -42,7 +42,7 @@ export class GameplaySessionBootstrapService {
     roundMultiplier: number | undefined,
   ): Promise<GameplaySessionBootstrapResult> {
     const firstLeadSeat = this.nextSeat(dealerSeat);
-    const bidOrder = this.rotatingOrder(dealerSeat);
+    const bidOrder = this.rotatingOrder(this.nextSeat(dealerSeat));
     const playOrder: SeatOrder = [0, 1, 2, 3];
     const players = this.orderPlayers(input.seats);
 
@@ -72,7 +72,7 @@ export class GameplaySessionBootstrapService {
       hands: deal.hands,
       bidOrder,
       playOrder,
-      bidOwnerSeat: dealerSeat,
+      dealerSeat,
       firstLeadSeat,
       roundMultiplier,
       dealAudit,
@@ -84,8 +84,8 @@ export class GameplaySessionBootstrapService {
       dealerSeat,
       firstLeadSeat,
       firstTurn: {
-        turnId: `round-${input.roundNumber}:bid:0:${dealerSeat}`,
-        seat: dealerSeat,
+        turnId: `round-${input.roundNumber}:bid:0:${bidOrder[0]}`,
+        seat: bidOrder[0],
         actionKind: 'bid',
       },
       dealCommitment: deal.commitment,

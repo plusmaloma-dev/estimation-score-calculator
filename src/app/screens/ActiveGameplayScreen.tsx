@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EstimationBid } from '../../domain/bid.js';
 import type { Card } from '../../domain/card.js';
+import type { GameplayAuctionAction } from '../../gameplay/types.js';
 import { BotDirectiveCoordinator } from '../../online/gameplay/BotDirectiveCoordinator.js';
 import type {
   OnlineActiveGameControlSnapshot,
@@ -481,6 +482,41 @@ export function ActiveGameplayScreen({
     setCloseConfirmed(false);
   }
 
+  async function submitAuctionAction(action: GameplayAuctionAction) {
+    const service = services.gameplayRound;
+    if (service === undefined || service.submitAuctionAction === undefined || roundSnapshot === undefined || roundBusy) return;
+    const submitAction = service.submitAuctionAction;
+
+    setRoundBusy(true);
+    setRoundErrors([]);
+    try {
+      const operation = () => submitAction(
+        tableId,
+        roundSnapshot.version,
+        commandId('submit-auction-action'),
+        action,
+      );
+      const result = services.gameplayRoundRealtime === undefined
+        ? await operation()
+        : await services.gameplayRoundRealtime.runMutation(operation);
+      if (!result.valid || result.value === undefined) {
+        setRoundErrors(result.errors);
+        if (services.gameplayRoundRealtime === undefined) {
+          const reload = await service.getSnapshot(tableId);
+          if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+        }
+        return;
+      }
+      setRoundSnapshot(result.value);
+    } catch (reason: unknown) {
+      setRoundErrors([reason instanceof Error ? reason.message : 'Auction action could not be submitted.']);
+      const reload = await service.getSnapshot(tableId);
+      if (reload.valid && reload.value !== undefined) setRoundSnapshot(reload.value);
+    } finally {
+      setRoundBusy(false);
+    }
+  }
+
   function nextRoundPublicError(nextErrors: readonly string[]): string {
     return nextErrors.some((error) => /state changed|stale|concurrent|version/i.test(error))
       ? t('nextRoundStateChanged')
@@ -575,9 +611,7 @@ export function ActiveGameplayScreen({
   }
 
   const isHost = snapshot?.hostUserId === currentUserId;
-  const canRenderRound = roundSnapshot !== undefined
-    && !presentation.isSynchronizing
-    && presentation.phase !== 'loading';
+  const canRenderRound = roundSnapshot !== undefined && presentation.phase !== 'loading';
 
   return (
     <section className="screen-stack active-game-screen" aria-labelledby="active-game-heading">
@@ -611,7 +645,7 @@ export function ActiveGameplayScreen({
 
       <GameplayActionBanner presentation={presentation} />
 
-      {snapshot !== undefined && !presentation.isSynchronizing && (
+      {snapshot !== undefined && (
         <ActiveSeatStatus seats={snapshot.seats} activeSeat={presentation.activeSeat} />
       )}
 
@@ -622,9 +656,11 @@ export function ActiveGameplayScreen({
             <>
               <GameplayBidPanel
                 snapshot={roundSnapshot}
-                canSubmit={presentation.phase === 'bidding' && presentation.viewerActionRequired}
+                canSubmit={(presentation.phase === 'auction' || presentation.phase === 'estimate' || presentation.phase === 'bidding')
+                  && presentation.viewerActionRequired}
                 busy={roundBusy || presentation.phase === 'paused'}
                 onSubmit={submitEstimate}
+                onSubmitAuctionAction={submitAuctionAction}
               />
               {(roundSnapshot.phase === 'playing' || roundSnapshot.phase === 'scored') && (
                 <GameplayCardPanel

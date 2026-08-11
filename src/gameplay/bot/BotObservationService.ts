@@ -25,10 +25,7 @@ export class BotObservationService {
       throw new Error(`Missing accepted estimate for player ${player.playerId}.`);
     }
 
-    const bidOwnerPlayer = state.players[state.bidOwnerSeat];
-    const contractSuit = state.bids.find(
-      (bid) => bid.playerId === bidOwnerPlayer.playerId,
-    )?.trumpSuit;
+    const contractSuit = state.trumpSuit;
     if (contractSuit === undefined) {
       throw new Error('Accepted bidding does not contain a contract suit.');
     }

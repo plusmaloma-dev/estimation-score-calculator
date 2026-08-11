@@ -1,5 +1,5 @@
 import type { EstimationBid } from '../domain/bid.js';
-import type { Card } from '../domain/card.js';
+import type { Card, ContractSuit } from '../domain/card.js';
 import type { GameplayRoundScoringResult } from './scoring/RoundScoringPort.js';
 import type { GameplayDealAuditRecord } from './session/types.js';
 
@@ -43,7 +43,8 @@ export interface DealVerificationResult {
   readonly errors: readonly string[];
 }
 
-export type GameplayRoundPhase = 'bidding' | 'playing' | 'scored';
+/** `bidding` remains readable only for pre-migration aggregates; new rounds never emit it. */
+export type GameplayRoundPhase = 'auction' | 'estimate' | 'playing' | 'scored' | 'bidding';
 
 export interface GameplaySeatPlayer {
   readonly seat: SeatIndex;
@@ -97,11 +98,32 @@ export interface CreateHouseRulesRoundInput {
   readonly hands: SeatHands;
   readonly bidOrder: SeatOrder;
   readonly playOrder: SeatOrder;
-  readonly bidOwnerSeat: SeatIndex;
+  /** @deprecated New rounds must supply dealerSeat; retained only for legacy fixtures. */
+  readonly bidOwnerSeat?: SeatIndex;
+  readonly dealerSeat?: SeatIndex;
   readonly firstLeadSeat: SeatIndex;
   readonly roundMultiplier?: number;
   readonly multipleWithMultiplier?: 1 | 2;
   readonly dealAudit?: GameplayDealAuditRecord;
+}
+
+export type GameplayAuctionAction =
+  | { readonly type: 'pass' }
+  | { readonly type: 'contract'; readonly tricks: number; readonly trumpSuit: ContractSuit }
+  | { readonly type: 'with'; readonly referenceSeat: SeatIndex };
+
+export interface GameplayAuctionContract {
+  readonly seat: SeatIndex;
+  readonly playerId: string;
+  readonly tricks: number;
+  readonly trumpSuit: ContractSuit;
+}
+
+export interface GameplayAuctionHistoryEntry {
+  readonly seat: SeatIndex;
+  readonly playerId: string;
+  readonly action: GameplayAuctionAction;
+  readonly referencedContract?: GameplayAuctionContract;
 }
 
 export interface HouseRulesRoundState {
@@ -109,10 +131,24 @@ export interface HouseRulesRoundState {
   readonly phase: GameplayRoundPhase;
   readonly players: GameplaySeatPlayers;
   readonly hands: SeatHands;
+  readonly dealerSeat: SeatIndex;
+  /** Legacy public order; new logic uses auctionOrder and estimateOrder. */
   readonly bidOrder: SeatOrder;
+  readonly auctionOrder: SeatOrder;
   readonly playOrder: SeatOrder;
-  readonly bidOwnerSeat: SeatIndex;
+  readonly bidOwnerSeat?: SeatIndex;
+  readonly callerSeat?: SeatIndex;
+  readonly trumpSuit?: ContractSuit;
   readonly firstLeadSeat: SeatIndex;
+  readonly auctionActiveSeat?: SeatIndex;
+  readonly passedAuctionSeats: readonly SeatIndex[];
+  readonly consecutiveAuctionPasses: number;
+  readonly auctionHistory: readonly GameplayAuctionHistoryEntry[];
+  readonly currentHighestContract?: GameplayAuctionContract;
+  readonly estimateOrder: readonly SeatIndex[];
+  readonly currentEstimateIndex: number;
+  readonly allPassAuction: boolean;
+  /** @deprecated New logic uses currentEstimateIndex. */
   readonly currentBidIndex: number;
   readonly currentTurnSeat?: SeatIndex;
   readonly bids: readonly EstimationBid[];
@@ -133,6 +169,11 @@ export interface GameplayStateTransition {
 }
 
 export type GameplayCommand =
+  | {
+      readonly type: 'SUBMIT_AUCTION_ACTION';
+      readonly seat: SeatIndex;
+      readonly action: GameplayAuctionAction;
+    }
   | {
       readonly type: 'SUBMIT_BID';
       readonly seat: SeatIndex;

@@ -127,6 +127,40 @@ test('submitBid and playCard route command identity and expected version exactly
   ]);
 });
 
+test('submitAuctionAction routes the projected public contract action exactly', async () => {
+  const auction = snapshot({
+    phase: 'auction',
+    bidOwnerSeat: undefined,
+    callerSeat: undefined,
+    trumpSuit: undefined,
+    riskSeat: undefined,
+    auctionActiveSeat: 2,
+    nextBidSeat: 2,
+    legalNormalEstimates: [],
+    legalBidOptions: [],
+    legalAuctionActions: [{ action: { type: 'contract', tricks: 4, trumpSuit: 'diamonds' } }],
+  });
+  const database = client([{ data: { valid: true, errors: [], duplicate: false, value: auction }, error: null }]);
+  const service = new OnlineGameplayRoundService(database);
+  const action = { type: 'contract' as const, tricks: 4, trumpSuit: 'diamonds' as const };
+
+  const result = await service.submitAuctionAction(
+    '11111111-1111-4111-8111-111111111111', 2, 'auction-command', action,
+  );
+
+  assert.equal(result.valid, true, result.errors.join('\n'));
+  assert.deepEqual(database.calls, [{
+    name: 'gameplay-round-command',
+    body: {
+      action: 'submit-auction-action',
+      tableId: '11111111-1111-4111-8111-111111111111',
+      expectedVersion: 2,
+      commandId: 'auction-command',
+      auctionAction: action,
+    },
+  }]);
+});
+
 test('startNextRound sends only the public authenticated command contract and parses the viewer snapshot', async () => {
   const database = client([
     {

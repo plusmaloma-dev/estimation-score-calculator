@@ -25,8 +25,9 @@ test('four Standard bots complete bidding and all fifty-two legal card actions',
   assert.equal(result.finalState.phase, 'scored');
   assert.equal(result.finalState.completedTricks.length, 13);
   assert.deepEqual(result.finalState.hands.map((hand) => hand.cards.length), [0, 0, 0, 0]);
-  assert.equal(result.version, 56);
-  assert.equal(result.records.filter((record) => record.command.type === 'SUBMIT_BID').length, 4);
+  assert.equal(result.version, 59);
+  assert.equal(result.records.filter((record) => record.command.type === 'SUBMIT_AUCTION_ACTION').length, 4);
+  assert.equal(result.records.filter((record) => record.command.type === 'SUBMIT_BID').length, 3);
   assert.equal(result.records.filter((record) => record.command.type === 'PLAY_CARD').length, 52);
   assert.equal(result.rejectedCommandCount, 0);
   assert.equal(result.replayVerified, true);
@@ -51,10 +52,10 @@ test('simulation reports bounded exact-estimate metrics and one audit per action
   assert.ok(result.metrics.exactMatchRate >= 0 && result.metrics.exactMatchRate <= 1);
   assert.ok(result.metrics.meanAbsoluteEstimateError >= 0);
   assert.ok(Number.isFinite(result.metrics.averageScore));
-  assert.equal(result.decisionAudits.length, 56);
+  assert.equal(result.decisionAudits.length, 59);
   assert.equal(
     Object.values(result.reasonCounts).reduce((sum, count) => sum + count, 0),
-    56,
+    59,
   );
 });
 

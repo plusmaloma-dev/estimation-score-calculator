@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { GameplayRoundApplicationService } from '../../../src/gameplay/GameplayRoundApplicationService.ts';
 import { GameplayBotDirectiveService } from '../../../src/gameplay/bot/GameplayBotDirectiveService.ts';
 import { GameplaySessionBootstrapService } from '../../../src/gameplay/session/GameplaySessionBootstrapService.ts';
@@ -11,7 +11,7 @@ import type {
 import type { BotActionDirective } from '../../../src/gameplay/control/types.ts';
 import type { EstimationBid } from '../../../src/domain/bid.ts';
 import type { Card } from '../../../src/domain/card.ts';
-import type { GameplaySeatPlayers, SeatIndex } from '../../../src/gameplay/types.ts';
+import type { GameplayAuctionAction, GameplaySeatPlayers, SeatIndex } from '../../../src/gameplay/types.ts';
 import {
   coordinateHumanRoundAction,
   nextAuthoritativeTurn,
@@ -34,7 +34,7 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  readonly action?: 'snapshot' | 'submit-bid' | 'play-card' | 'process-bot-directive' | 'start-next-round';
+  readonly action?: 'snapshot' | 'submit-auction-action' | 'submit-bid' | 'play-card' | 'process-bot-directive' | 'start-next-round';
   readonly tableId?: string;
   readonly commandId?: string;
   readonly expectedVersion?: number;
@@ -42,6 +42,7 @@ interface RequestBody {
   readonly expectedRoundVersion?: number;
   readonly expectedControlVersion?: number;
   readonly bid?: EstimationBid;
+  readonly auctionAction?: GameplayAuctionAction;
   readonly card?: Card;
   readonly directiveId?: string;
 }
@@ -74,7 +75,7 @@ interface IssuedDirectiveContext {
   readonly completed: boolean;
 }
 
-type ServiceClient = ReturnType<typeof createClient>;
+type ServiceClient = SupabaseClient<any>;
 
 class SupabaseGameplayRoundRepository implements GameplayRoundRepository {
   constructor(private readonly client: ServiceClient) {}
@@ -91,7 +92,7 @@ class SupabaseGameplayRoundRepository implements GameplayRoundRepository {
 
   async commit(input: GameplayRoundCommitInput): Promise<GameplayRoundCommitResult> {
     const command = input.record.command;
-    const { data, error } = await this.client.rpc('commit_gameplay_round_command', {
+    const { data, error } = await this.client.rpc('commit_gameplay_round_auction_command', {
       p_table_id: input.tableId,
       p_actor_user_id: input.actorUserId,
       p_actor_seat: command.seat + 1,
@@ -276,7 +277,7 @@ async function loadAuthoritativeNextRound(
     roundNumber: aggregate.state.roundNumber,
     roundVersion: aggregate.version,
     phase: aggregate.state.phase,
-    dealerSeat: aggregate.state.bidOwnerSeat,
+    dealerSeat: aggregate.state.dealerSeat,
     players: aggregate.state.players,
     ...(nextRoundMultiplier === undefined ? {} : { nextRoundMultiplier }),
   };
@@ -284,8 +285,8 @@ async function loadAuthoritativeNextRound(
 
 function validateNextRoundAggregate(aggregate: unknown): readonly string[] {
   const state = object(aggregate);
-  return state?.phase === 'bidding'
-    && state.currentBidIndex === 0
+  return state?.phase === 'auction'
+    && typeof state.auctionActiveSeat === 'number'
     && Array.isArray(state.players)
     && Array.isArray(state.hands)
     && state.hands.length === 4
@@ -326,7 +327,7 @@ function nextRoundPorts(
     },
     validateAggregate: validateNextRoundAggregate,
     startNextRound: async (input) => {
-      const result = await userRpc(serviceClient, 'start_next_gameplay_round', {
+      const result = await userRpc(serviceClient, 'start_next_gameplay_auction_round', {
         p_table_id: input.tableId,
         p_actor_user_id: input.actorUserId,
         p_command_id: input.commandId,
@@ -674,6 +675,7 @@ Deno.serve(async (request) => {
   if (!validTableId(body.tableId)) {
     return json({ valid: false, errors: ['A valid gameplay table ID is required.'] }, 400);
   }
+  const tableId = body.tableId;
 
   const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -689,14 +691,14 @@ Deno.serve(async (request) => {
 
   try {
     if (body.action === 'snapshot') {
-      return json(await service.getSnapshot(body.tableId, actor));
+      return json(await service.getSnapshot(tableId, actor));
     }
     if (body.action === 'start-next-round') {
       if (!validNextRoundInput(body)) {
         return json({ valid: false, errors: ['NEXT_ROUND_COMMAND_INCOMPLETE'], duplicate: false }, 400);
       }
       return json(await handleStartNextRound({
-        tableId: body.tableId,
+        tableId,
         commandId: body.commandId,
         expectedRoundNumber: body.expectedRoundNumber,
         expectedRoundVersion: body.expectedRoundVersion,
@@ -708,18 +710,38 @@ Deno.serve(async (request) => {
         return json({ valid: false, errors: ['Bid command is incomplete.'] }, 400);
       }
       return json(await coordinateHumanRoundAction({
-        tableId: body.tableId,
+        tableId,
         actorUserId: actor.userId,
         roundCommandId: body.commandId!,
         actionKind: 'bid',
         boundary: humanBoundary,
         occurredAt: new Date().toISOString(),
         executeRound: () => service.submitBid(
-          body.tableId,
+          tableId,
           actor,
           body.commandId!,
           body.expectedVersion!,
           body.bid!,
+        ),
+      }));
+    }
+    if (body.action === 'submit-auction-action') {
+      if (!validCommandInput(body) || body.auctionAction === undefined) {
+        return json({ valid: false, errors: ['Auction command is incomplete.'] }, 400);
+      }
+      return json(await coordinateHumanRoundAction({
+        tableId,
+        actorUserId: actor.userId,
+        roundCommandId: body.commandId!,
+        actionKind: 'bid',
+        boundary: humanBoundary,
+        occurredAt: new Date().toISOString(),
+        executeRound: () => service.submitAuctionAction(
+          tableId,
+          actor,
+          body.commandId!,
+          body.expectedVersion!,
+          body.auctionAction!,
         ),
       }));
     }
@@ -728,14 +750,14 @@ Deno.serve(async (request) => {
         return json({ valid: false, errors: ['Card command is incomplete.'] }, 400);
       }
       return json(await coordinateHumanRoundAction({
-        tableId: body.tableId,
+        tableId,
         actorUserId: actor.userId,
         roundCommandId: body.commandId!,
         actionKind: 'card',
         boundary: humanBoundary,
         occurredAt: new Date().toISOString(),
         executeRound: () => service.playCard(
-          body.tableId,
+          tableId,
           actor,
           body.commandId!,
           body.expectedVersion!,
@@ -748,18 +770,18 @@ Deno.serve(async (request) => {
       if (directiveId.length === 0) {
         return json({ valid: false, errors: ['Bot directive ID is required.'], terminal: true }, 400);
       }
-      const context = await loadIssuedDirective(serviceClient, body.tableId, directiveId);
+      const context = await loadIssuedDirective(serviceClient, tableId, directiveId);
       if (context === undefined) {
         return json({ valid: false, errors: ['Bot directive is stale.'], terminal: true });
       }
       if (context.completed) {
-        const existing = await service.getSnapshot(body.tableId, actor);
+        const existing = await service.getSnapshot(tableId, actor);
         return json({ ...existing, terminal: true });
       }
 
       const beganAt = new Date().toISOString();
       const begin = await userRpc(authClient, 'begin_active_bot_action', {
-        p_table_id: body.tableId,
+        p_table_id: tableId,
         p_workspace_id: context.workspaceId,
         p_actor_user_id: authData.user.id,
         p_command_id: `bot-begin:${directiveId}`,
@@ -778,7 +800,7 @@ Deno.serve(async (request) => {
         });
       }
 
-      const botResult = await botService.process(body.tableId, actor, context.directive);
+      const botResult = await botService.process(tableId, actor, context.directive);
       if (!botResult.valid || botResult.value === undefined) {
         return json({ ...botResult, terminal: true });
       }
@@ -787,7 +809,7 @@ Deno.serve(async (request) => {
       const completeExpectedVersion = context.completeExpectedVersion ?? begin.version;
       const completedAt = new Date().toISOString();
       const completed = await userRpc(authClient, 'complete_active_action_boundary', {
-        p_table_id: body.tableId,
+        p_table_id: tableId,
         p_workspace_id: context.workspaceId,
         p_actor_user_id: authData.user.id,
         p_command_id: `bot-complete:${directiveId}`,

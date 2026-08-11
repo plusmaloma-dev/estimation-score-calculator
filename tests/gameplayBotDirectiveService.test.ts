@@ -37,7 +37,7 @@ async function roundInput(): Promise<CreateHouseRulesRoundInput> {
     hands: deal.hands,
     bidOrder: [1, 2, 3, 0],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 1,
+    dealerSeat: 0,
     firstLeadSeat: 1,
   };
 }
@@ -110,19 +110,17 @@ function acceptedBid(
   state: HouseRulesRoundState,
   seat: 0 | 1 | 2 | 3,
   tricks: number,
-  trumpSuit?: 'spades',
 ): HouseRulesRoundState {
   const result = engine.submitBid(state, seat, {
     playerId: players[seat].playerId,
     bidType: 'normal',
     tricks,
-    ...(trumpSuit === undefined ? {} : { trumpSuit }),
   });
   assert.equal(result.valid, true, result.errors.join('\n'));
   return result.state;
 }
 
-test('permanent bot bid is decided from private server state and committed with audit metadata', async () => {
+test('permanent bot auction action is decided from private server state and committed with audit metadata', async () => {
   const repository = new MemoryRoundRepository(await aggregate());
   const service = new GameplayBotDirectiveService(repository);
 
@@ -132,11 +130,16 @@ test('permanent bot bid is decided from private server state and committed with 
   assert.equal(result.duplicate, false);
   assert.equal(result.value?.viewerSeat, 0);
   assert.equal(result.value?.version, 1);
-  assert.equal(result.value?.players[1]?.bid?.playerId, 'bot-1');
+  assert.deepEqual(result.value?.currentHighestContract, {
+    seat: 1,
+    playerId: 'bot-1',
+    tricks: 4,
+    trumpSuit: 'clubs',
+  });
   assert.equal(repository.commits.length, 1);
   const record = repository.commits[0]!.record;
   assert.equal(record.commandId, 'bot-round:bot-action:table-1:bid-1:1');
-  assert.equal(record.command.type, 'SUBMIT_BID');
+  assert.equal(record.command.type, 'SUBMIT_AUCTION_ACTION');
   assert.equal(record.transition.metadata?.directiveId, directive().directiveId);
   assert.equal(
     typeof (record.transition.metadata?.botDecisionAudit as Readonly<Record<string, unknown>> | undefined)?.policyVersion,
@@ -162,7 +165,10 @@ test('same directive retry is idempotent and does not create a second commit', a
 test('permanent bot card uses the legal server-side observation and advances public trick state', async () => {
   const engine = new HouseRulesRoundEngine();
   let state = engine.create(await roundInput());
-  state = acceptedBid(engine, state, 1, 5, 'spades');
+  state = engine.submitAuctionAction(state, 1, { type: 'contract', tricks: 5, trumpSuit: 'spades' }).state;
+  state = engine.submitAuctionAction(state, 2, { type: 'pass' }).state;
+  state = engine.submitAuctionAction(state, 3, { type: 'pass' }).state;
+  state = engine.submitAuctionAction(state, 0, { type: 'pass' }).state;
   state = acceptedBid(engine, state, 2, 2);
   state = acceptedBid(engine, state, 3, 1);
   state = acceptedBid(engine, state, 0, 3);

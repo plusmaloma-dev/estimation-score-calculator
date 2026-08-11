@@ -51,18 +51,20 @@ function subsequentInput(
   } as GameplaySessionBootstrapRequest;
 }
 
-test('secure bootstrap maps four seats, selects an unbiased deterministic caller, and creates thirteen-card hands', async () => {
+test('secure bootstrap maps four seats, opens an auction after dealer, and creates thirteen-card hands', async () => {
   const service = new GameplaySessionBootstrapService();
 
   const result = await service.bootstrap(input());
 
   assert.equal(result.dealerSeat, 2);
-  assert.equal(result.state.bidOwnerSeat, 2);
-  assert.deepEqual(result.state.bidOrder, [2, 3, 0, 1]);
+  assert.equal(result.state.bidOwnerSeat, undefined);
+  assert.equal(result.state.callerSeat, undefined);
+  assert.equal(result.state.phase, 'auction');
+  assert.deepEqual(result.state.bidOrder, [3, 0, 1, 2]);
   assert.equal(result.firstLeadSeat, 3);
-  assert.equal(result.firstTurn.seat, 2);
+  assert.equal(result.firstTurn.seat, 3);
   assert.equal(result.firstTurn.actionKind, 'bid');
-  assert.equal(result.firstTurn.turnId, 'round-1:bid:0:2');
+  assert.equal(result.firstTurn.turnId, 'round-1:bid:0:3');
   assert.deepEqual(result.state.players, seats);
   assert.deepEqual(result.state.hands.map((hand) => hand.cards.length), [13, 13, 13, 13]);
   assert.equal(new Set(result.state.hands.flatMap((hand) => hand.cards.map(
@@ -112,13 +114,13 @@ test('subsequent bootstrap accepts server-derived seat 1 after seat 0 with the e
   const result = await new GameplaySessionBootstrapService().bootstrap(subsequentInput());
 
   assert.equal(result.dealerSeat, 1);
-  assert.equal(result.state.bidOwnerSeat, 1);
-  assert.deepEqual(result.state.bidOrder, [1, 2, 3, 0]);
+  assert.equal(result.state.bidOwnerSeat, undefined);
+  assert.deepEqual(result.state.bidOrder, [2, 3, 0, 1]);
   assert.equal(result.firstLeadSeat, 2);
   assert.deepEqual(result.state.playOrder, [0, 1, 2, 3]);
   assert.deepEqual(result.firstTurn, {
-    turnId: 'round-2:bid:0:1',
-    seat: 1,
+    turnId: 'round-2:bid:0:2',
+    seat: 2,
     actionKind: 'bid',
   });
 });

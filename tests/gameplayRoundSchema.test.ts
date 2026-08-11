@@ -10,6 +10,10 @@ const rpc = readFileSync(
   'supabase/migrations/202607260010_gameplay_round_rpc.sql',
   'utf8',
 );
+const auctionMigration = readFileSync(
+  'supabase/migrations/202608100013_contract_auction.sql',
+  'utf8',
+);
 const edge = readFileSync(
   'supabase/functions/gameplay-round-command/index.ts',
   'utf8',
@@ -90,11 +94,20 @@ test('Edge Function authenticates the user and keeps service-role access server-
   assert.match(edge, /SUPABASE_SERVICE_ROLE_KEY/i);
   assert.match(edge, /GameplayRoundApplicationService/i);
   assert.match(edge, /load_gameplay_round_for_engine/i);
-  assert.match(edge, /commit_gameplay_round_command/i);
-  for (const action of ['snapshot', 'submit-bid', 'play-card']) {
+  assert.match(edge, /commit_gameplay_round_auction_command/i);
+  assert.match(auctionMigration, /commit_gameplay_round_auction_command[\s\S]*commit_gameplay_round_command/i);
+  for (const action of ['snapshot', 'submit-auction-action', 'submit-bid', 'play-card']) {
     assert.match(edge, new RegExp(`['"]${action}['"]`, 'i'));
   }
   assert.doesNotMatch(browserServices, /SUPABASE_SERVICE_ROLE_KEY|service_role/i);
+});
+
+test('forward-only auction migration adds explicit public lifecycle phases without weakening private command isolation', () => {
+  assert.match(auctionMigration, /phase in \('auction', 'estimate', 'bidding', 'playing', 'scored'\)/i);
+  assert.match(auctionMigration, /initialize_gameplay_auction_round_state/i);
+  assert.match(auctionMigration, /commit_gameplay_round_auction_command/i);
+  assert.match(auctionMigration, /revoke all on function public\.commit_gameplay_round_auction_command/i);
+  assert.match(auctionMigration, /grant execute on function public\.commit_gameplay_round_auction_command[\s\S]*to service_role/i);
 });
 
 test('Deno function configuration enables TypeScript engine import compatibility', () => {

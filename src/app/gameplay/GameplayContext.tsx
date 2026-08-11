@@ -59,6 +59,7 @@ export type GameplayRoundPort = Pick<OnlineGameplayRoundService,
   | 'submitBid'
   | 'playCard'
 > & Partial<Pick<OnlineGameplayRoundService,
+  | 'submitAuctionAction'
   | 'startGame'
   | 'processBotDirective'
   | 'startNextRound'

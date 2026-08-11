@@ -58,7 +58,7 @@ export interface HumanActionBoundaryPort {
 export function nextAuthoritativeTurn(
   snapshot: OnlineGameplayRoundSnapshot,
 ): AuthoritativeNextTurn | null {
-  const seat = snapshot.phase === 'bidding'
+  const seat = snapshot.phase === 'auction' || snapshot.phase === 'estimate'
     ? snapshot.nextBidSeat
     : snapshot.phase === 'playing'
       ? snapshot.currentTurnSeat
@@ -67,7 +67,7 @@ export function nextAuthoritativeTurn(
   if (seat === undefined) return null;
 
   const actionKind: HumanActionKind =
-    snapshot.phase === 'bidding' ? 'bid' : 'card';
+    snapshot.phase === 'auction' || snapshot.phase === 'estimate' ? 'bid' : 'card';
 
   return {
     turnId:

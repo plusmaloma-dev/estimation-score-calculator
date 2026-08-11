@@ -284,7 +284,7 @@ describe('ActiveGameplayScreen', () => {
     expect(error).not.toHaveTextContent('sensitive active refresh detail');
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Submit estimate' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Your hand')).toHaveClass('gameplay-hand--disabled');
     expect(activeGetSnapshot).toHaveBeenCalledTimes(2);
     expect(roundGetSnapshot).toHaveBeenCalledTimes(2);
 
@@ -300,7 +300,7 @@ describe('ActiveGameplayScreen', () => {
     expect(roundGetSnapshot).toHaveBeenCalledTimes(3);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Your hand')).toHaveClass('gameplay-hand--disabled');
   });
 
   it('reports an invalid round refresh without exposing its error details', async () => {
@@ -422,7 +422,7 @@ describe('ActiveGameplayScreen', () => {
 
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('Synchronizing round state');
-    expect(screen.queryByLabelText('Your hand')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Your hand')).toHaveClass('gameplay-hand--disabled');
 
     resolveRefresh?.({ valid: true, errors: [], value: initial });
     view.unmount();

@@ -61,9 +61,11 @@ export class GameplayCommandProcessor {
       return this.recordResult(state, version, records, envelope, transition);
     }
 
-    const transition = envelope.command.type === 'SUBMIT_BID'
-      ? this.roundEngine.submitBid(state, envelope.command.seat, envelope.command.bid)
-      : this.roundEngine.playCard(state, envelope.command.seat, envelope.command.card);
+    const transition = envelope.command.type === 'SUBMIT_AUCTION_ACTION'
+      ? this.roundEngine.submitAuctionAction(state, envelope.command.seat, envelope.command.action)
+      : envelope.command.type === 'SUBMIT_BID'
+        ? this.roundEngine.submitBid(state, envelope.command.seat, envelope.command.bid)
+        : this.roundEngine.playCard(state, envelope.command.seat, envelope.command.card);
 
     return this.recordResult(state, version, records, envelope, transition);
   }

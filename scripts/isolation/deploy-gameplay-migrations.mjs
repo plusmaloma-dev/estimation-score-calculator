@@ -18,8 +18,13 @@ const EXPECTED_MIGRATIONS = [
   '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
   '202607290011_active_round_next_round.sql',
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
+  '202608100013_contract_auction.sql',
 ];
-const EXPECTED_PENDING = EXPECTED_MIGRATIONS.slice(-2);
+const APPROVED_REMOTE_STATES = [
+  EXPECTED_MIGRATIONS.slice(0, 10),
+  EXPECTED_MIGRATIONS.slice(0, 12),
+  EXPECTED_MIGRATIONS,
+];
 
 function fail(message) {
   console.error(`Gameplay migration deployment failed: ${message}`);
@@ -85,7 +90,7 @@ function verifiedLocalInventory() {
     fail('The isolated gameplay migration inventory could not be read.');
   }
   if (actual.length !== EXPECTED_MIGRATIONS.length || actual.some((name, index) => name !== EXPECTED_MIGRATIONS[index])) {
-    fail('The local gameplay migration inventory does not exactly match the reviewed twelve migrations.');
+    fail('The local gameplay migration inventory does not exactly match the reviewed thirteen migrations.');
   }
 }
 
@@ -198,9 +203,14 @@ verifiedLocalInventory();
 runGuard(projectRef, expectedSha, 'before migration inspection');
 const before = inspectLinkedMigrationState();
 const beforeRemote = checkedRemoteState(before, 'pre-push verification');
-if (matchesRemoteState(beforeRemote, EXPECTED_MIGRATIONS.slice(0, 10))) {
+const approvedRemoteState = APPROVED_REMOTE_STATES.find((state) => matchesRemoteState(beforeRemote, state));
+if (approvedRemoteState === undefined) {
+  fail('Linked migration state does not match an approved deployment state.');
+}
+if (approvedRemoteState.length < EXPECTED_MIGRATIONS.length) {
   const pending = pendingNames(before);
-  if (pending.length !== EXPECTED_PENDING.length || pending.some((name, index) => name !== EXPECTED_PENDING[index])) {
+  const expectedPending = EXPECTED_MIGRATIONS.slice(approvedRemoteState.length);
+  if (pending.length !== expectedPending.length || pending.some((name, index) => name !== expectedPending[index])) {
     fail('Pending gameplay migrations do not exactly match the reviewed deployment set.');
   }
   console.log(`Reviewed pending migrations: ${pending.join(', ')}`);
@@ -211,8 +221,6 @@ if (matchesRemoteState(beforeRemote, EXPECTED_MIGRATIONS.slice(0, 10))) {
   assertState(after, EXPECTED_MIGRATIONS, 'post-push verification');
   if (pendingNames(after).length !== 0) fail('Post-push migration verification found residual pending migrations.');
   console.log('Migration deployment succeeded: all reviewed migrations are applied.');
-} else if (matchesRemoteState(beforeRemote, EXPECTED_MIGRATIONS)) {
-  console.log('All reviewed gameplay migrations are already applied; no database push is required.');
 } else {
-  fail('Linked migration state does not match an approved deployment state.');
+  console.log('All reviewed gameplay migrations are already applied; no database push is required.');
 }

@@ -73,8 +73,8 @@ export class StandardBidPolicy {
       const validation = this.bidValidationService.validateBid(bid, {
         playerCount: 4,
         cardsPerPlayer: 13,
-        mode: 'round-estimates',
-        bidOwnerPlayerId: observation.bidOwnerPlayerId,
+        mode: observation.bidOwnerPlayerId === undefined ? 'round-estimates-no-owner' : 'resolved-contract-estimates',
+        ...(observation.bidOwnerPlayerId === undefined ? {} : { bidOwnerPlayerId: observation.bidOwnerPlayerId }),
       });
       if (!validation.valid) {
         throw new Error(`Supplied legal bid is invalid: ${validation.errors.join(' ')}`);
@@ -161,7 +161,7 @@ export class StandardBidPolicy {
       roundType,
       roundRiskLevel,
       winningContractNumber: ownerBid?.tricks,
-      bidOwnerPlayerId: observation.bidOwnerPlayerId,
+      ...(observation.bidOwnerPlayerId === undefined ? {} : { bidOwnerPlayerId: observation.bidOwnerPlayerId }),
       ownerOutcome: bid.playerId === observation.bidOwnerPlayerId
         ? (didMatchBid ? 'owner-won' : 'owner-lost')
         : undefined,
@@ -180,6 +180,7 @@ export class StandardBidPolicy {
     observation: BotBidObservation,
     bid: EstimationBid,
   ): ContractSuit {
+    if (observation.bidOwnerPlayerId === undefined) return 'no-trump';
     if (bid.playerId === observation.bidOwnerPlayerId) {
       if (bid.trumpSuit === undefined) {
         throw new Error('A legal bid-owner action must include its contract suit.');

@@ -45,7 +45,7 @@ test('Start Function uses deterministic retry-safe sub-command identities', () =
   assert.match(normalized, /table-start:\$\{commandId\}/i);
   assert.match(normalized, /initialize_active_game_control/i);
   assert.match(normalized, /control-init:\$\{commandId\}/i);
-  assert.match(normalized, /initialize_gameplay_round_state/i);
+  assert.match(normalized, /initialize_gameplay_auction_round_state/i);
   assert.match(normalized, /start_active_game_turn/i);
   assert.match(normalized, /turn-start:\$\{commandId\}/i);
 });

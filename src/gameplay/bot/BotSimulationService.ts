@@ -1,5 +1,4 @@
 import type { EstimationBid } from '../../domain/bid.js';
-import { CONTRACT_SUITS } from '../../domain/card.js';
 import { FairDealService } from '../FairDealService.js';
 import { GameplayCommandProcessor } from '../GameplayCommandProcessor.js';
 import { GameplayReplayService } from '../GameplayReplayService.js';
@@ -11,6 +10,7 @@ import type {
   SeatIndex,
 } from '../types.js';
 import { BotObservationService } from './BotObservationService.js';
+import { BotBidObservationService } from './BotBidObservationService.js';
 import { StandardBotPolicy } from './StandardBotPolicy.js';
 import {
   STANDARD_BOT_POLICY_VERSION,
@@ -24,6 +24,7 @@ import {
 export class BotSimulationService {
   private readonly botPolicy: StandardBotPolicy;
   private readonly observationService: BotObservationService;
+  private readonly bidObservationService = new BotBidObservationService();
 
   constructor(
     private readonly fairDealService = new FairDealService(),
@@ -37,10 +38,6 @@ export class BotSimulationService {
   }
 
   async simulateRound(input: BotSimulationInput): Promise<BotSimulationResult> {
-    if (input.bidOrder[0] !== input.bidOwnerSeat) {
-      throw new Error('Standard bot simulation requires the bid owner to act first.');
-    }
-
     const deal = await this.fairDealService.deal({
       gameId: input.gameId,
       dealId: input.dealId,
@@ -61,6 +58,7 @@ export class BotSimulationService {
       bidOrder: input.bidOrder,
       playOrder: input.playOrder,
       bidOwnerSeat: input.bidOwnerSeat,
+      dealerSeat: input.bidOwnerSeat,
       firstLeadSeat: input.firstLeadSeat,
     };
     const initialState = this.roundEngine.create(createInput);
@@ -70,23 +68,42 @@ export class BotSimulationService {
     const decisionAudits: BotDecisionAudit[] = [];
     let rejectedCommandCount = 0;
 
-    while (state.phase === 'bidding') {
-      const seat = state.bidOrder[state.currentBidIndex];
+    while (state.phase === 'auction' || state.phase === 'estimate') {
+      const seat = state.phase === 'auction'
+        ? state.auctionActiveSeat
+        : state.estimateOrder[state.currentEstimateIndex];
       if (seat === undefined) {
         throw new Error('Bidding phase has no active seat.');
       }
-      const observation = this.createBidObservation(state, seat);
-      const botResult = this.botPolicy.decideBid(observation, 'permanent-bot');
-      decisionAudits.push(botResult.audit);
+      const command = state.phase === 'auction'
+        ? {
+            type: 'SUBMIT_AUCTION_ACTION' as const,
+            seat,
+            action: state.currentHighestContract === undefined
+              ? { type: 'contract' as const, tricks: 4, trumpSuit: 'clubs' as const }
+              : { type: 'pass' as const },
+          }
+        : (() => {
+            const botResult = this.botPolicy.decideBid(this.bidObservationService.create(state, seat), 'permanent-bot');
+            decisionAudits.push(botResult.audit);
+            return { type: 'SUBMIT_BID' as const, seat, bid: botResult.decision.bid };
+          })();
+      if (command.type === 'SUBMIT_AUCTION_ACTION') {
+        decisionAudits.push({
+          policyVersion: STANDARD_BOT_POLICY_VERSION,
+          actionSource: 'permanent-bot',
+          reasonCode: 'EXPECTED_UTILITY_BID',
+          legalActionIds: [],
+          selectedActionId: JSON.stringify(command.action),
+          durationMs: 0,
+          fallbackUsed: false,
+        });
+      }
 
       const processed = this.commandProcessor.process(state, version, records, {
-        commandId: `bid-${state.currentBidIndex + 1}`,
+        commandId: `bid-${version + 1}`,
         expectedVersion: version,
-        command: {
-          type: 'SUBMIT_BID',
-          seat,
-          bid: botResult.decision.bid,
-        },
+        command,
       });
       if (!processed.valid) {
         rejectedCommandCount += 1;
@@ -143,72 +160,6 @@ export class BotSimulationService {
       rejectedCommandCount,
       replayVerified,
     };
-  }
-
-  private createBidObservation(
-    state: HouseRulesRoundState,
-    seat: SeatIndex,
-  ): BotBidObservation {
-    const playerId = state.players[seat].playerId;
-
-    return {
-      policyVersion: STANDARD_BOT_POLICY_VERSION,
-      playerId,
-      hand: state.hands[seat].cards,
-      legalBids: this.legalBids(state, seat),
-      priorBids: state.bids,
-      bidOwnerPlayerId: state.players[state.bidOwnerSeat].playerId,
-      isLastBidder: state.currentBidIndex === 3,
-      currentScores: Object.fromEntries(state.players.map((player) => [player.playerId, 0])),
-    };
-  }
-
-  private legalBids(
-    state: HouseRulesRoundState,
-    seat: SeatIndex,
-  ): readonly EstimationBid[] {
-    const playerId = state.players[seat].playerId;
-    const bidOwnerPlayerId = state.players[state.bidOwnerSeat].playerId;
-    let candidates: EstimationBid[];
-
-    if (seat === state.bidOwnerSeat) {
-      candidates = [];
-      for (let tricks = 4; tricks <= 7; tricks += 1) {
-        for (const trumpSuit of CONTRACT_SUITS) {
-          candidates.push({
-            playerId,
-            bidType: 'normal',
-            tricks,
-            trumpSuit,
-          });
-        }
-      }
-    } else {
-      const ownerBid = state.bids.find((bid) => bid.playerId === bidOwnerPlayerId);
-      if (ownerBid === undefined) {
-        throw new Error('Bid owner must act before other Standard bot bidders.');
-      }
-      candidates = [];
-      for (let tricks = 1; tricks < ownerBid.tricks; tricks += 1) {
-        candidates.push({ playerId, bidType: 'normal', tricks });
-      }
-      candidates.push({
-        playerId,
-        bidType: 'with',
-        tricks: ownerBid.tricks,
-        withTargetPlayerId: bidOwnerPlayerId,
-      });
-    }
-
-    if (state.currentBidIndex === 3) {
-      const currentTotal = state.bids.reduce((total, bid) => total + bid.tricks, 0);
-      candidates = candidates.filter((bid) => currentTotal + bid.tricks !== 13);
-    }
-
-    if (candidates.length === 0) {
-      throw new Error(`No legal Standard bot bids remain for seat ${seat}.`);
-    }
-    return candidates;
   }
 
   private calculateMetrics(state: HouseRulesRoundState): BotSimulationMetrics {

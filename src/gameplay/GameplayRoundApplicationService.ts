@@ -3,6 +3,7 @@ import type { Card } from '../domain/card.js';
 import { GameplayCommandProcessor } from './GameplayCommandProcessor.js';
 import { GameplayRoundSnapshotProjector } from './GameplayRoundSnapshotProjector.js';
 import type {
+  GameplayAuctionAction,
   GameplayCommand,
   GameplayCommandEnvelope,
   SeatIndex,
@@ -60,6 +61,20 @@ export class GameplayRoundApplicationService {
       type: 'SUBMIT_BID',
       seat,
       bid,
+    }));
+  }
+
+  async submitAuctionAction(
+    tableId: string,
+    actor: GameplayRoundActor,
+    commandId: string,
+    expectedVersion: number,
+    action: GameplayAuctionAction,
+  ): Promise<GameplayRoundApplicationResult> {
+    return this.mutate(tableId, actor, commandId, expectedVersion, (seat) => ({
+      type: 'SUBMIT_AUCTION_ACTION',
+      seat,
+      action,
     }));
   }
 

@@ -40,6 +40,8 @@ function balanceLabel(presentation: ActiveRoundPresentation, t: (key: Translatio
 
 function phaseLabel(phase: ActiveRoundPresentation['phase'], t: (key: TranslationKey) => string): string {
   switch (phase) {
+    case 'auction': return t('bidding');
+    case 'estimate': return t('estimate');
     case 'bidding': return t('bidding');
     case 'playing': return t('playing');
     case 'scored': return t('scored');

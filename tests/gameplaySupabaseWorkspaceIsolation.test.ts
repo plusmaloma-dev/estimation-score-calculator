@@ -20,6 +20,7 @@ const expectedMigrations = [
   '202607280010_fix_gameplay_start_seat_number_ambiguity.sql',
   '202607290011_active_round_next_round.sql',
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
+  '202608100013_contract_auction.sql',
 ];
 
 const forbiddenSql = [
@@ -118,6 +119,15 @@ test('next-round migration mirrors the root copy byte-for-byte', () => {
     readFileSync(rootPath),
     'Root and isolated next-round migrations must be byte-identical.',
   );
+});
+
+test('contract-auction migration mirrors the root copy byte-for-byte', () => {
+  const isolatedPath = join(migrationsDirectory, '202608100013_contract_auction.sql');
+  const rootPath = join('supabase', 'migrations', '202608100013_contract_auction.sql');
+
+  assert.equal(existsSync(isolatedPath), true, 'Missing isolated contract-auction migration.');
+  assert.equal(existsSync(rootPath), true, 'Missing root contract-auction migration mirror.');
+  assert.deepEqual(readFileSync(isolatedPath), readFileSync(rootPath));
 });
 
 test('gameplay Supabase config is isolated and both functions require JWTs', () => {

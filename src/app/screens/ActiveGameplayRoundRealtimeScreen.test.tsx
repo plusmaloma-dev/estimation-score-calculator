@@ -206,6 +206,8 @@ function renderActive(appServices: AppServices) {
 
 describe('ActiveGameplayScreen round Realtime', () => {
   it('preserves focused bidding control across a compatible Realtime update while the action remains available', async () => {
+    const scrollTo = vi.fn();
+    Object.defineProperty(window, 'scrollTo', { configurable: true, value: scrollTo });
     let publish: ((snapshot: OnlineGameplayRoundSnapshot) => void) | undefined;
     const realtime: NonNullable<AppServices['gameplayRoundRealtime']> = {
       connect: vi.fn(async (
@@ -252,6 +254,7 @@ describe('ActiveGameplayScreen round Realtime', () => {
 
     expect(screen.getByRole('combobox', { name: 'Estimate' })).toBe(estimate);
     expect(document.activeElement).toBe(estimate);
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it('does not require focus to stay when Realtime makes the bidding action unavailable', async () => {

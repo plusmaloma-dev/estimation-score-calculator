@@ -117,7 +117,7 @@ The guard must reject `lexewcehptnmikwfizhj` and any checkout other than the ded
 
 ## 5. Guarded gameplay database migration deployment
 
-The reviewed gameplay migration inventory contains exactly these twelve migrations:
+The reviewed gameplay migration inventory contains exactly these thirteen migrations:
 
 1. `202607260001_gameplay_identity.sql`
 2. `202607260002_gameplay_identity_rls.sql`
@@ -131,8 +131,9 @@ The reviewed gameplay migration inventory contains exactly these twelve migratio
 10. `202607280010_fix_gameplay_start_seat_number_ambiguity.sql`
 11. `202607290011_active_round_next_round.sql`
 12. `202608080012_fix_gameplay_round_table_id_ambiguity.sql`
+13. `202608100013_contract_auction.sql`
 
-For the later hosted deployment represented by this branch, the reviewed pending set is exactly migrations 011 and 012. The only authorized database mutation path is the guarded wrapper:
+For the hosted UAT state already containing migrations 011 and 012, the reviewed pending set is exactly migration 013. The wrapper also recognizes the explicitly reviewed historical 010 state (then pending 011, 012, and 013) and the fully applied 013 state (a no-op); every other remote migration sequence is a stop condition. The only authorized database mutation path is the guarded wrapper:
 
 ```powershell
 npm run deploy:gameplay-migrations -- `
@@ -140,7 +141,7 @@ npm run deploy:gameplay-migrations -- `
   --expected-sha $testedSha
 ```
 
-Do not run a direct operator database push. The wrapper runs the gameplay target guard before linked migration-state inspection and again immediately before the mutation boundary, requires the exact twelve-file local inventory and exact 011/012 pending set, uses only `supabase-gameplay`, and re-reads linked state afterward. Read-only migration-list commands are allowed for investigation; ambiguous, remote-only, out-of-order, score-sheet, or unexpected migration state is a stop condition.
+Do not run a direct operator database push. The wrapper runs the gameplay target guard before linked migration-state inspection and again immediately before the mutation boundary, requires the exact thirteen-file local inventory and one of the reviewed remote sequences above, uses only `supabase-gameplay`, and re-reads linked state afterward. Read-only migration-list commands are allowed for investigation; ambiguous, remote-only, out-of-order, score-sheet, or unexpected migration state is a stop condition.
 
 For read-only inspection only, use:
 
@@ -179,12 +180,12 @@ The later hosted deployment must proceed in this order:
 
 1. guarded gameplay migrations;
 2. guarded `gameplay-round-command` Function deployment;
-3. verify that the authoritative round snapshot includes `legalBidOptions`;
+3. verify that the authoritative round snapshot includes `legalAuctionActions` during auction and `legalBidOptions` during estimate;
 4. guarded gameplay frontend deployment;
 5. create a fresh UAT table;
 6. perform authenticated UAT.
 
-The frontend intentionally does not reconstruct bidding legality when `legalBidOptions` is absent, so it must not precede the compatible backend projection. Preserve all previous evidence tables: do not repair, reuse, terminate, delete, or mutate failed Start evidence tables, split-state human-boundary tables, or other preserved defect evidence.
+The frontend intentionally does not reconstruct auction or estimate legality when the corresponding authoritative projection is absent, so it must not precede the compatible backend projection. Preserve all previous evidence tables: do not repair, reuse, terminate, delete, or mutate failed Start evidence tables, split-state human-boundary tables, or other preserved defect evidence.
 
 ## 7. Verify the isolated Auth users and workspace
 
@@ -387,12 +388,13 @@ use a new table because its round and active-control ledgers have diverged.
 4. Confirm three clearly labelled Standard bots fill the vacancies.
 5. Confirm the host sees exactly thirteen cards and never sees another hand.
 6. Record only the public deal commitment; confirm no seed or nonce is displayed during play.
-7. Complete all four estimates and confirm the total cannot equal 13.
-8. Confirm a bot first bidder acts without waiting for a human timeout.
-9. Complete all 52 card actions and confirm follow-suit enforcement.
-10. Confirm thirteen completed tricks and a scored round are displayed.
-11. Reload during bidding and card play; confirm authoritative state and own hand recover.
-12. Confirm duplicate clicks or retries do not create a second deal, estimate, card action, or turn.
+7. Complete the contract auction: the second seat from the dealer opens; each eligible seat can Pass, raise strictly, or use a legal auction WITH; three consecutive post-contract passes resolve it. Confirm four opening passes resolve to No Trump and return the estimate turn to the dealer without a redeal.
+8. Confirm the resolved caller’s contract count is their fixed estimate, only the remaining three seats estimate in a normal auction, WITH is absent from estimate options, and the total cannot equal 13.
+9. Confirm a bot first auction actor acts without waiting for a human timeout.
+10. Complete all 52 card actions and confirm follow-suit enforcement.
+11. Confirm thirteen completed tricks and a scored round are displayed, then use Start Next Round once and confirm exactly one rotated new auction starts.
+12. Reload during auction, estimate, and card play; confirm authoritative state and own hand recover without a viewport jump on routine Realtime updates.
+13. Confirm duplicate clicks or retries do not create a second deal, auction action, estimate, card action, or turn.
 
 The solo test passes only after one complete Start-to-score round succeeds on the hosted gameplay environment.
 

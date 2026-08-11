@@ -105,23 +105,23 @@ select plan(25);
 
 select has_function(
   'public',
-  'start_next_gameplay_round',
+  'start_next_gameplay_auction_round',
   array['uuid', 'uuid', 'text', 'integer', 'integer', 'integer', 'integer', 'jsonb', 'timestamp with time zone'],
-  'next-round RPC is installed'
+  'auction-aware next-round RPC is installed'
 );
 
 select ok(
   has_function_privilege(
     'service_role',
-    'public.start_next_gameplay_round(uuid,uuid,text,integer,integer,integer,integer,jsonb,timestamp with time zone)',
+    'public.start_next_gameplay_auction_round(uuid,uuid,text,integer,integer,integer,integer,jsonb,timestamp with time zone)',
     'execute'
   ),
-  'service role can execute the next-round RPC'
+  'service role can execute the auction-aware next-round RPC'
 );
 
 set local role anon;
 select throws_ok(
-  $$select public.start_next_gameplay_round(
+  $$select public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-anon',
@@ -133,14 +133,14 @@ select throws_ok(
     now()
   )$$,
   '42501',
-  'permission denied for function start_next_gameplay_round',
-  'anon cannot execute the private next-round RPC'
+  'permission denied for function start_next_gameplay_auction_round',
+  'anon cannot execute the private auction-aware next-round RPC'
 );
 reset role;
 
 set local role authenticated;
 select throws_ok(
-  $$select public.start_next_gameplay_round(
+  $$select public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-authenticated',
@@ -152,14 +152,14 @@ select throws_ok(
     now()
   )$$,
   '42501',
-  'permission denied for function start_next_gameplay_round',
-  'authenticated users cannot execute the private next-round RPC'
+  'permission denied for function start_next_gameplay_auction_round',
+  'authenticated users cannot execute the private auction-aware next-round RPC'
 );
 reset role;
 
 set local role service_role;
 select is(
-  (public.start_next_gameplay_round(
+  (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-next-round',
@@ -193,7 +193,7 @@ select is(
 select is(
   (select turn_id from public.gameplay_active_controls where table_id = '10000000-0000-0000-0000-000000000100'),
   'round-5:bid:22:1',
-  'first bid turn uses the deterministic public turn id'
+  'first auction turn uses the deterministic public turn id'
 );
 select is(
   (select turn_seat from public.gameplay_active_controls where table_id = '10000000-0000-0000-0000-000000000100'),
@@ -201,9 +201,9 @@ select is(
   'first bid turn maps the public zero-based seat to storage'
 );
 select is(
-  (select count(*) from public.gameplay_round_invalidations where table_id = '10000000-0000-0000-0000-000000000100' and version = 22 and phase = 'bidding'),
+  (select count(*) from public.gameplay_round_invalidations where table_id = '10000000-0000-0000-0000-000000000100' and version = 22 and phase = 'auction'),
   1::bigint,
-  'one next-round invalidation is emitted'
+  'one auction-phase next-round invalidation is emitted'
 );
 select is(
   (select aggregate->>'marker' from public.gameplay_round_states where table_id = '10000000-0000-0000-0000-000000000100'),
@@ -213,7 +213,7 @@ select is(
 
 set local role service_role;
 select ok(
-  (public.start_next_gameplay_round(
+  (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-next-round',
@@ -235,7 +235,7 @@ select is(
 
 set local role service_role;
 select throws_ok(
-  $$select public.start_next_gameplay_round(
+  $$select public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-next-round',
@@ -259,7 +259,7 @@ select is(
 
 set local role service_role;
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-stale-round-number',
@@ -273,7 +273,7 @@ select ok(
   'stale expected round number is rejected'
 );
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-stale-round-version',
@@ -287,7 +287,7 @@ select ok(
   'stale expected round version is rejected'
 );
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-stale-control-version',
@@ -305,7 +305,7 @@ reset role;
 update public.gameplay_round_states set phase = 'bidding' where table_id = '10000000-0000-0000-0000-000000000100';
 set local role service_role;
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-not-scored', 5, 22, 12, 1, jsonb_build_object('marker', 'not-scored'), now()
@@ -318,7 +318,7 @@ update public.gameplay_round_states set phase = 'scored' where table_id = '10000
 update public.gameplay_active_controls set lifecycle = 'paused', paused_at = now() where table_id = '10000000-0000-0000-0000-000000000100';
 set local role service_role;
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-paused', 5, 22, 12, 1, jsonb_build_object('marker', 'paused'), now()
@@ -333,7 +333,7 @@ set lifecycle = 'terminated', terminated_at = now(), terminated_by = '10000000-0
 where table_id = '10000000-0000-0000-0000-000000000100';
 set local role service_role;
 select ok(
-  not (public.start_next_gameplay_round(
+  not (public.start_next_gameplay_auction_round(
     '10000000-0000-0000-0000-000000000100',
     '10000000-0000-0000-0000-000000000001',
     'task-6-terminated', 5, 22, 12, 1, jsonb_build_object('marker', 'terminated'), now()

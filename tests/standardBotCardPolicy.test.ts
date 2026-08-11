@@ -33,20 +33,30 @@ async function createPlayingRound(): Promise<HouseRulesRoundState> {
     hands: deal.hands,
     bidOrder: [2, 3, 0, 1],
     playOrder: [0, 1, 2, 3],
-    bidOwnerSeat: 2,
+    dealerSeat: 1,
     firstLeadSeat: 0,
   };
 
   const engine = new HouseRulesRoundEngine();
   let state = engine.create(input);
-  const bids = [
-    [2, { playerId: 'p2', bidType: 'normal', tricks: 5, trumpSuit: 'spades' }],
+  const auction = [
+    [2, { type: 'contract', tricks: 5, trumpSuit: 'spades' }],
+    [3, { type: 'pass' }],
+    [0, { type: 'pass' }],
+    [1, { type: 'pass' }],
+  ] as const;
+  const estimates = [
     [3, { playerId: 'p3', bidType: 'normal', tricks: 3 }],
     [0, { playerId: 'p0', bidType: 'normal', tricks: 2 }],
     [1, { playerId: 'p1', bidType: 'normal', tricks: 1 }],
   ] as const;
 
-  for (const [seat, bid] of bids) {
+  for (const [seat, action] of auction) {
+    const result = engine.submitAuctionAction(state, seat, action);
+    assert.equal(result.valid, true, result.errors.join('\n'));
+    state = result.state;
+  }
+  for (const [seat, bid] of estimates) {
     const result = engine.submitBid(state, seat, bid);
     assert.equal(result.valid, true, result.errors.join('\n'));
     state = result.state;
