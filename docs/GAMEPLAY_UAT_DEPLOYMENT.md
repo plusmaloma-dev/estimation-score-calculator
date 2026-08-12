@@ -117,7 +117,7 @@ The guard must reject `lexewcehptnmikwfizhj` and any checkout other than the ded
 
 ## 5. Guarded gameplay database migration deployment
 
-The reviewed gameplay migration inventory contains exactly these thirteen migrations:
+The reviewed gameplay migration inventory contains exactly these fourteen migrations:
 
 1. `202607260001_gameplay_identity.sql`
 2. `202607260002_gameplay_identity_rls.sql`
@@ -132,8 +132,9 @@ The reviewed gameplay migration inventory contains exactly these thirteen migrat
 11. `202607290011_active_round_next_round.sql`
 12. `202608080012_fix_gameplay_round_table_id_ambiguity.sql`
 13. `202608100013_contract_auction.sql`
+14. `202608120014_gameplay_round_score_history.sql`
 
-For the hosted UAT state already containing migrations 011 and 012, the reviewed pending set is exactly migration 013. The wrapper also recognizes the explicitly reviewed historical 010 state (then pending 011, 012, and 013) and the fully applied 013 state (a no-op); every other remote migration sequence is a stop condition. The only authorized database mutation path is the guarded wrapper:
+For the hosted UAT state already containing migrations 011, 012, and 013, the reviewed pending set is exactly migration 014. The wrapper also recognizes the explicitly reviewed historical 010 state (then pending 011 through 014), the 012 state (then pending 013 and 014), and the fully applied 014 state (a no-op); every other remote migration sequence is a stop condition. The only authorized database mutation path is the guarded wrapper:
 
 ```powershell
 npm run deploy:gameplay-migrations -- `
@@ -141,7 +142,7 @@ npm run deploy:gameplay-migrations -- `
   --expected-sha $testedSha
 ```
 
-Do not run a direct operator database push. The wrapper runs the gameplay target guard before linked migration-state inspection and again immediately before the mutation boundary, requires the exact thirteen-file local inventory and one of the reviewed remote sequences above, uses only `supabase-gameplay`, and re-reads linked state afterward. Read-only migration-list commands are allowed for investigation; ambiguous, remote-only, out-of-order, score-sheet, or unexpected migration state is a stop condition.
+Do not run a direct operator database push. The wrapper runs the gameplay target guard before linked migration-state inspection and again immediately before the mutation boundary, requires the exact fourteen-file local inventory and one of the reviewed remote sequences above, uses only `supabase-gameplay`, and re-reads linked state afterward. Read-only migration-list commands are allowed for investigation; ambiguous, remote-only, out-of-order, score-sheet, or unexpected migration state is a stop condition.
 
 For read-only inspection only, use:
 

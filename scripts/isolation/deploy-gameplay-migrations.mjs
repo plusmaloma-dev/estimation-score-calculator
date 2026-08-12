@@ -19,10 +19,12 @@ const EXPECTED_MIGRATIONS = [
   '202607290011_active_round_next_round.sql',
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
   '202608100013_contract_auction.sql',
+  '202608120014_gameplay_round_score_history.sql',
 ];
 const APPROVED_REMOTE_STATES = [
   EXPECTED_MIGRATIONS.slice(0, 10),
   EXPECTED_MIGRATIONS.slice(0, 12),
+  EXPECTED_MIGRATIONS.slice(0, 13),
   EXPECTED_MIGRATIONS,
 ];
 
@@ -90,7 +92,7 @@ function verifiedLocalInventory() {
     fail('The isolated gameplay migration inventory could not be read.');
   }
   if (actual.length !== EXPECTED_MIGRATIONS.length || actual.some((name, index) => name !== EXPECTED_MIGRATIONS[index])) {
-    fail('The local gameplay migration inventory does not exactly match the reviewed thirteen migrations.');
+    fail('The local gameplay migration inventory does not exactly match the reviewed fourteen migrations.');
   }
 }
 
