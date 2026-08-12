@@ -21,6 +21,7 @@ const expectedMigrations = [
   '202607290011_active_round_next_round.sql',
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
   '202608100013_contract_auction.sql',
+  '202608120014_gameplay_round_score_history.sql',
 ];
 
 const forbiddenSql = [
