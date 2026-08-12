@@ -151,6 +151,13 @@ export const translations = {
     rounds: 'rounds',
     inProgress: 'In progress',
     completed: 'Completed',
+    gameTable: 'Game table',
+    dealer: 'Dealer',
+    won: 'Won',
+    overallScores: 'Overall scores',
+    currentAction: 'Current action',
+    scoreHistory: 'Score history',
+    noScoreHistory: 'No score history yet.',
   },
   ar: {
     appName: 'إستيميشن',
@@ -304,6 +311,13 @@ export const translations = {
     rounds: 'جولات',
     inProgress: 'قيد التقدم',
     completed: 'مكتملة',
+    gameTable: 'Ø·Ø§ÙˆÙ„Ø© Ø§Ù„Ù„Ø¹Ø¨',
+    dealer: 'Ø§Ù„Ù…ÙˆØ²Ø¹',
+    won: 'Ø§Ù„Ù„ÙØ§Øª Ø§Ù„Ù…Ø­Ù‚Ù‚Ø©',
+    overallScores: 'Ø§Ù„Ù†Ù‚Ø§Ø· Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ©',
+    currentAction: 'Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ø­Ø§Ù„ÙŠ',
+    scoreHistory: 'Ø³Ø¬Ù„ Ø§Ù„Ù†Ù‚Ø§Ø·',
+    noScoreHistory: 'Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø³Ø¬Ù„ Ù†Ù‚Ø§Ø· Ø¨Ø¹Ø¯.',
   },
 } as const;
 
