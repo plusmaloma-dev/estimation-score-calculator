@@ -655,11 +655,11 @@ export function ActiveGameplayScreen({
                 <GameplayTable
                   model={tablePresentation}
                   busy={roundBusy || presentation.phase === 'paused'}
-                  onEstimate={(tricks) => submitEstimate({
-                    playerId: roundSnapshot.players.find((player) => player.seat === roundSnapshot.viewerSeat)?.playerId ?? '',
-                    bidType: 'normal',
-                    tricks,
-                  })}
+                  onEstimate={async (tricks) => {
+                    const viewer = roundSnapshot.players.find((player) => player.seat === roundSnapshot.viewerSeat);
+                    if (viewer === undefined) return;
+                    await submitEstimate({ playerId: viewer.playerId, bidType: 'normal', tricks });
+                  }}
                   onAuctionAction={submitAuctionAction}
                   onPlay={playCard}
                 />
