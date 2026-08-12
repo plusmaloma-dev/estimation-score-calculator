@@ -18,7 +18,9 @@ raw IDs, local history, or private round data.
   resolved contract trick count, not an auction-history entry.
 - **Won** is the player's completed-trick count in the current round.
 - **Score** is the authoritative cumulative table score through completed scored
-  rounds only. An in-progress round does not affect it.
+  rounds only. It belongs to the table seat for the lifetime of that game, not
+  to the transient human, bot, or control owner occupying that seat. An
+  in-progress round does not affect it.
 - **Round delta** remains a scored-round result and is not substituted for Score.
 - The final post-auction estimator is a Risk candidate. The UI renders a Risk
   badge only from the authoritative risk result; it never infers actual Risk
@@ -32,7 +34,8 @@ Add one forward-only gameplay migration for a service-only, append-only
 `gameplay_round_score_history` journal. Storage is one row per completed round:
 
 - primary identity: `table_id` and `round_number`;
-- immutable safe payload: four seat-indexed score deltas only;
+- immutable safe payload: exactly the four expected table seats, each with one
+  integer score delta, indexed by seat only;
 - completion timestamp and standard audit fields needed by the existing service
   boundary;
 - unique `(table_id, round_number)` constraint.
@@ -43,11 +46,29 @@ transition into `scored`, the gameplay RPC inserts the journal row. A duplicate
 command remains idempotent through the existing command identity boundary. A
 duplicate journal key is accepted only when its immutable payload exactly
 matches the original; conflicting data fails closed and does not alter totals.
+There is no update or overwrite path. Payload validation rejects missing,
+duplicate, out-of-range, or non-integer seat deltas before any journal write.
 
 No authenticated client receives direct table access or write access to this
 journal. The existing service-role Function remains the only writer and reader
 of private round state. The journal never stores player IDs, hands, cards,
-deals, seeds, nonces, or deck order.
+deals, seeds, nonces, deck order, or display names.
+
+Scores remain attached to their seats through reconnect, temporary-bot
+substitution, takeover, and return to human control. A control-owner change
+never transfers or resets a score. Display-name changes do not rewrite journal
+history because history contains no player identity or name.
+
+### Pre-journal tables
+
+The journal cannot safely reconstruct a completed round once its private
+aggregate has been replaced by a later round. This change performs no synthetic
+or guessed backfill and does not present incomplete legacy history as complete.
+Preserved Hosted-UAT evidence tables remain untouched. Acceptance of cumulative
+Score and Score History uses fresh post-migration tables. Any production
+strategy for already-progressed live games is a separate product and release
+decision, outside this slice; this migration does not mutate their existing
+hosted data.
 
 ### Server projection
 
@@ -77,7 +98,12 @@ The round snapshot gains only safe public information:
 - ordered score history with round number, per-seat delta, and per-seat running
   cumulative value;
 - a numeric estimate-option model that distinguishes selectable values from
-  unavailable values, including the authoritative exact-13 reason.
+  unavailable values, including the stable exact-13 reason code
+  `would_total_13`.
+
+Unavailable options are not legal command options. React maps
+`would_total_13` to localized explanatory copy and renders the value disabled;
+it neither submits nor reinterprets that value.
 
 The current private-hand rule remains unchanged: the snapshot includes only
 `ownHand` for the authenticated viewer. Legal cards remain a subset of that
@@ -97,7 +123,7 @@ It derives:
 - four relative seat panels with name, You/bot marker, role badges, Bid, Won,
   and Score;
 - current-trick number, relative card placement, active actor, and current
-  winner when authoritative trick data can determine one;
+  winning seat from an authoritative `currentWinningSeat` projection field;
 - retained last completed trick, including the final trick after scoring;
 - phase-specific tray state and authoritative estimate/auction options;
 - compact overall score strip and collapsible score-history data.
@@ -106,6 +132,12 @@ When snapshots are incompatible, the existing synchronization presentation
 remains the sole source of state. The table shell remains mounted but suppresses
 actionable controls and renders the neutral synchronization/retry treatment.
 It never combines contradictory turn instructions.
+
+The server/domain projection computes `currentWinningSeat` with the existing
+authoritative trick primitive. `GameplayTablePresentation` and React only
+render it; they do not compare trump, lead suits, or cards. Completed-trick
+winners follow the same rule: presentation renders the authoritative recorded
+winner and never recalculates it.
 
 ## UI structure
 
