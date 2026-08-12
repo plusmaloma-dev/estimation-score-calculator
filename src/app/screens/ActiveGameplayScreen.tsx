@@ -9,13 +9,12 @@ import type {
 } from '../../online/gameplay/activeControlTypes.js';
 import type { OnlineGameplayRoundSnapshot } from '../../online/gameplay/roundTypes.js';
 import type { OnlineStartNextRoundResult } from '../../online/gameplay/OnlineGameplayRoundService.js';
-import { ActiveSeatStatus } from '../components/ActiveSeatStatus.js';
 import { GameplayActionBanner } from '../components/GameplayActionBanner.js';
-import { GameplayBidPanel } from '../components/GameplayBidPanel.js';
-import { GameplayCardPanel } from '../components/GameplayCardPanel.js';
+import { GameplayTable } from '../components/GameplayTable.js';
 import { GameplayNextRoundPanel } from '../components/GameplayNextRoundPanel.js';
-import { GameplayRoundStatus } from '../components/GameplayRoundStatus.js';
+import { GameplayRoundResultPanel } from '../components/GameplayRoundResultPanel.js';
 import { createActiveRoundPresentation } from '../gameplay/ActiveRoundPresentation.js';
+import { createGameplayTablePresentation } from '../gameplay/GameplayTablePresentation.js';
 import { useGameplayApp } from '../gameplay/GameplayContext.js';
 import { useI18n } from '../i18n/I18nContext.js';
 
@@ -155,6 +154,12 @@ export function ActiveGameplayScreen({
     viewerUserId: currentUserId,
     nowMs,
   }), [currentUserId, nowMs, roundSnapshot, snapshot]);
+  const tablePresentation = useMemo(
+    () => roundSnapshot === undefined
+      ? undefined
+      : createGameplayTablePresentation(presentation, roundSnapshot),
+    [presentation, roundSnapshot],
+  );
 
   useEffect(() => {
     const deadlineAt = snapshot?.lifecycle === 'active' ? snapshot.turn?.deadlineAt : undefined;
@@ -642,31 +647,24 @@ export function ActiveGameplayScreen({
 
       <GameplayActionBanner presentation={presentation} />
 
-      {snapshot !== undefined && (
-        <ActiveSeatStatus seats={snapshot.seats} activeSeat={presentation.activeSeat} />
-      )}
-
       {canRenderRound && (
         <>
-          <GameplayRoundStatus presentation={presentation} />
           {presentation.phase !== 'terminated' && (
             <>
-              <GameplayBidPanel
-                snapshot={roundSnapshot}
-                canSubmit={(presentation.phase === 'auction' || presentation.phase === 'estimate')
-                  && presentation.viewerActionRequired}
-                busy={roundBusy || presentation.phase === 'paused'}
-                onSubmit={submitEstimate}
-                onSubmitAuctionAction={submitAuctionAction}
-              />
-              {(roundSnapshot.phase === 'playing' || roundSnapshot.phase === 'scored') && (
-                <GameplayCardPanel
-                  snapshot={roundSnapshot}
-                  canPlay={presentation.phase === 'playing' && presentation.viewerActionRequired}
+              {tablePresentation !== undefined && (
+                <GameplayTable
+                  model={tablePresentation}
                   busy={roundBusy || presentation.phase === 'paused'}
+                  onEstimate={(tricks) => submitEstimate({
+                    playerId: roundSnapshot.players.find((player) => player.seat === roundSnapshot.viewerSeat)?.playerId ?? '',
+                    bidType: 'normal',
+                    tricks,
+                  })}
+                  onAuctionAction={submitAuctionAction}
                   onPlay={playCard}
                 />
               )}
+              {roundSnapshot.phase === 'scored' && <GameplayRoundResultPanel snapshot={roundSnapshot} />}
               <GameplayNextRoundPanel
                 presentation={presentation}
                 isHost={isHost}
