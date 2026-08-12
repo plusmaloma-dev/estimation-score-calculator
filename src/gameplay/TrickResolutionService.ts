@@ -13,6 +13,17 @@ export class TrickResolutionService {
       throw new Error('A completed Estimation trick requires four unique seats.');
     }
 
+    return this.resolvePartial(entries, contractSuit);
+  }
+
+  resolvePartial(
+    entries: readonly GameplayTrickEntry[],
+    contractSuit: ContractSuit,
+  ): SeatIndex {
+    if (entries.length === 0) throw new Error('A trick requires at least one card.');
+    if (new Set(entries.map((entry) => entry.seat)).size !== entries.length) {
+      throw new Error('A trick requires unique seats.');
+    }
     const leadSuit = entries[0]!.card.suit;
     const trumpEntries = contractSuit === 'no-trump'
       ? []

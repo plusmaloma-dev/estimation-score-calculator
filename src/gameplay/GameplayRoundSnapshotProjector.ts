@@ -1,6 +1,9 @@
 import type { Card } from '../domain/card.js';
 import { HouseRulesBidOptionsService } from './HouseRulesBidOptionsService.js';
 import { HouseRulesRoundEngine } from './HouseRulesRoundEngine.js';
+import { TrickResolutionService } from './TrickResolutionService.js';
+import type { GameplayRoundScoreHistoryRow } from './scoreHistoryTypes.js';
+import type { GameplayRoundSeatControl } from './roundApplicationTypes.js';
 import type {
   CompletedGameplayTrick,
   GameplayTrickEntry,
@@ -16,6 +19,7 @@ export class GameplayRoundSnapshotProjector {
   constructor(
     private readonly roundEngine = new HouseRulesRoundEngine(),
     private readonly bidOptionsService = new HouseRulesBidOptionsService(),
+    private readonly trickResolutionService = new TrickResolutionService(),
   ) {}
 
   project(
@@ -23,6 +27,10 @@ export class GameplayRoundSnapshotProjector {
     state: HouseRulesRoundState,
     version: number,
     viewerSeat: SeatIndex,
+    options: {
+      readonly scoreHistory?: readonly GameplayRoundScoreHistoryRow[];
+      readonly seatControls?: readonly GameplayRoundSeatControl[];
+    } = {},
   ): OnlineGameplayRoundSnapshot {
     if (!tableId.trim()) throw new Error('Gameplay table ID is required.');
     if (!Number.isInteger(version) || version < 0) {
@@ -34,14 +42,29 @@ export class GameplayRoundSnapshotProjector {
       : state.phase === 'estimate'
         ? state.estimateOrder[state.currentEstimateIndex]
         : undefined;
+    const scoreHistory = [...(options.scoreHistory ?? [])]
+      .sort((left, right) => left.roundNumber - right.roundNumber)
+      .map((row) => ({
+        roundNumber: row.roundNumber,
+        deltasBySeat: [...row.deltasBySeat] as [number, number, number, number],
+      }));
+    const cumulativeScoresBySeat = scoreHistory.reduce(
+      (totals, row) => row.deltasBySeat.map((delta, seat) => totals[seat]! + delta) as [number, number, number, number],
+      [0, 0, 0, 0] as [number, number, number, number],
+    );
+    const seatControls = options.seatControls ?? [];
     const players: OnlineGameplayRoundPlayer[] = state.players.map(({ seat, playerId }) => {
       const playerBid = state.bids.find((bid) => bid.playerId === playerId);
+      const seatControl = seatControls.find((candidate) => candidate.seat === seat);
       return {
         seat,
         playerId,
+        ...(seatControl?.displayName === undefined ? {} : { displayName: seatControl.displayName }),
+        ...(seatControl?.seatKind === undefined ? {} : { isBot: seatControl.seatKind === 'bot' }),
         cardCount: state.hands[seat].cards.length,
         ...(playerBid === undefined ? {} : { bid: { ...playerBid } }),
         actualTricks: state.actualTricksBySeat[seat],
+        cumulativeScore: cumulativeScoresBySeat[seat],
       };
     });
 
@@ -52,6 +75,15 @@ export class GameplayRoundSnapshotProjector {
     const legalNormalEstimates = legalEstimateOptions
       .filter((option) => option.bidType === 'normal')
       .map((option) => option.tricks);
+    const estimateOptions = state.phase === 'estimate'
+      ? Array.from({ length: (state.currentHighestContract?.tricks ?? 12) + 1 }, (_, value) => ({
+          value,
+          enabled: legalNormalEstimates.includes(value),
+          ...(legalNormalEstimates.includes(value) || state.currentEstimateIndex !== state.estimateOrder.length - 1
+            ? {}
+            : { reason: 'would_total_13' as const }),
+        }))
+      : [];
     const legalCards = state.phase === 'playing' && state.currentTurnSeat === viewerSeat
       ? this.roundEngine.legalCards(state, viewerSeat).map((card) => this.copyCard(card))
       : [];
@@ -82,10 +114,16 @@ export class GameplayRoundSnapshotProjector {
       players,
       ownHand: state.hands[viewerSeat].cards.map((card) => this.copyCard(card)),
       legalNormalEstimates,
+      estimateOptions,
       legalAuctionActions: legalAuctionActions.map((option) => ({ action: { ...option.action } })),
       legalCards,
       currentTrick,
       completedTricks,
+      ...(currentTrick.length === 0 || state.trumpSuit === undefined
+        ? {}
+        : { currentWinningSeat: this.trickResolutionService.resolvePartial(currentTrick, state.trumpSuit) }),
+      scoreHistory,
+      cumulativeScoresBySeat,
       ...(state.scoreResult === undefined ? {} : { scoreResult: state.scoreResult }),
     };
   }

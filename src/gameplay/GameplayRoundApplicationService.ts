@@ -46,6 +46,7 @@ export class GameplayRoundApplicationService {
         aggregate.state,
         aggregate.version,
         seatControl.seat,
+        { scoreHistory: aggregate.scoreHistory, seatControls: aggregate.seatControls },
       ),
     };
   }
@@ -145,6 +146,7 @@ export class GameplayRoundApplicationService {
           aggregate.state,
           aggregate.version,
           seatControl.seat,
+          { scoreHistory: aggregate.scoreHistory, seatControls: aggregate.seatControls },
         ),
       };
     }
@@ -179,6 +181,10 @@ export class GameplayRoundApplicationService {
         commitResult.aggregate.state,
         commitResult.aggregate.version,
         committedSeat.seat,
+        {
+          scoreHistory: commitResult.aggregate.scoreHistory,
+          seatControls: commitResult.aggregate.seatControls,
+        },
       ),
     };
   }

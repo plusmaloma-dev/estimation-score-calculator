@@ -4,6 +4,7 @@ import type {
   HouseRulesRoundState,
   SeatIndex,
 } from './types.js';
+import type { GameplayRoundScoreHistoryRow } from './scoreHistoryTypes.js';
 
 export type GameplayRoundLifecycle = 'active' | 'paused' | 'completed' | 'terminated';
 export type GameplayRoundControlOwner = 'human' | 'temporary-bot' | 'permanent-bot';
@@ -17,6 +18,8 @@ export interface GameplayRoundSeatControl {
   readonly humanUserId?: string;
   readonly botId?: string;
   readonly controlOwner: GameplayRoundControlOwner;
+  readonly seatKind?: 'human' | 'bot';
+  readonly displayName?: string;
 }
 
 export interface GameplayRoundAggregate {
@@ -26,6 +29,7 @@ export interface GameplayRoundAggregate {
   readonly version: number;
   readonly records: readonly GameplayCommandRecord[];
   readonly seatControls: readonly GameplayRoundSeatControl[];
+  readonly scoreHistory?: readonly GameplayRoundScoreHistoryRow[];
 }
 
 export interface GameplayRoundCommitInput {

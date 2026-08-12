@@ -20,9 +20,11 @@ import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
 import type { OnlineGameplayResult } from './types.js';
 import type {
   OnlineGameplayAuctionOption,
+  OnlineGameplayEstimateOption,
   OnlineGameplayRoundPlayer,
   OnlineGameplayRoundSnapshot,
 } from './roundTypes.js';
+import type { GameplayRoundScoreHistoryRow } from '../../gameplay/scoreHistoryTypes.js';
 
 export interface GameplayRoundFunctionClient {
   readonly functions: {
@@ -401,9 +403,18 @@ export class OnlineGameplayRoundService {
       ? undefined : this.seat(row.nextBidSeat);
     const currentTurnSeat = row.currentTurnSeat === null || row.currentTurnSeat === undefined
       ? undefined : this.seat(row.currentTurnSeat);
+    const currentWinningSeat = row.currentWinningSeat === null || row.currentWinningSeat === undefined
+      ? undefined : this.seat(row.currentWinningSeat);
+    const scoreHistory = this.parseScoreHistory(row.scoreHistory);
+    const cumulativeScoresBySeat = this.parseSeatScores(row.cumulativeScoresBySeat);
+    const estimateOptions = this.parseEstimateOptions(row.estimateOptions);
     if (
       row.nextBidSeat !== null && row.nextBidSeat !== undefined && nextBidSeat === undefined
       || row.currentTurnSeat !== null && row.currentTurnSeat !== undefined && currentTurnSeat === undefined
+      || row.currentWinningSeat !== null && row.currentWinningSeat !== undefined && currentWinningSeat === undefined
+      || scoreHistory === undefined
+      || cumulativeScoresBySeat === undefined
+      || estimateOptions === undefined
     ) return undefined;
 
     const scoreResult = row.scoreResult === null || row.scoreResult === undefined
@@ -428,13 +439,17 @@ export class OnlineGameplayRoundService {
       ...(dealCommitment === undefined ? {} : { dealCommitment }),
       ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
       ...(currentTurnSeat === undefined ? {} : { currentTurnSeat }),
+      ...(currentWinningSeat === undefined ? {} : { currentWinningSeat }),
       players,
       ownHand,
       legalNormalEstimates,
+      ...(estimateOptions.length === 0 ? {} : { estimateOptions }),
       legalAuctionActions,
       legalCards,
       currentTrick,
       completedTricks,
+      ...(scoreHistory.length === 0 ? {} : { scoreHistory }),
+      ...(cumulativeScoresBySeat === undefined ? {} : { cumulativeScoresBySeat }),
       ...(scoreResult === undefined ? {} : { scoreResult }),
     };
   }
@@ -446,6 +461,9 @@ export class OnlineGameplayRoundService {
     const playerId = this.string(row.playerId);
     const cardCount = this.nonNegativeInteger(row.cardCount);
     const actualTricks = this.nonNegativeInteger(row.actualTricks);
+    const displayName = row.displayName === undefined ? undefined : this.string(row.displayName);
+    const isBot = row.isBot === undefined ? undefined : row.isBot === true || row.isBot === false ? row.isBot : undefined;
+    const cumulativeScore = row.cumulativeScore === undefined ? undefined : this.integer(row.cumulativeScore);
     if (
       seat === undefined
       || playerId === undefined
@@ -453,15 +471,21 @@ export class OnlineGameplayRoundService {
       || cardCount > 13
       || actualTricks === undefined
       || actualTricks > 13
+      || row.displayName !== undefined && displayName === undefined
+      || row.isBot !== undefined && isBot === undefined
+      || row.cumulativeScore !== undefined && cumulativeScore === undefined
     ) return undefined;
     const bid = row.bid === null || row.bid === undefined ? undefined : this.parseBid(row.bid);
     if (row.bid !== null && row.bid !== undefined && bid === undefined) return undefined;
     return {
       seat,
       playerId,
+      ...(displayName === undefined ? {} : { displayName }),
+      ...(isBot === undefined ? {} : { isBot }),
       cardCount,
       ...(bid === undefined ? {} : { bid }),
       actualTricks,
+      ...(cumulativeScore === undefined ? {} : { cumulativeScore }),
     };
   }
 
@@ -573,6 +597,47 @@ export class OnlineGameplayRoundService {
     }
     if (!commandId.trim()) errors.push('Gameplay command ID is required.');
     return errors;
+  }
+
+  private parseScoreHistory(value: unknown): GameplayRoundScoreHistoryRow[] | undefined {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) return undefined;
+    const rows: GameplayRoundScoreHistoryRow[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const roundNumber = this.positiveInteger(row?.roundNumber);
+      const deltas = row?.deltasBySeat;
+      if (roundNumber === undefined || !Array.isArray(deltas) || deltas.length !== 4) return undefined;
+      const parsed = deltas.map((delta) => this.integer(delta));
+      if (parsed.some((delta) => delta === undefined)) return undefined;
+      rows.push({ roundNumber, deltasBySeat: parsed as [number, number, number, number] });
+    }
+    return rows;
+  }
+
+  private parseSeatScores(value: unknown): [number, number, number, number] | undefined {
+    if (value === undefined) return [0, 0, 0, 0];
+    if (!Array.isArray(value) || value.length !== 4) return undefined;
+    const scores = value.map((score) => this.integer(score));
+    return scores.some((score) => score === undefined)
+      ? undefined
+      : scores as [number, number, number, number];
+  }
+
+  private parseEstimateOptions(value: unknown): OnlineGameplayRoundSnapshot['estimateOptions'] {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) return undefined;
+    const options: OnlineGameplayEstimateOption[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const optionValue = this.nonNegativeInteger(row?.value);
+      if (optionValue === undefined || typeof row?.enabled !== 'boolean') return undefined;
+      const reason = row.reason === undefined ? undefined : row.reason === 'would_total_13' ? row.reason : undefined;
+      if (row.reason !== undefined && reason === undefined) return undefined;
+      if (row.enabled === false && reason === undefined) return undefined;
+      options.push({ value: optionValue, enabled: row.enabled, ...(reason === undefined ? {} : { reason }) });
+    }
+    return options;
   }
 
   private parseSeats(value: unknown): SeatIndex[] | undefined {
@@ -699,6 +764,10 @@ export class OnlineGameplayRoundService {
 
   private nonNegativeInteger(value: unknown): number | undefined {
     return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined;
+  }
+
+  private integer(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isInteger(value) ? value : undefined;
   }
 
   private positiveInteger(value: unknown): number | undefined {

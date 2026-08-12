@@ -122,7 +122,39 @@ test('only the acting bidder receives legal estimates and the fourth bidder cann
   assert.equal(acting.legalNormalEstimates.includes(3), false);
   assert.equal(acting.legalNormalEstimates.includes(2), true);
   assert.equal(acting.legalNormalEstimates.includes(4), true);
+  assert.equal(acting.estimateOptions?.find((option) => option.value === 3)?.enabled, false);
+  assert.equal(acting.estimateOptions?.find((option) => option.value === 3)?.reason, 'would_total_13');
   assert.deepEqual(waiting.legalNormalEstimates, []);
+});
+
+test('snapshot projects safe seat names and seat-owned cumulative score history', async () => {
+  const engine = new HouseRulesRoundEngine();
+  const state = engine.create(await fixture());
+  const snapshot = new GameplayRoundSnapshotProjector().project('table-1', state, 0, 2, {
+    seatControls: [
+      { seat: 0, seatKind: 'human', displayName: 'Rami', controlOwner: 'human' },
+      { seat: 1, seatKind: 'bot', displayName: 'Standard Bot 2', controlOwner: 'permanent-bot' },
+      { seat: 2, seatKind: 'human', displayName: 'You', controlOwner: 'human' },
+      { seat: 3, seatKind: 'bot', displayName: 'Standard Bot 4', controlOwner: 'permanent-bot' },
+    ],
+    scoreHistory: [
+      { roundNumber: 1, deltasBySeat: [20, -10, 30, 0] },
+      { roundNumber: 2, deltasBySeat: [-5, 5, 10, -10] },
+    ],
+  });
+
+  assert.deepEqual(snapshot.players.map((player) => [player.displayName, player.isBot, player.cumulativeScore]), [
+    ['Rami', false, 15],
+    ['Standard Bot 2', true, -5],
+    ['You', false, 40],
+    ['Standard Bot 4', true, -10],
+  ]);
+  assert.deepEqual(snapshot.cumulativeScoresBySeat, [15, -5, 40, -10]);
+  assert.deepEqual(snapshot.scoreHistory, [
+    { roundNumber: 1, deltasBySeat: [20, -10, 30, 0] },
+    { roundNumber: 2, deltasBySeat: [-5, 5, 10, -10] },
+  ]);
+  assert.equal(JSON.stringify(snapshot.players).includes('standard-bot:'), false);
 });
 
 test('playing snapshot exposes legal cards only to the current seat and keeps played cards public', async () => {
@@ -146,6 +178,7 @@ test('playing snapshot exposes legal cards only to the current seat and keeps pl
   const afterPlay = new GameplayRoundSnapshotProjector(engine).project('table-1', state, 5, 2);
 
   assert.deepEqual(afterPlay.currentTrick, [{ seat: 2, card: playedCard }]);
+  assert.equal(afterPlay.currentWinningSeat, 2);
   assert.equal(afterPlay.players[2]?.cardCount, 12);
   assert.equal(afterPlay.players[0]?.cardCount, 13);
   assert.deepEqual(afterPlay.ownHand, state.hands[2].cards);

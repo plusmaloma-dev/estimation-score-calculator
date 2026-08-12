@@ -12,6 +12,7 @@ import type { BotActionDirective } from '../../../src/gameplay/control/types.ts'
 import type { EstimationBid } from '../../../src/domain/bid.ts';
 import type { Card } from '../../../src/domain/card.ts';
 import type { GameplayAuctionAction, GameplaySeatPlayers, SeatIndex } from '../../../src/gameplay/types.ts';
+import type { GameplayRoundScoreHistoryRow } from '../../../src/gameplay/scoreHistoryTypes.ts';
 import {
   coordinateHumanRoundAction,
   nextAuthoritativeTurn,
@@ -87,7 +88,10 @@ class SupabaseGameplayRoundRepository implements GameplayRoundRepository {
     if (error !== null) throw new Error(error.message);
     const payload = object(Array.isArray(data) ? data[0] : data) as RpcResult | undefined;
     if (payload?.valid !== true || payload.aggregate === undefined) return undefined;
-    return payload.aggregate;
+    const aggregate = object(payload.aggregate);
+    const scoreHistory = parseScoreHistory(aggregate?.scoreHistory);
+    if (aggregate === undefined || scoreHistory === undefined) return undefined;
+    return { ...aggregate, scoreHistory } as unknown as GameplayRoundAggregate;
   }
 
   async commit(input: GameplayRoundCommitInput): Promise<GameplayRoundCommitResult> {
@@ -146,6 +150,26 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : [];
+}
+
+function parseScoreHistory(value: unknown): readonly GameplayRoundScoreHistoryRow[] | undefined {
+  if (!Array.isArray(value)) return [];
+  const rows: GameplayRoundScoreHistoryRow[] = [];
+  for (const item of value) {
+    const row = object(item);
+    const roundNumber = row?.roundNumber;
+    const deltas = row?.deltasBySeat;
+    if (
+      !Number.isInteger(roundNumber) || (roundNumber as number) < 1
+      || !Array.isArray(deltas) || deltas.length !== 4
+      || deltas.some((delta) => !Number.isInteger(delta))
+    ) return undefined;
+    rows.push({
+      roundNumber: roundNumber as number,
+      deltasBySeat: [...deltas] as [number, number, number, number],
+    });
+  }
+  return rows;
 }
 
 function validTableId(value: unknown): value is string {

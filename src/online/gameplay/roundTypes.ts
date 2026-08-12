@@ -10,13 +10,25 @@ import type {
   SeatIndex,
 } from '../../gameplay/types.js';
 import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
+import type { GameplayRoundScoreHistoryRow } from '../../gameplay/scoreHistoryTypes.js';
 
 export interface OnlineGameplayRoundPlayer {
   readonly seat: SeatIndex;
   readonly playerId: string;
+  readonly displayName?: string;
+  readonly isBot?: boolean;
   readonly cardCount: number;
   readonly bid?: EstimationBid;
   readonly actualTricks: number;
+  readonly cumulativeScore?: number;
+}
+
+export type EstimateOptionUnavailableReason = 'would_total_13';
+
+export interface OnlineGameplayEstimateOption {
+  readonly value: number;
+  readonly enabled: boolean;
+  readonly reason?: EstimateOptionUnavailableReason;
 }
 
 export interface OnlineGameplayAuctionOption {
@@ -45,9 +57,13 @@ export interface OnlineGameplayRoundSnapshot {
   readonly players: readonly OnlineGameplayRoundPlayer[];
   readonly ownHand: readonly Card[];
   readonly legalNormalEstimates: readonly number[];
+  readonly estimateOptions?: readonly OnlineGameplayEstimateOption[];
   readonly legalAuctionActions?: readonly OnlineGameplayAuctionOption[];
   readonly legalCards: readonly Card[];
   readonly currentTrick: readonly GameplayTrickEntry[];
   readonly completedTricks: readonly CompletedGameplayTrick[];
+  readonly currentWinningSeat?: SeatIndex;
+  readonly scoreHistory?: readonly GameplayRoundScoreHistoryRow[];
+  readonly cumulativeScoresBySeat?: readonly [number, number, number, number];
   readonly scoreResult?: MvpRoundResult;
 }
