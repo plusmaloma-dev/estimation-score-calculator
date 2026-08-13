@@ -25,7 +25,7 @@ function snapshot(): OnlineGameplayRoundSnapshot {
         seat: 1,
         playerId: 'p1',
         cardCount: 0,
-        bid: { playerId: 'p1', bidType: 'normal', tricks: 3 },
+        bid: { playerId: 'p1', bidType: 'normal', tricks: 4 },
         actualTricks: 2,
       },
       {
@@ -74,7 +74,7 @@ function snapshot(): OnlineGameplayRoundSnapshot {
           },
           {
             playerId: 'p1', bidTricks: 3, actualTricks: 2, delta: 1,
-            didMatchBid: false, role: 'other-player', riskType: 'none',
+            didMatchBid: false, role: 'with-player', riskType: 'none',
             isRiskTaker: false, riskModifier: 0, isHighContract: false,
             isOnlyWinner: false, isOnlyLoser: false, status: 'failed',
             score: -1, notes: [],
@@ -121,6 +121,7 @@ describe('GameplayRoundResultPanel', () => {
     expect(cards[0]).toHaveTextContent('Made');
     expect(cards[0]).toHaveTextContent('+14');
     expect(cards[2]).toHaveTextContent('Dash');
+    expect(cards[1]).toHaveTextContent('WITH');
     expect(cards[2]).toHaveTextContent('+25');
     expect(cards[3]).toHaveTextContent('Round risk');
     expect(cards[3]).toHaveTextContent('Lost');

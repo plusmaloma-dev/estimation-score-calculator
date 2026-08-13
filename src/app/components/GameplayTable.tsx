@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { cardId } from '../../domain/card.js';
 import type { Card, CardSuit } from '../../domain/card.js';
 import type { GameplayAuctionAction } from '../../gameplay/types.js';
@@ -13,6 +13,22 @@ const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
 
 function suitKey(suit: string): TranslationKey {
   return suit === 'no-trump' ? 'noTrump' : suit as TranslationKey;
+}
+
+function suitClass(suit: string): string {
+  return suit === 'hearts' || suit === 'diamonds' ? 'gameplay-suit--red' : 'gameplay-suit--black';
+}
+
+function SuitLabel({ suit, t, trump = false }: {
+  readonly suit: string;
+  readonly t: (key: TranslationKey) => string;
+  readonly trump?: boolean;
+}) {
+  return (
+    <span className={`gameplay-suit ${suitClass(suit)}${trump ? ' gameplay-suit--trump' : ''}`}>
+      {suit === 'no-trump' ? '·' : SUIT_SYMBOLS[suit as CardSuit]}{' '}{t(suitKey(suit))}
+    </span>
+  );
 }
 
 function actionKey(action: GameplayAuctionAction): string {
@@ -30,10 +46,10 @@ function riskLabel(type: NonNullable<GameplayTablePresentation['risk']>['type'])
 function actionLabel(
   action: GameplayTablePresentation['auctionHistory'][number]['action'],
   t: (key: TranslationKey) => string,
-): string {
+): ReactNode {
   if (action.type === 'pass') return t('pass');
   if (action.type === 'with') return t('with');
-  return `${action.tricks} ${t(suitKey(action.trumpSuit))}`;
+  return <>{action.tricks} <SuitLabel suit={action.trumpSuit} t={t} /></>;
 }
 
 function seatDisplayName(model: GameplayTablePresentation, seat: number): string {
@@ -87,7 +103,7 @@ export function GameplayTable({
           {model.dealerSeat !== undefined && <span>{t('dealer')} {t('seat')} {model.dealerSeat + 1}</span>}
           {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('caller')} {t('seat')} {model.callerSeat + 1}</span>}
           {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('callerEstimate')}: {model.seats.find((seat) => seat.seat === model.callerSeat)?.bid ?? t('pending')}</span>}
-          {model.phase !== 'auction' && model.trump !== undefined && <span>{t('trump')}: {t(suitKey(model.trump))}</span>}
+          {model.phase !== 'auction' && model.trump !== undefined && <span>{t('trump')}: <SuitLabel suit={model.trump} t={t} trump /></span>}
           {model.risk !== undefined && <span>{t('risk')}: {t('seat')} {model.risk.seat + 1} ({t(riskLabel(model.risk.type) as TranslationKey)})</span>}
           {model.riskCandidateSeat !== undefined && model.phase !== 'scored' && (
             <span>{t('riskCandidate')}: {t('seat')} {model.riskCandidateSeat + 1}</span>
@@ -104,7 +120,7 @@ export function GameplayTable({
             <span>{t('activeAuctionPlayer')}: {model.auctionActiveSeat === undefined ? t('waiting') : seatDisplayName(model, model.auctionActiveSeat)}</span>
             <span>{t('currentContract')}: {model.currentHighestContract === undefined
               ? t('pending')
-              : `${model.currentHighestContract.tricks} ${t(suitKey(model.currentHighestContract.trumpSuit))}`}</span>
+              : <>{model.currentHighestContract.tricks} <SuitLabel suit={model.currentHighestContract.trumpSuit} t={t} /></>}</span>
             {model.currentHighestContract !== undefined && (
               <span>{t('auctionOwner')}: {seatDisplayName(model, model.currentHighestContract.seat)}</span>
             )}
@@ -166,21 +182,40 @@ export function GameplayTable({
         <section className="gameplay-table__trick" aria-label={t('currentTrick')}>
           <h3>{t('currentTrick')}</h3>
           <span>{t('trick')} {model.currentTrick.length > 0 ? (model.lastCompletedTrick?.trickNumber ?? 1) : '—'}</span>
-          <div className="gameplay-table__cards">
-            {model.currentTrick.map((entry) => (
-              <span key={entry.seat} className={entry.seat === model.currentWinningSeat ? 'gameplay-card--winner' : ''}>
-                {t('seat')} {entry.seat + 1} {entry.card.rank}{SUIT_SYMBOLS[entry.card.suit]}
-              </span>
-            ))}
-          </div>
           {model.phase === 'playing' && (
             <div className="gameplay-table__trick-context">
-              {model.trump !== undefined && <span>{t('trump')}: {t(suitKey(model.trump))}</span>}
-              {model.leadSuit !== undefined && <span>{t('leadSuit')}: {t(suitKey(model.leadSuit))}</span>}
+              {model.trump !== undefined && <span>{t('trump')}: <SuitLabel suit={model.trump} t={t} trump /></span>}
+              {model.leadSuit !== undefined && <span>{t('leadSuit')}: <SuitLabel suit={model.leadSuit} t={t} /></span>}
             </div>
           )}
           {model.activeSeat !== undefined && <small>{t('active')}: {t('seat')} {model.activeSeat + 1}</small>}
         </section>
+        <div className="gameplay-table__cards" aria-label={t('currentTrickCards')}>
+          {model.currentTrick.map((entry) => {
+            const seat = model.seats.find((candidate) => candidate.seat === entry.seat);
+            const winner = entry.seat === model.currentWinningSeat;
+            const trump = model.trump !== undefined && model.trump !== 'no-trump' && entry.card.suit === model.trump;
+            return (
+              <span
+                key={entry.seat}
+                data-testid={`played-card-seat-${entry.seat}`}
+                aria-label={`${seat?.displayName ?? `${t('seat')} ${entry.seat + 1}`} ${entry.card.rank} ${t(suitKey(entry.card.suit))}`}
+                className={[
+                  'gameplay-table__played-card',
+                  `gameplay-table__played-card--${seat?.position ?? 'bottom'}`,
+                  suitClass(entry.card.suit),
+                  entry.card.suit === 'hearts' || entry.card.suit === 'diamonds' ? 'playing-card--red' : 'playing-card--black',
+                  winner ? 'gameplay-card--winner' : '',
+                  trump ? 'gameplay-card--trump' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                <strong>{entry.card.rank}{SUIT_SYMBOLS[entry.card.suit]}</strong>
+                <small>{seat?.displayName ?? `${t('seat')} ${entry.seat + 1}`}</small>
+                {winner && <em>{t('winner')}</em>}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {model.lastCompletedTrick !== undefined && (

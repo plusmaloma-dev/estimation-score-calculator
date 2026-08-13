@@ -104,7 +104,7 @@ describe('GameplayTable', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Contract auction' })).toBeVisible();
-    expect(screen.getAllByText(/4 Hearts/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, element) => Boolean(element?.textContent?.includes('4') && element?.textContent?.includes('Hearts'))).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Pass/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Standard Bot 3/).length).toBeGreaterThan(0);
     expect(screen.getByText('Auction owner: Standard Bot 3')).toBeVisible();
@@ -139,7 +139,51 @@ describe('GameplayTable', () => {
       </I18nProvider>,
     );
 
-    expect(screen.getAllByText('Trump: Hearts').length).toBeGreaterThan(0);
-    expect(screen.getByText('Lead suit: Hearts')).toBeVisible();
+    expect(screen.getAllByText((_, element) => Boolean(element?.textContent?.includes('Trump:') && element?.textContent?.includes('Hearts'))).length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, element) => Boolean(element?.textContent?.includes('Lead suit:') && element?.textContent?.includes('Hearts')))[0]).toBeVisible();
+  });
+
+  it('places each played card at the viewer-relative seat and highlights the authoritative winner', () => {
+    const playingRound = {
+      ...round,
+      phase: 'playing',
+      currentTrick: [
+        { seat: 0, card: { suit: 'hearts', rank: '4' } },
+        { seat: 1, card: { suit: 'clubs', rank: '8' } },
+        { seat: 2, card: { suit: 'spades', rank: 'K' } },
+        { seat: 3, card: { suit: 'diamonds', rank: '9' } },
+      ],
+      currentWinningSeat: 1,
+      viewerSeat: 2,
+    } as unknown as OnlineGameplayRoundSnapshot;
+    const playingPresentation = {
+      ...presentation,
+      phase: 'playing',
+      viewerSeat: 2,
+      viewerActionRequired: false,
+      activeSeat: 0,
+      actionKind: 'card',
+      currentTrick: playingRound.currentTrick,
+    } as unknown as ActiveRoundPresentation;
+    render(
+      <I18nProvider>
+        <GameplayTable
+          model={createGameplayTablePresentation(playingPresentation, playingRound)}
+          busy={false}
+          onEstimate={vi.fn(async () => undefined)}
+          onAuctionAction={vi.fn(async () => undefined)}
+          onPlay={vi.fn(async () => undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId('played-card-seat-0')).toHaveClass('gameplay-table__played-card--top');
+    expect(screen.getByTestId('played-card-seat-1')).toHaveClass('gameplay-table__played-card--left');
+    expect(screen.getByTestId('played-card-seat-2')).toHaveClass('gameplay-table__played-card--bottom');
+    expect(screen.getByTestId('played-card-seat-3')).toHaveClass('gameplay-table__played-card--right');
+    expect(screen.getByTestId('played-card-seat-1')).toHaveClass('gameplay-card--winner');
+    expect(screen.getByTestId('played-card-seat-0')).toHaveClass('playing-card--red');
+    expect(screen.getByTestId('played-card-seat-1')).toHaveClass('playing-card--black');
+    expect(screen.getAllByTestId(/played-card-seat-/)).toHaveLength(4);
   });
 });

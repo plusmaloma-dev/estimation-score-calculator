@@ -644,6 +644,7 @@
 }
 
 .gameplay-table__surface {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(7rem, 1fr) minmax(12rem, 2fr) minmax(7rem, 1fr);
   grid-template-rows: auto minmax(10rem, auto) auto;
@@ -689,8 +690,36 @@
   text-align: center;
 }
 
-.gameplay-table__cards { display: grid; gap: .35rem; }
+.gameplay-table__cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.gameplay-table__played-card {
+  position: absolute;
+  display: grid;
+  min-width: 3.8rem;
+  gap: .15rem;
+  border: 1px solid #b8c8c2;
+  border-radius: .55rem;
+  background: white;
+  padding: .4rem;
+  text-align: center;
+  box-shadow: 0 .2rem .55rem rgb(20 50 44 / 18%);
+}
+.gameplay-table__played-card--top { top: 18%; left: 50%; transform: translateX(-50%); }
+.gameplay-table__played-card--right { top: 50%; right: 20%; transform: translateY(-50%); }
+.gameplay-table__played-card--bottom { bottom: 18%; left: 50%; transform: translateX(-50%); }
+.gameplay-table__played-card--left { top: 50%; left: 20%; transform: translateY(-50%); }
+.gameplay-table__played-card small { font-size: .68rem; font-weight: 700; }
+.gameplay-table__played-card em { color: #087846; font-size: .65rem; font-style: normal; font-weight: 800; }
 .gameplay-table__trick-context { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted-text); }
+.gameplay-suit { font-weight: 800; white-space: nowrap; }
+.gameplay-suit--red, .playing-card--red { color: #b42318; }
+.gameplay-suit--black, .playing-card--black { color: #17201d; }
+.gameplay-suit--trump { display: inline-flex; align-items: center; gap: .2rem; border: 1px solid currentColor; border-radius: 999px; background: #fff9df; padding: .15rem .45rem; }
+.gameplay-card--trump { box-shadow: 0 0 0 2px rgb(180 140 0 / 22%), 0 .2rem .55rem rgb(20 50 44 / 18%); }
 .gameplay-table__cards span { border-radius: .55rem; background: white; padding: .4rem; }
 .gameplay-card--winner { border: 2px solid #087846; font-weight: 800; }
 .gameplay-table__last-trick { border-left: 4px solid #087846; background: #eef8f4; padding: .65rem .8rem; font-size: .85rem; }

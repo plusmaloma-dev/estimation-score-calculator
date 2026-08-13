@@ -35,7 +35,7 @@ export function GameplayFinalTrick({
               <span>{t('seat')} {entry.seat + 1}</span>
               <strong className={entry.card.suit === 'hearts' || entry.card.suit === 'diamonds'
                 ? 'playing-card--red'
-                : ''}
+                : 'playing-card--black'}
               >
                 {entry.card.rank}{SUIT_SYMBOLS[entry.card.suit]}
               </strong>

@@ -336,13 +336,10 @@ export class HouseRulesRoundEngine {
   private isApplicableWith(state: HouseRulesRoundState, seat: SeatIndex, estimate: number): boolean {
     const contract = state.currentHighestContract;
     if (contract === undefined || estimate !== contract.tricks) return false;
-    return state.auctionHistory.some((entry) => (
-      entry.seat === seat
-      && entry.action.type === 'with'
-      && entry.action.referenceSeat === contract.seat
-      && entry.referencedContract?.tricks === contract.tricks
-      && entry.referencedContract.trumpSuit === contract.trumpSuit
-    ));
+    // Final scoring WITH is derived from the resolved caller's fixed estimate.
+    // An auction WITH action remains an independent auction mechanic and is
+    // not required for the final role.
+    return seat !== contract.seat;
   }
 
   private nextEligibleAuctionSeat(

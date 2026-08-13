@@ -64,4 +64,20 @@ describe('createGameplayTablePresentation', () => {
     expect(model.passedAuctionSeats).toEqual([1]);
     expect(model.seats.every((seat) => seat.bid === undefined)).toBe(true);
   });
+
+  it('projects final WITH roles from authoritative player bids without auction history', () => {
+    const scoredSnapshot = {
+      ...snapshot,
+      phase: 'playing',
+      callerSeat: 0,
+      players: snapshot.players.map((player) => player.seat === 1
+        ? { ...player, bid: { playerId: player.playerId, bidType: 'with', tricks: 4, withTargetPlayerId: 'internal-0' } }
+        : player),
+      auctionHistory: [],
+    } as unknown as OnlineGameplayRoundSnapshot;
+
+    const model = createGameplayTablePresentation(compatible, scoredSnapshot);
+
+    expect(model.seats.find((seat) => seat.seat === 1)?.isWith).toBe(true);
+  });
 });

@@ -97,4 +97,17 @@ describe('GameplayHand', () => {
     expect(onPlay).toHaveBeenCalledWith(mixedHand[1]);
     expect(mixedHand.map(cardId)).toEqual(originalOrder);
   });
+
+  it('uses explicit suit classes for red and dark suits', () => {
+    render(
+      <I18nProvider>
+        <GameplayHand ownHand={mixedHand} mode="read-only" legalCardIds={new Set()} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole('img', { name: 'Ace of hearts' })).toHaveClass('playing-card--red');
+    expect(screen.getByRole('img', { name: 'Queen of diamonds' })).toHaveClass('playing-card--red');
+    expect(screen.getByRole('img', { name: 'King of spades' })).toHaveClass('playing-card--black');
+    expect(screen.getByRole('img', { name: '2 of clubs' })).toHaveClass('playing-card--black');
+  });
 });

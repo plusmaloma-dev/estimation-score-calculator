@@ -83,6 +83,14 @@ function seatName(
 
 function withSeats(snapshot: OnlineGameplayRoundSnapshot): ReadonlySet<SeatIndex> {
   const seats = new Set<SeatIndex>();
+  for (const player of snapshot.players) {
+    if (player.bid?.bidType === 'with') seats.add(player.seat);
+  }
+  for (const score of snapshot.scoreResult?.scoreResult?.playerScores ?? []) {
+    if (score.role !== 'with-player') continue;
+    const player = snapshot.players.find((candidate) => candidate.playerId === score.playerId);
+    if (player !== undefined) seats.add(player.seat);
+  }
   for (const entry of snapshot.auctionHistory ?? []) {
     if (entry.action.type === 'with') seats.add(entry.seat);
   }

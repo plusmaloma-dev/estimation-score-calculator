@@ -37,6 +37,7 @@ function cardClass(card: Card, legal: boolean): string {
   return [
     'playing-card',
     isRedSuit(card.suit) ? 'playing-card--red' : '',
+    isRedSuit(card.suit) ? '' : 'playing-card--black',
     legal ? 'playing-card--legal' : '',
   ].filter(Boolean).join(' ');
 }

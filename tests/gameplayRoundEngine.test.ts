@@ -43,6 +43,24 @@ function completeValidEstimates(engine: HouseRulesRoundEngine, initial: HouseRul
   return accepted(engine.submitBid(state, 1, estimate('p1', 1)));
 }
 
+function resolveFourClubAuction(engine: HouseRulesRoundEngine, initial: HouseRulesRoundState): HouseRulesRoundState {
+  let state = accepted(engine.submitAuctionAction(initial, 2, { type: 'contract', tricks: 4, trumpSuit: 'clubs' }));
+  state = accepted(engine.submitAuctionAction(state, 3, { type: 'pass' }));
+  state = accepted(engine.submitAuctionAction(state, 0, { type: 'pass' }));
+  return accepted(engine.submitAuctionAction(state, 1, { type: 'pass' }));
+}
+
+function submitEstimates(
+  engine: HouseRulesRoundEngine,
+  initial: HouseRulesRoundState,
+  values: readonly [number, number, number],
+): HouseRulesRoundState {
+  let state = resolveFourClubAuction(engine, initial);
+  state = accepted(engine.submitBid(state, 3, estimate('p3', values[0])));
+  state = accepted(engine.submitBid(state, 0, estimate('p0', values[1])));
+  return accepted(engine.submitBid(state, 1, estimate('p1', values[2])));
+}
+
 test('round starts with the second player from dealer in auction and no caller', async () => {
   const state = new HouseRulesRoundEngine().create(await fixture());
   assert.equal(state.phase, 'auction');
@@ -77,6 +95,44 @@ test('three estimates after caller fixed contract move the round to card play wi
   assert.equal(state.currentTurnSeat, 2);
   assert.equal(state.bids.length, 4);
   assert.equal(state.bids.find((bid) => bid.playerId === 'p2')?.tricks, 5);
+});
+
+test('matching final estimate is authoritative WITH without an auction WITH action', async () => {
+  const engine = new HouseRulesRoundEngine();
+  const state = submitEstimates(engine, engine.create(await fixture()), [3, 3, 4]);
+
+  assert.equal(state.bids.find((bid) => bid.playerId === 'p2')?.bidType, 'normal');
+  assert.deepEqual(
+    state.bids.filter((bid) => bid.bidType === 'with').map((bid) => bid.playerId),
+    ['p1'],
+  );
+  assert.equal(state.bids.find((bid) => bid.playerId === 'p1')?.withTargetPlayerId, 'p2');
+});
+
+test('multiple non-callers matching the fixed caller estimate are all authoritative WITH players', async () => {
+  const engine = new HouseRulesRoundEngine();
+  const state = submitEstimates(engine, engine.create(await fixture()), [4, 4, 2]);
+
+  assert.deepEqual(
+    state.bids.filter((bid) => bid.bidType === 'with').map((bid) => bid.playerId),
+    ['p3', 'p0'],
+  );
+});
+
+test('a nonmatching final estimate remains normal even after an auction WITH action', async () => {
+  const engine = new HouseRulesRoundEngine();
+  let state = engine.create(await fixture());
+  state = accepted(engine.submitAuctionAction(state, 2, { type: 'contract', tricks: 4, trumpSuit: 'clubs' }));
+  state = accepted(engine.submitAuctionAction(state, 3, { type: 'with', referenceSeat: 2 }));
+  state = accepted(engine.submitAuctionAction(state, 0, { type: 'pass' }));
+  state = accepted(engine.submitAuctionAction(state, 1, { type: 'pass' }));
+  state = accepted(engine.submitAuctionAction(state, 2, { type: 'pass' }));
+  state = accepted(engine.submitBid(state, 3, estimate('p3', 3)));
+  state = accepted(engine.submitBid(state, 0, estimate('p0', 3)));
+  state = accepted(engine.submitBid(state, 1, estimate('p1', 4)));
+
+  assert.equal(state.bids.find((bid) => bid.playerId === 'p3')?.bidType, 'normal');
+  assert.equal(state.bids.find((bid) => bid.playerId === 'p3')?.withTargetPlayerId, undefined);
 });
 
 test('only current play seat can act and accepted play does not mutate prior state', async () => {

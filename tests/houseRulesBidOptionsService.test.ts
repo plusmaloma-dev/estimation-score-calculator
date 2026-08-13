@@ -43,7 +43,7 @@ test('estimate options are ordinary numeric estimates and expose no WITH action'
   assert.ok(options.every((option) => option.bidType === 'normal' && option.requiresContractSuit === false));
 });
 
-test('ordinary estimates may match the caller while an applicable auction WITH receives the scoring role', async () => {
+test('matching caller estimates receive the scoring WITH role independently of auction WITH history', async () => {
   const engine = new HouseRulesRoundEngine();
   const withState = resolveAuction(engine, engine.create(await fixture()), 3);
   const withOptions = new HouseRulesBidOptionsService().legalOptions(withState, 3);
@@ -55,7 +55,7 @@ test('ordinary estimates may match the caller while an applicable auction WITH r
   const normalOptions = new HouseRulesBidOptionsService().legalOptions(normalState, 3);
   assert.ok(normalOptions.some((option) => option.tricks === 5));
   const acceptedNormal = accepted(engine.submitBid(normalState, 3, { playerId: 'p3', bidType: 'normal', tricks: 5 }));
-  assert.deepEqual(acceptedNormal.bids.at(-1), { playerId: 'p3', bidType: 'normal', tricks: 5 });
+  assert.deepEqual(acceptedNormal.bids.at(-1), { playerId: 'p3', bidType: 'with', tricks: 5, withTargetPlayerId: 'p2' });
 });
 
 test('final estimator never receives the option that would make total estimates thirteen', async () => {

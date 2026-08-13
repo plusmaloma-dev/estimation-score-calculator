@@ -27,6 +27,12 @@ function riskLabel(riskType: RiskType, t: ReturnType<typeof useI18n>['t']): stri
   }
 }
 
+function roleLabel(role: string, t: ReturnType<typeof useI18n>['t']): string | undefined {
+  if (role === 'bid-owner') return t('caller');
+  if (role === 'with-player') return t('with');
+  return undefined;
+}
+
 export function GameplayRoundResultPanel({
   snapshot,
 }: {
@@ -69,6 +75,9 @@ export function GameplayRoundResultPanel({
                 <div>
                   {player.seat === snapshot.viewerSeat && <span>{t('you')}</span>}
                   {player.seat === snapshot.bidOwnerSeat && <span>{t('caller')}</span>}
+                  {roleLabel(score.role, t) !== undefined && player.seat !== snapshot.bidOwnerSeat && (
+                    <span>{roleLabel(score.role, t)}</span>
+                  )}
                 </div>
               </div>
               <dl>

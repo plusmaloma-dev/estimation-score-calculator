@@ -49,4 +49,26 @@ describe('GameplayFinalTrick', () => {
     expect(screen.getByRole('heading', { name: 'Last completed trick · Trick 4' })).toBeVisible();
     expect(within(screen.getByRole('list', { name: 'Final trick cards' })).getAllByRole('listitem')).toHaveLength(4);
   });
+
+  it('uses dark suit styling for spades and clubs', () => {
+    render(
+      <I18nProvider>
+        <GameplayFinalTrick
+          trick={{
+            ...finalTrick,
+            entries: [
+              { seat: 0, card: { suit: 'spades', rank: 'A' } },
+              { seat: 1, card: { suit: 'clubs', rank: 'K' } },
+              { seat: 2, card: { suit: 'hearts', rank: 'A' } },
+              { seat: 3, card: { suit: 'hearts', rank: '4' } },
+            ],
+          }}
+        />
+      </I18nProvider>,
+    );
+
+    const cards = within(screen.getByRole('list', { name: 'Final trick cards' })).getAllByRole('listitem');
+    expect(cards[0]?.querySelector('strong')).toHaveClass('playing-card--black');
+    expect(cards[1]?.querySelector('strong')).toHaveClass('playing-card--black');
+  });
 });
