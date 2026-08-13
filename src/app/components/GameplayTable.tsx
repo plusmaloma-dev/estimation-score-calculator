@@ -27,6 +27,19 @@ function riskLabel(type: NonNullable<GameplayTablePresentation['risk']>['type'])
   return type;
 }
 
+function actionLabel(
+  action: GameplayTablePresentation['auctionHistory'][number]['action'],
+  t: (key: TranslationKey) => string,
+): string {
+  if (action.type === 'pass') return t('pass');
+  if (action.type === 'with') return t('with');
+  return `${action.tricks} ${t(suitKey(action.trumpSuit))}`;
+}
+
+function seatDisplayName(model: GameplayTablePresentation, seat: number): string {
+  return model.seats.find((candidate) => candidate.seat === seat)?.displayName ?? `${seat + 1}`;
+}
+
 export function GameplayTable({
   model,
   busy,
@@ -72,30 +85,58 @@ export function GameplayTable({
         <div className="gameplay-table__context">
           <h3>{t('round')} {model.roundNumber ?? '—'}</h3>
           {model.dealerSeat !== undefined && <span>{t('dealer')} {t('seat')} {model.dealerSeat + 1}</span>}
-          {model.callerSeat !== undefined && <span>{t('caller')} {t('seat')} {model.callerSeat + 1}</span>}
-          {model.callerSeat !== undefined && <span>{t('callerEstimate')}: {model.seats.find((seat) => seat.seat === model.callerSeat)?.bid ?? t('pending')}</span>}
-          {model.trump !== undefined && <span>{t('trump')}: {t(suitKey(model.trump))}</span>}
+          {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('caller')} {t('seat')} {model.callerSeat + 1}</span>}
+          {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('callerEstimate')}: {model.seats.find((seat) => seat.seat === model.callerSeat)?.bid ?? t('pending')}</span>}
+          {model.phase !== 'auction' && model.trump !== undefined && <span>{t('trump')}: {t(suitKey(model.trump))}</span>}
           {model.risk !== undefined && <span>{t('risk')}: {t('seat')} {model.risk.seat + 1} ({t(riskLabel(model.risk.type) as TranslationKey)})</span>}
+          {model.riskCandidateSeat !== undefined && model.phase !== 'scored' && (
+            <span>{t('riskCandidate')}: {t('seat')} {model.riskCandidateSeat + 1}</span>
+          )}
         </div>
         <div className="gameplay-table__scores" aria-label={t('overallScores')}>
           {model.seats.map((seat) => <span key={seat.seat}>{seat.displayName} {seat.score}</span>)}
         </div>
       </header>
 
-      <ul className="gameplay-table__estimates" aria-label={t('estimatesBySeat')}>
-        {model.seats.map((seat) => (
-          <li key={seat.seat}>
-            <span>{seat.displayName}</span>
-            <span>{t('estimate')}: {seat.bid ?? t('pending')}</span>
-          </li>
-        ))}
-      </ul>
+      {model.phase === 'auction' ? (
+        <section className="gameplay-table__auction" aria-label={t('auction')}>
+          <div className="gameplay-table__auction-summary">
+            <span>{t('activeAuctionPlayer')}: {model.auctionActiveSeat === undefined ? t('waiting') : seatDisplayName(model, model.auctionActiveSeat)}</span>
+            <span>{t('currentContract')}: {model.currentHighestContract === undefined
+              ? t('pending')
+              : `${model.currentHighestContract.tricks} ${t(suitKey(model.currentHighestContract.trumpSuit))}`}</span>
+            {model.currentHighestContract !== undefined && (
+              <span>{t('auctionOwner')}: {seatDisplayName(model, model.currentHighestContract.seat)}</span>
+            )}
+            <span>{t('passStatus')}: {model.passedAuctionSeats.length}</span>
+          </div>
+          <ol className="gameplay-table__auction-history" aria-label={t('auctionHistory')}>
+            {model.auctionHistory.map((entry, index) => (
+              <li key={`${entry.seat}-${index}`}>
+                <span>{seatDisplayName(model, entry.seat)}</span>
+                <strong>{actionLabel(entry.action, t)}</strong>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <>
+          <ul className="gameplay-table__estimates" aria-label={t('estimatesBySeat')}>
+            {model.seats.map((seat) => (
+              <li key={seat.seat}>
+                <span>{seat.displayName}</span>
+                <span>{t('estimate')}: {seat.bid ?? t('pending')}</span>
+              </li>
+            ))}
+          </ul>
 
-      <div className="gameplay-table__round-status" aria-label={t('underOver')}>
-        <span>{t('totalEstimates')}: {model.totalEstimatedTricks}</span>
-        <span>{t('underOver')}: {model.estimateStatus === 'under' ? t('under') : model.estimateStatus === 'over' ? t('over') : t('atThirteen')}</span>
-        <span>{model.estimateStatus === 'under' ? `${t('underBy')} ${model.estimateDistanceFrom13}` : model.estimateStatus === 'over' ? `${t('overBy')} ${model.estimateDistanceFrom13}` : t('atThirteen')}</span>
-      </div>
+          <div className="gameplay-table__round-status" aria-label={t('underOver')}>
+            <span>{t('totalEstimates')}: {model.totalEstimatedTricks}</span>
+            <span>{t('underOver')}: {model.estimateStatus === 'under' ? t('under') : model.estimateStatus === 'over' ? t('over') : t('atThirteen')}</span>
+            <span>{model.estimateStatus === 'under' ? `${t('underBy')} ${model.estimateDistanceFrom13}` : model.estimateStatus === 'over' ? `${t('overBy')} ${model.estimateDistanceFrom13}` : t('atThirteen')}</span>
+          </div>
+        </>
+      )}
 
       <div className="gameplay-table__surface">
         {model.seats.map((seat) => (
@@ -110,7 +151,14 @@ export function GameplayTable({
               {seat.isWith && <small>{t('with')}</small>}
               {seat.isRisk && <small>{t('risk')}</small>}
             </span>
-            <span>{t('bid')} {seat.bid ?? '—'} · {t('won')} {seat.won}</span>
+            {model.phase === 'auction' ? (
+              <span>{t('latestAuctionAction')}: {(() => {
+                const latest = [...model.auctionHistory].reverse().find((entry) => entry.seat === seat.seat);
+                return latest === undefined ? t('waiting') : actionLabel(latest.action, t);
+              })()}</span>
+            ) : (
+              <span>{t('bid')} {seat.bid ?? '—'} · {t('won')} {seat.won}</span>
+            )}
             <span>{t('score')} {seat.score}</span>
           </article>
         ))}
@@ -125,6 +173,12 @@ export function GameplayTable({
               </span>
             ))}
           </div>
+          {model.phase === 'playing' && (
+            <div className="gameplay-table__trick-context">
+              {model.trump !== undefined && <span>{t('trump')}: {t(suitKey(model.trump))}</span>}
+              {model.leadSuit !== undefined && <span>{t('leadSuit')}: {t(suitKey(model.leadSuit))}</span>}
+            </div>
+          )}
           {model.activeSeat !== undefined && <small>{t('active')}: {t('seat')} {model.activeSeat + 1}</small>}
         </section>
       </div>

@@ -39,6 +39,17 @@ test('highest trump wins when more than one trump is played', () => {
   assert.equal(new TrickResolutionService().resolve(entries, 'spades'), 2);
 });
 
+test('preserves the confirmed mixed-suit trick winner regression', () => {
+  const entries: readonly GameplayTrickEntry[] = [
+    { seat: 2, card: { suit: 'hearts', rank: '4' } },
+    { seat: 3, card: { suit: 'hearts', rank: '8' } },
+    { seat: 0, card: { suit: 'spades', rank: 'K' } },
+    { seat: 1, card: { suit: 'hearts', rank: '9' } },
+  ];
+
+  assert.equal(new TrickResolutionService().resolve(entries, 'clubs'), 1);
+});
+
 test('trick resolution requires exactly four unique seats', () => {
   const service = new TrickResolutionService();
 

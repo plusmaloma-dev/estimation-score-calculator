@@ -74,6 +74,7 @@ export interface ActiveRoundPresentation {
   readonly estimateStatus: EstimateStatus;
   readonly estimateDistanceFrom13: number;
   readonly estimatesComplete: boolean;
+  readonly riskCandidateSeat?: SeatIndex;
   readonly risk?: RoundRiskPresentation;
   readonly currentTrick: readonly GameplayTrickEntry[];
   readonly lastCompletedTrick?: CompletedGameplayTrick;
@@ -102,6 +103,7 @@ interface RoundDerivedPresentation {
   readonly estimateStatus: EstimateStatus;
   readonly estimateDistanceFrom13: number;
   readonly estimatesComplete: boolean;
+  readonly riskCandidateSeat?: SeatIndex;
   readonly risk?: RoundRiskPresentation;
 }
 
@@ -140,11 +142,9 @@ function deriveRound(round: OnlineGameplayRoundSnapshot): RoundDerivedPresentati
     : round.players.find((player) => player.seat === round.riskSeat);
   const riskType = riskPlayer === undefined
     ? undefined
-    : estimatesComplete
-      ? round.phase === 'scored'
-        ? scoredRiskType(round, riskPlayer)
-        : 'round-risk'
-      : 'pending';
+    : !estimatesComplete || round.phase !== 'scored'
+      ? 'pending'
+      : scoredRiskType(round, riskPlayer);
 
   return {
     estimatesBySeat,
@@ -154,6 +154,7 @@ function deriveRound(round: OnlineGameplayRoundSnapshot): RoundDerivedPresentati
     estimateStatus: estimateStatus(totalEstimatedTricks),
     estimateDistanceFrom13: Math.abs(13 - totalEstimatedTricks),
     estimatesComplete,
+    ...(round.riskSeat === undefined ? {} : { riskCandidateSeat: round.riskSeat }),
     ...(riskPlayer === undefined || riskType === undefined
       ? {}
       : { risk: { seat: riskPlayer.seat, type: riskType } }),

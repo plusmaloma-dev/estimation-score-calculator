@@ -65,4 +65,81 @@ describe('GameplayTable', () => {
     expect(screen.queryByText('Current action')).not.toBeInTheDocument();
     expect(screen.queryByText('Score history')).not.toBeInTheDocument();
   });
+
+  it('shows traceable auction history instead of estimate and Under/Over summaries', () => {
+    window.localStorage.setItem('estimation-language', 'en');
+    const auctionRound = {
+      ...round,
+      phase: 'auction',
+      dealerSeat: 0,
+      auctionActiveSeat: 3,
+      nextBidSeat: 3,
+      passedAuctionSeats: [1],
+      consecutiveAuctionPasses: 1,
+      currentHighestContract: { seat: 2, playerId: 'private-bot-id', tricks: 4, trumpSuit: 'hearts' },
+      auctionHistory: [
+        { seat: 2, playerId: 'private-bot-id', action: { type: 'contract', tricks: 4, trumpSuit: 'hearts' } },
+        { seat: 1, playerId: 'private-human-id', action: { type: 'pass' } },
+      ],
+      players: round.players.map((player) => ({ ...player, bid: undefined })),
+    } as unknown as OnlineGameplayRoundSnapshot;
+    const auctionPresentation = {
+      ...presentation,
+      phase: 'auction',
+      activeSeat: 3,
+      viewerActionRequired: false,
+      totalEstimatedTricks: 0,
+      estimateDistanceFrom13: 13,
+    } as unknown as ActiveRoundPresentation;
+    render(
+      <I18nProvider>
+        <GameplayTable
+          model={createGameplayTablePresentation(auctionPresentation, auctionRound)}
+          busy={false}
+          onEstimate={vi.fn(async () => undefined)}
+          onAuctionAction={vi.fn(async () => undefined)}
+          onPlay={vi.fn(async () => undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole('region', { name: 'Contract auction' })).toBeVisible();
+    expect(screen.getAllByText(/4 Hearts/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Pass/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Standard Bot 3/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Auction owner: Standard Bot 3')).toBeVisible();
+    expect(screen.queryByText('Estimates by seat')).not.toBeInTheDocument();
+    expect(screen.queryByText('Total estimates')).not.toBeInTheDocument();
+    expect(screen.queryByText('Under by 13')).not.toBeInTheDocument();
+  });
+
+  it('shows authoritative trump and lead suit context during card play', () => {
+    const playingRound = {
+      ...round,
+      phase: 'playing',
+      currentTrick: [{ seat: 0, card: { suit: 'hearts', rank: '4' } }],
+    } as unknown as OnlineGameplayRoundSnapshot;
+    const playingPresentation = {
+      ...presentation,
+      phase: 'playing',
+      viewerActionRequired: false,
+      activeSeat: 1,
+      actionKind: 'card',
+      currentTrick: playingRound.currentTrick,
+    } as unknown as ActiveRoundPresentation;
+    render(
+      <I18nProvider>
+        <GameplayTable
+          model={createGameplayTablePresentation(playingPresentation, playingRound)}
+          busy={false}
+          onEstimate={vi.fn(async () => undefined)}
+          onAuctionAction={vi.fn(async () => undefined)}
+          onPlay={vi.fn(async () => undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getAllByText('Trump: Hearts').length).toBeGreaterThan(0);
+    expect(screen.getByText('Lead suit: Hearts')).toBeVisible();
+  });
 });

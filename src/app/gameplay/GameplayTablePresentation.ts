@@ -1,5 +1,10 @@
 import type { Card, ContractSuit } from '../../domain/card.js';
-import type { CompletedGameplayTrick, GameplayTrickEntry, SeatIndex } from '../../gameplay/types.js';
+import type {
+  CompletedGameplayTrick,
+  GameplayAuctionHistoryEntry,
+  GameplayTrickEntry,
+  SeatIndex,
+} from '../../gameplay/types.js';
 import type { ActiveRoundPresentation } from './ActiveRoundPresentation.js';
 import type {
   OnlineGameplayAuctionOption,
@@ -33,7 +38,12 @@ export interface GameplayTablePresentation {
   readonly callerSeat?: SeatIndex;
   readonly trump?: ContractSuit;
   readonly risk?: ActiveRoundPresentation['risk'];
+  readonly riskCandidateSeat?: SeatIndex;
   readonly currentHighestContract?: OnlineGameplayRoundSnapshot['currentHighestContract'];
+  readonly auctionActiveSeat?: SeatIndex;
+  readonly passedAuctionSeats: readonly SeatIndex[];
+  readonly consecutiveAuctionPasses: number;
+  readonly auctionHistory: readonly GameplayAuctionHistoryEntry[];
   readonly totalEstimatedTricks: number;
   readonly estimateStatus: ActiveRoundPresentation['estimateStatus'];
   readonly estimateDistanceFrom13: number;
@@ -44,6 +54,7 @@ export interface GameplayTablePresentation {
   readonly seats: readonly GameplayTableSeatPresentation[];
   readonly currentTrick: readonly GameplayTrickEntry[];
   readonly currentWinningSeat?: SeatIndex;
+  readonly leadSuit?: Card['suit'];
   readonly lastCompletedTrick?: CompletedGameplayTrick;
   readonly ownHand: OnlineGameplayRoundSnapshot['ownHand'];
   readonly legalCards: OnlineGameplayRoundSnapshot['legalCards'];
@@ -94,7 +105,12 @@ export function createGameplayTablePresentation(
       : { callerSeat: snapshot.callerSeat ?? snapshot.bidOwnerSeat }),
     ...(snapshot.trumpSuit === undefined ? {} : { trump: snapshot.trumpSuit }),
     ...(presentation.risk === undefined ? {} : { risk: presentation.risk }),
+    ...(presentation.riskCandidateSeat === undefined ? {} : { riskCandidateSeat: presentation.riskCandidateSeat }),
     ...(snapshot.currentHighestContract === undefined ? {} : { currentHighestContract: snapshot.currentHighestContract }),
+    ...(snapshot.auctionActiveSeat === undefined ? {} : { auctionActiveSeat: snapshot.auctionActiveSeat }),
+    passedAuctionSeats: [...(snapshot.passedAuctionSeats ?? [])],
+    consecutiveAuctionPasses: snapshot.consecutiveAuctionPasses ?? 0,
+    auctionHistory: [...(snapshot.auctionHistory ?? [])],
     totalEstimatedTricks: presentation.totalEstimatedTricks,
     estimateStatus: presentation.estimateStatus,
     estimateDistanceFrom13: presentation.estimateDistanceFrom13,
@@ -124,6 +140,7 @@ export function createGameplayTablePresentation(
     }),
     currentTrick: snapshot.currentTrick,
     ...(snapshot.currentWinningSeat === undefined ? {} : { currentWinningSeat: snapshot.currentWinningSeat }),
+    ...(snapshot.currentTrick[0] === undefined ? {} : { leadSuit: snapshot.currentTrick[0].card.suit }),
     ...(snapshot.completedTricks.at(-1) === undefined ? {} : { lastCompletedTrick: snapshot.completedTricks.at(-1) }),
     ownHand: snapshot.ownHand,
     legalCards: snapshot.legalCards,

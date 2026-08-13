@@ -37,4 +37,31 @@ describe('createGameplayTablePresentation', () => {
     expect(model.isSynchronizing).toBe(true);
     expect(model.currentWinningSeat).toBeUndefined();
   });
+
+  it('projects authoritative auction history and active contract separately from estimates', () => {
+    const auctionSnapshot = {
+      ...snapshot,
+      phase: 'auction',
+      version: 2,
+      dealerSeat: 0,
+      auctionActiveSeat: 3,
+      nextBidSeat: 3,
+      passedAuctionSeats: [1],
+      consecutiveAuctionPasses: 1,
+      currentHighestContract: { seat: 2, playerId: 'internal-2', tricks: 4, trumpSuit: 'hearts' },
+      auctionHistory: [
+        { seat: 2, playerId: 'internal-2', action: { type: 'contract', tricks: 4, trumpSuit: 'hearts' } },
+        { seat: 1, playerId: 'internal-1', action: { type: 'pass' } },
+      ],
+      players: snapshot.players.map((player) => ({ ...player, bid: undefined })),
+    } as unknown as OnlineGameplayRoundSnapshot;
+    const auctionPresentation = { ...compatible, phase: 'auction', activeSeat: 3, viewerActionRequired: false } as ActiveRoundPresentation;
+    const model = createGameplayTablePresentation(auctionPresentation, auctionSnapshot);
+
+    expect(model.auctionHistory).toHaveLength(2);
+    expect(model.auctionActiveSeat).toBe(3);
+    expect(model.currentHighestContract).toMatchObject({ seat: 2, tricks: 4, trumpSuit: 'hearts' });
+    expect(model.passedAuctionSeats).toEqual([1]);
+    expect(model.seats.every((seat) => seat.bid === undefined)).toBe(true);
+  });
 });

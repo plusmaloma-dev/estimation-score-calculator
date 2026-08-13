@@ -281,6 +281,39 @@
   font-weight: 700;
 }
 
+.gameplay-table__auction {
+  display: grid;
+  gap: .75rem;
+  border: 1px solid #d8e1df;
+  border-radius: .9rem;
+  background: #f8fbfa;
+  padding: .85rem;
+}
+
+.gameplay-table__auction-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+  color: #43514d;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.gameplay-table__auction-history {
+  display: grid;
+  gap: .4rem;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.gameplay-table__auction-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #e2e9e7;
+  padding: .35rem 0;
+}
+
 .gameplay-round-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -657,6 +690,7 @@
 }
 
 .gameplay-table__cards { display: grid; gap: .35rem; }
+.gameplay-table__trick-context { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted-text); }
 .gameplay-table__cards span { border-radius: .55rem; background: white; padding: .4rem; }
 .gameplay-card--winner { border: 2px solid #087846; font-weight: 800; }
 .gameplay-table__last-trick { border-left: 4px solid #087846; background: #eef8f4; padding: .65rem .8rem; font-size: .85rem; }

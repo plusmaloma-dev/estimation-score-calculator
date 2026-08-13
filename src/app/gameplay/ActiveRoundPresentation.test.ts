@@ -323,7 +323,7 @@ describe('createActiveRoundPresentation', () => {
     expect(presentation.viewerActionRequired).toBe(false);
     expect(presentation.activeControlOwner).toBe('permanent-bot');
     expect(presentation.activeTurnStatus).toBe('bot-processing');
-    expect(presentation.risk).toEqual({ seat: 2, type: 'round-risk' });
+    expect(presentation.risk).toEqual({ seat: 2, type: 'pending' });
     expect(presentation.totalEstimatedTricks).toBe(14);
     expect(presentation.estimateStatus).toBe('over');
     expect(presentation.estimateDistanceFrom13).toBe(1);

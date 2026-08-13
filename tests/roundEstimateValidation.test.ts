@@ -71,6 +71,46 @@ test('equal highest estimates are With and the last caller receives Risk at O/U 
   assert.equal(scores.find((score) => score.playerId === 'D')?.score, -21);
 });
 
+test('Risk classification uses the authoritative distance thresholds, not final-estimator status alone', () => {
+  const cases = [
+    { total: 12, expectedType: 'none', expectedModifier: 0 },
+    { total: 14, expectedType: 'none', expectedModifier: 0 },
+    { total: 11, expectedType: 'round-risk', expectedModifier: 10 },
+    { total: 15, expectedType: 'round-risk', expectedModifier: 10 },
+    { total: 9, expectedType: 'round-risk', expectedModifier: 20 },
+    { total: 17, expectedType: 'round-risk', expectedModifier: 20 },
+    { total: 10, expectedType: 'round-risk', expectedModifier: 10 },
+    { total: 16, expectedType: 'round-risk', expectedModifier: 10 },
+  ] as const;
+
+  for (const testCase of cases) {
+    const result = new EstimationMvpService().calculateRound({
+      roundNumber: 1,
+      bidValidationMode: 'round-estimates-no-owner',
+      riskPlayerId: 'D',
+      profile,
+      bids: [
+        { playerId: 'A', bidType: 'normal', tricks: 4 },
+        { playerId: 'B', bidType: 'normal', tricks: 2 },
+        { playerId: 'C', bidType: 'normal', tricks: 1 },
+        { playerId: 'D', bidType: 'normal', tricks: testCase.total - 7 },
+      ],
+      actualResults: [
+        { playerId: 'A', actualTricks: 4 },
+        { playerId: 'B', actualTricks: 3 },
+        { playerId: 'C', actualTricks: 3 },
+        { playerId: 'D', actualTricks: 3 },
+      ],
+    });
+
+    assert.equal(result.valid, true, result.errors.join('; '));
+    const riskScore = result.scoreResult?.playerScores.find((score) => score.playerId === 'D');
+    assert.equal(riskScore?.riskType, testCase.expectedType, `total ${testCase.total}`);
+    assert.equal(riskScore?.isRiskTaker, testCase.expectedModifier > 0, `total ${testCase.total}`);
+    assert.equal(riskScore?.riskModifier, testCase.expectedModifier, `total ${testCase.total}`);
+  }
+});
+
 test('Hold players keep their estimate and receive normal other-player scoring', () => {
   const result = new EstimationMvpService().calculateRound({
     roundNumber: 1,
