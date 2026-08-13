@@ -22,6 +22,7 @@ const expectedMigrations = [
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
   '202608100013_contract_auction.sql',
   '202608120014_gameplay_round_score_history.sql',
+  '202608130015_fix_gameplay_round_engine_seat_number_ambiguity.sql',
 ];
 
 const forbiddenSql = [
@@ -107,6 +108,23 @@ test('gameplay round correction migration qualifies every table-id predicate', (
   assert.ok(sql.includes('where command_record.table_id = p_table_id'));
   assert.ok(sql.includes('where seat_record.table_id = p_table_id'));
   assert.equal(/where table_id = p_table_id/.test(sql), false);
+});
+
+test('score-journal round loader qualifies joined seat_number references', () => {
+  const correctionPath = join(
+    migrationsDirectory,
+    '202608130015_fix_gameplay_round_engine_seat_number_ambiguity.sql',
+  );
+  assert.equal(existsSync(correctionPath), true, 'Missing score-journal seat-number correction migration.');
+
+  const sql = compact(readFileSync(correctionPath, 'utf8'));
+  assert.match(sql, /create or replace function public\.load_gameplay_round_for_engine/i);
+  assert.ok(sql.includes("'seat', control.seat_number - 1"));
+  assert.ok(sql.includes("format('standard bot %s', control.seat_number)"));
+  assert.ok(sql.includes('order by control.seat_number'));
+  assert.equal(sql.includes("'seat', seat_number - 1"), false);
+  assert.equal(sql.includes('format(\'Standard Bot %s\', seat_number)'), false);
+  assert.equal(/order by seat_number/.test(sql), false);
 });
 
 test('next-round migration mirrors the root copy byte-for-byte', () => {

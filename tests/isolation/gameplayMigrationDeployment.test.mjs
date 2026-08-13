@@ -24,6 +24,7 @@ const expectedMigrations = [
   '202608080012_fix_gameplay_round_table_id_ambiguity.sql',
   '202608100013_contract_auction.sql',
   '202608120014_gameplay_round_score_history.sql',
+  '202608130015_fix_gameplay_round_engine_seat_number_ambiguity.sql',
 ];
 
 function version(name) {
@@ -139,7 +140,7 @@ function createFixture(responses) {
 
 function validResponses() {
   return [
-    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 14).map(version)) },
     { action: 'push' },
     { action: 'list', stdout: migrationList(expectedMigrations.map(version)) },
   ];
@@ -147,7 +148,7 @@ function validResponses() {
 
 function validJsonResponses() {
   return [
-    { action: 'list', stdout: migrationListJson(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationListJson(expectedMigrations.slice(0, 14).map(version)) },
     { action: 'push' },
     { action: 'list', stdout: migrationListJson(expectedMigrations.map(version)) },
   ];
@@ -176,7 +177,7 @@ test('accepts the exact gameplay ref', () => {
   });
 });
 
-test('accepts the actual JSON migration-list format and pushes exactly once when only 014 is pending', () => {
+test('accepts the actual JSON migration-list format and pushes exactly once when only 015 is pending', () => {
   withFixture(validJsonResponses(), (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.equal(result.status, 0, result.stderr);
@@ -289,11 +290,11 @@ test('uses only the supabase-gameplay workspace', () => {
   });
 });
 
-test('accepts exactly pending migration 014 after the accepted 011/012/013 state', () => {
+test('accepts exactly pending migration 015 after migration 014 is applied', () => {
   withFixture(validResponses(), (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /202608120014_gameplay_round_score_history\.sql/);
+    assert.match(result.stdout, /202608130015_fix_gameplay_round_engine_seat_number_ambiguity\.sql/);
   });
 });
 
@@ -306,7 +307,7 @@ test('rejects a non-contiguous reviewed migration state', () => {
 });
 
 test('rejects an extra pending migration', () => {
-  withFixture([{ action: 'list', stdout: `${migrationList(expectedMigrations.slice(0, 13).map(version))}\n202608110015 | |` }], (fixture) => {
+  withFixture([{ action: 'list', stdout: `${migrationList(expectedMigrations.slice(0, 14).map(version))}\n202608110016 | |` }], (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.notEqual(result.status, 0);
     assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 0);
@@ -314,7 +315,7 @@ test('rejects an extra pending migration', () => {
 });
 
 test('rejects an unexpected remote-only migration', () => {
-  withFixture([{ action: 'list', stdout: `${migrationList(expectedMigrations.slice(0, 13).map(version))}\n | 202608110015 |` }], (fixture) => {
+  withFixture([{ action: 'list', stdout: `${migrationList(expectedMigrations.slice(0, 14).map(version))}\n | 202608110016 |` }], (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.notEqual(result.status, 0);
     assert.equal(fixture.calls().filter((call) => call.includes('push')).length, 0);
@@ -322,7 +323,7 @@ test('rejects an unexpected remote-only migration', () => {
 });
 
 test('rejects out-of-order linked migration state', () => {
-  const lines = migrationList(expectedMigrations.slice(0, 13).map(version)).split('\n');
+  const lines = migrationList(expectedMigrations.slice(0, 14).map(version)).split('\n');
   [lines[2], lines[3]] = [lines[3], lines[2]];
   withFixture([{ action: 'list', stdout: lines.join('\n') }], (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
@@ -372,9 +373,9 @@ test('requires post-push migration-list verification', () => {
 
 test('fails when a residual pending migration remains after push', () => {
   withFixture([
-    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 14).map(version)) },
     { action: 'push' },
-    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 14).map(version)) },
   ], (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);
     assert.notEqual(result.status, 0);
@@ -383,7 +384,7 @@ test('fails when a residual pending migration remains after push', () => {
 
 test('fails when an unexpected remote migration remains after push', () => {
   withFixture([
-    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 14).map(version)) },
     { action: 'push' },
     { action: 'list', stdout: `${migrationList(expectedMigrations.map(version))}\n | 202608090013 |` },
   ], (fixture) => {
@@ -411,7 +412,7 @@ test('does not leak credentials or connection strings in failure output', () => 
 
 test('does not relay a Supabase push diagnostic containing a connection string', () => {
   withFixture([
-    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 13).map(version)) },
+    { action: 'list', stdout: migrationList(expectedMigrations.slice(0, 14).map(version)) },
     { action: 'push', status: 1, stderr: 'postgresql://secret-user:secret-password@example.invalid/db' },
   ], (fixture) => {
     const result = fixture.run([gameplayRef, '--expected-sha', fixture.sha]);

@@ -14,6 +14,14 @@ const rootFunction = readFileSync(
   'supabase/functions/gameplay-round-command/index.ts',
   'utf8',
 );
+const gameplayStartFunction = readFileSync(
+  'supabase-gameplay/supabase/functions/gameplay-start/index.ts',
+  'utf8',
+);
+const loaderCorrection = readFileSync(
+  'supabase-gameplay/supabase/migrations/202608130015_fix_gameplay_round_engine_seat_number_ambiguity.sql',
+  'utf8',
+);
 
 test('scored transition journals exactly once and fails closed on conflicting seat deltas', () => {
   assert.match(migration, /after update of phase, aggregate/i);
@@ -33,4 +41,13 @@ test('service Function loads typed history and keeps both deployment source copi
   }
   assert.equal(gameplayFunction.includes('scoreHistory'), true);
   assert.equal(rootFunction.includes('scoreHistory'), true);
+});
+
+test('gameplay Start composition consumes the corrected migration-014 load envelope', () => {
+  assert.match(gameplayStartFunction, /class ReadOnlyGameplayRoundRepository[\s\S]*load_gameplay_round_for_engine/i);
+  assert.match(gameplayStartFunction, /new GameplayRoundApplicationService[\s\S]*getSnapshot\(body\.tableId, actor\)/i);
+  assert.match(loaderCorrection, /'seat', control\.seat_number - 1/i);
+  assert.match(loaderCorrection, /'seatControls', seat_rows/i);
+  assert.match(loaderCorrection, /'scoreHistory', history_rows/i);
+  assert.match(loaderCorrection, /grant execute on function public\.load_gameplay_round_for_engine\(uuid\) to service_role/i);
 });
