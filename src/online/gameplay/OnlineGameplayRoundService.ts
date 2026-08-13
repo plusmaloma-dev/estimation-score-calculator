@@ -1,0 +1,786 @@
+import {
+  cardId,
+  isValidContractSuit,
+  isValidRank,
+  isValidSuit,
+  type Card,
+  type ContractSuit,
+} from '../../domain/card.js';
+import type { EstimationBid } from '../../domain/bid.js';
+import type {
+  CompletedGameplayTrick,
+  GameplayAuctionAction,
+  GameplayAuctionContract,
+  GameplayAuctionHistoryEntry,
+  GameplayTrickEntry,
+  SeatIndex,
+} from '../../gameplay/types.js';
+import type { MvpRoundResult } from '../../services/EstimationMvpService.js';
+import type { OnlineBotDirectiveResult } from './BotDirectiveCoordinator.js';
+import type { OnlineGameplayResult } from './types.js';
+import type {
+  OnlineGameplayAuctionOption,
+  OnlineGameplayEstimateOption,
+  OnlineGameplayRoundPlayer,
+  OnlineGameplayRoundSnapshot,
+} from './roundTypes.js';
+import type { GameplayRoundScoreHistoryRow } from '../../gameplay/scoreHistoryTypes.js';
+
+export interface GameplayRoundFunctionClient {
+  readonly functions: {
+    invoke(
+      name: string,
+      options: { readonly body: Readonly<Record<string, unknown>> },
+    ): Promise<{
+      readonly data: unknown;
+      readonly error: { readonly message: string } | null;
+    }>;
+  };
+}
+
+export type NextRoundFailureKind = 'definitive-rejection' | 'ambiguous';
+
+export interface OnlineStartNextRoundResult
+  extends OnlineGameplayResult<OnlineGameplayRoundSnapshot> {
+  readonly failureKind?: NextRoundFailureKind;
+}
+
+const PHASES = ['auction', 'estimate', 'playing', 'scored'] as const;
+const BID_TYPES = ['normal', 'dash', 'dash-call', 'with', 'hold'] as const;
+const SHA256_HEX = /^[0-9a-f]{64}$/i;
+const PROHIBITED_KEYS = new Set([
+  'aggregate',
+  'dealAudit',
+  'dealId',
+  'deck',
+  'hands',
+  'hand',
+  'seed',
+  'seedHex',
+  'nonce',
+  'shuffledDeck',
+  'deckOrder',
+  'futureCards',
+]);
+
+export class OnlineGameplayRoundService {
+  constructor(private readonly client: GameplayRoundFunctionClient) {}
+
+  async startGame(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction(
+      'gameplay-start',
+      {
+        tableId: tableId.trim(),
+        expectedVersion,
+        commandId: commandId.trim(),
+      },
+      true,
+    );
+  }
+
+  async getSnapshot(
+    tableId: string,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateTableId(tableId);
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'snapshot',
+      tableId: tableId.trim(),
+    });
+  }
+
+  async submitBid(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+    bid: EstimationBid,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (this.parseBid(bid) === undefined) errors.push('Gameplay bid is invalid.');
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'submit-bid',
+      tableId: tableId.trim(),
+      expectedVersion,
+      commandId: commandId.trim(),
+      bid,
+    });
+  }
+
+  async playCard(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+    card: Card,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (this.parseCard(card) === undefined) errors.push('Gameplay card is invalid.');
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'play-card',
+      tableId: tableId.trim(),
+      expectedVersion,
+      commandId: commandId.trim(),
+      card,
+    });
+  }
+
+  async submitAuctionAction(
+    tableId: string,
+    expectedVersion: number,
+    commandId: string,
+    auctionAction: GameplayAuctionAction,
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const errors = this.validateCommand(tableId, expectedVersion, commandId);
+    if (this.parseAuctionAction(auctionAction) === undefined) errors.push('Gameplay auction action is invalid.');
+    if (errors.length > 0) return this.failure(errors);
+    return this.invokeFunction('gameplay-round-command', {
+      action: 'submit-auction-action',
+      tableId: tableId.trim(),
+      expectedVersion,
+      commandId: commandId.trim(),
+      auctionAction,
+    });
+  }
+
+  async startNextRound(
+    tableId: string,
+    expectedRoundNumber: number,
+    expectedRoundVersion: number,
+    expectedControlVersion: number,
+    commandId: string,
+  ): Promise<OnlineStartNextRoundResult> {
+    const errors = this.validateNextRoundCommand(
+      tableId,
+      expectedRoundNumber,
+      expectedRoundVersion,
+      expectedControlVersion,
+      commandId,
+    );
+    if (errors.length > 0) return this.nextRoundFailure(errors, 'definitive-rejection');
+
+    const body = {
+      action: 'start-next-round',
+      tableId: tableId.trim(),
+      commandId: commandId.trim(),
+      expectedRoundNumber,
+      expectedRoundVersion,
+      expectedControlVersion,
+    };
+
+    try {
+      const response = await this.client.functions.invoke('gameplay-round-command', { body });
+      if (response.error !== null) {
+        return this.nextRoundFailure([response.error.message], 'ambiguous');
+      }
+
+      const envelope = this.object(response.data);
+      if (envelope === undefined || typeof envelope.valid !== 'boolean') {
+        return this.nextRoundFailure(['Gameplay round response is incomplete.'], 'ambiguous');
+      }
+      const errors = this.stringArray(envelope.errors);
+      if (!envelope.valid) {
+        return this.nextRoundFailure(
+          errors.length > 0 ? errors : ['Gameplay round command was rejected.'],
+          'definitive-rejection',
+        );
+      }
+      if (this.containsProhibitedField(envelope.value)) {
+        return this.nextRoundFailure(
+          ['Gameplay round snapshot contains prohibited private fields.'],
+          'ambiguous',
+        );
+      }
+
+      const snapshot = this.parseSnapshot(envelope.value, false);
+      return snapshot === undefined
+        ? this.nextRoundFailure(['Gameplay round snapshot is incomplete.'], 'ambiguous')
+        : { valid: true, errors: [], value: snapshot };
+    } catch (error: unknown) {
+      return this.nextRoundFailure(
+        [error instanceof Error ? error.message : 'Gameplay round command failed.'],
+        'ambiguous',
+      );
+    }
+  }
+
+  async processBotDirective(
+    tableId: string,
+    directiveId: string,
+  ): Promise<OnlineBotDirectiveResult> {
+    const errors = this.validateTableId(tableId);
+    if (!directiveId.trim()) errors.push('Bot directive ID is required.');
+    if (errors.length > 0) return { valid: false, errors, terminal: true };
+
+    const response = await this.client.functions.invoke('gameplay-round-command', {
+      body: {
+        action: 'process-bot-directive',
+        tableId: tableId.trim(),
+        directiveId: directiveId.trim(),
+      },
+    });
+    if (response.error !== null) {
+      return { valid: false, errors: [response.error.message], terminal: false };
+    }
+
+    const envelope = this.object(response.data);
+    if (
+      envelope === undefined
+      || typeof envelope.valid !== 'boolean'
+      || typeof envelope.terminal !== 'boolean'
+    ) {
+      return {
+        valid: false,
+        errors: ['Gameplay bot directive response is incomplete.'],
+        terminal: false,
+      };
+    }
+    const responseErrors = this.stringArray(envelope.errors);
+    if (!envelope.valid) {
+      return {
+        valid: false,
+        errors: responseErrors.length > 0
+          ? responseErrors
+          : ['Gameplay bot directive was rejected.'],
+        terminal: envelope.terminal,
+      };
+    }
+    if (this.containsProhibitedField(envelope.value)) {
+      return {
+        valid: false,
+        errors: ['Gameplay round snapshot contains prohibited private fields.'],
+        terminal: true,
+      };
+    }
+    const snapshot = this.parseSnapshot(envelope.value, false);
+    return snapshot === undefined
+      ? {
+          valid: false,
+          errors: ['Gameplay round snapshot is incomplete.'],
+          terminal: false,
+        }
+      : { valid: true, errors: [], terminal: envelope.terminal, value: snapshot };
+  }
+
+  private async invokeFunction(
+    functionName: 'gameplay-start' | 'gameplay-round-command',
+    body: Readonly<Record<string, unknown>>,
+    requireDealCommitment = false,
+    mapErrors?: (errors: readonly string[]) => readonly string[],
+  ): Promise<OnlineGameplayResult<OnlineGameplayRoundSnapshot>> {
+    const response = await this.client.functions.invoke(functionName, { body });
+    if (response.error !== null) {
+      return this.failure(mapErrors === undefined
+        ? [response.error.message]
+        : mapErrors([response.error.message]));
+    }
+
+    const envelope = this.object(response.data);
+    if (envelope === undefined || typeof envelope.valid !== 'boolean') {
+      return this.failure(mapErrors === undefined
+        ? ['Gameplay round response is incomplete.']
+        : mapErrors(['Gameplay round response is incomplete.']));
+    }
+    const errors = this.stringArray(envelope.errors);
+    if (!envelope.valid) {
+      const safeErrors = errors.length > 0 ? errors : ['Gameplay round command was rejected.'];
+      return this.failure(mapErrors === undefined ? safeErrors : mapErrors(safeErrors));
+    }
+    if (this.containsProhibitedField(envelope.value)) {
+      const privateErrors = ['Gameplay round snapshot contains prohibited private fields.'];
+      return this.failure(mapErrors === undefined ? privateErrors : mapErrors(privateErrors));
+    }
+
+    const snapshot = this.parseSnapshot(envelope.value, requireDealCommitment);
+    return snapshot === undefined
+      ? this.failure(mapErrors === undefined
+          ? ['Gameplay round snapshot is incomplete.']
+          : mapErrors(['Gameplay round snapshot is incomplete.']))
+      : { valid: true, errors: [], value: snapshot };
+  }
+
+  private parseSnapshot(
+    value: unknown,
+    requireDealCommitment: boolean,
+  ): OnlineGameplayRoundSnapshot | undefined {
+    const row = this.object(value);
+    if (row === undefined) return undefined;
+
+    const tableId = this.string(row.tableId);
+    const roundNumber = this.positiveInteger(row.roundNumber);
+    const phase = this.oneOf(row.phase, PHASES);
+    const version = this.nonNegativeInteger(row.version);
+    const viewerSeat = this.seat(row.viewerSeat);
+    const bidOwnerSeat = row.bidOwnerSeat === null || row.bidOwnerSeat === undefined ? undefined : this.seat(row.bidOwnerSeat);
+    const dealerSeat = row.dealerSeat === null || row.dealerSeat === undefined ? undefined : this.seat(row.dealerSeat);
+    const callerSeat = row.callerSeat === null || row.callerSeat === undefined ? undefined : this.seat(row.callerSeat);
+    const riskSeat = row.riskSeat === null || row.riskSeat === undefined ? undefined : this.seat(row.riskSeat);
+    const trumpSuit = row.trumpSuit === null || row.trumpSuit === undefined ? undefined : this.contractSuit(row.trumpSuit);
+    const passedAuctionSeats = row.passedAuctionSeats === undefined ? undefined : this.parseSeats(row.passedAuctionSeats);
+    const consecutiveAuctionPasses = row.consecutiveAuctionPasses === undefined ? undefined : this.nonNegativeInteger(row.consecutiveAuctionPasses);
+    const auctionHistory = row.auctionHistory === undefined ? undefined : this.parseAuctionHistory(row.auctionHistory);
+    const currentHighestContract = row.currentHighestContract === undefined ? undefined : this.parseAuctionContract(row.currentHighestContract);
+    const dealCommitment = row.dealCommitment === null || row.dealCommitment === undefined
+      ? undefined
+      : this.sha256Hex(row.dealCommitment);
+    if (
+      tableId === undefined
+      || roundNumber === undefined
+      || phase === undefined
+      || version === undefined
+      || viewerSeat === undefined
+      || row.bidOwnerSeat !== null && row.bidOwnerSeat !== undefined && bidOwnerSeat === undefined
+      || row.dealerSeat !== null && row.dealerSeat !== undefined && dealerSeat === undefined
+      || row.callerSeat !== null && row.callerSeat !== undefined && callerSeat === undefined
+      || row.riskSeat !== null && row.riskSeat !== undefined && riskSeat === undefined
+      || row.trumpSuit !== null && row.trumpSuit !== undefined && trumpSuit === undefined
+      || row.passedAuctionSeats !== undefined && passedAuctionSeats === undefined
+      || row.consecutiveAuctionPasses !== undefined && consecutiveAuctionPasses === undefined
+      || row.auctionHistory !== undefined && auctionHistory === undefined
+      || row.currentHighestContract !== undefined && currentHighestContract === undefined
+      || (requireDealCommitment && dealCommitment === undefined)
+      || (row.dealCommitment !== null
+        && row.dealCommitment !== undefined
+        && dealCommitment === undefined)
+      || !Array.isArray(row.players)
+      || row.players.length !== 4
+      || !Array.isArray(row.ownHand)
+      || !Array.isArray(row.legalNormalEstimates)
+      || row.legalBidOptions !== undefined
+      || !Array.isArray(row.legalCards)
+      || !Array.isArray(row.currentTrick)
+      || !Array.isArray(row.completedTricks)
+    ) return undefined;
+
+    const players: OnlineGameplayRoundPlayer[] = [];
+    const seenSeats = new Set<SeatIndex>();
+    for (const item of row.players) {
+      const player = this.parsePlayer(item);
+      if (player === undefined || seenSeats.has(player.seat)) return undefined;
+      seenSeats.add(player.seat);
+      players.push(player);
+    }
+    if (seenSeats.size !== 4) return undefined;
+    players.sort((left, right) => left.seat - right.seat);
+
+    const ownHand = this.parseCards(row.ownHand);
+    const legalCards = this.parseCards(row.legalCards);
+    if (ownHand === undefined || legalCards === undefined) return undefined;
+    if (ownHand.length !== players[viewerSeat]?.cardCount) return undefined;
+    const ownIds = new Set(ownHand.map(cardId));
+    if (legalCards.some((card) => !ownIds.has(cardId(card)))) return undefined;
+
+    const legalNormalEstimates: number[] = [];
+    for (const estimate of row.legalNormalEstimates) {
+      const parsed = this.nonNegativeInteger(estimate);
+      if (parsed === undefined || parsed > 12 || legalNormalEstimates.includes(parsed)) return undefined;
+      legalNormalEstimates.push(parsed);
+    }
+    const legalAuctionActions: OnlineGameplayAuctionOption[] = [];
+    if (row.legalAuctionActions !== undefined && row.legalAuctionActions !== null && !Array.isArray(row.legalAuctionActions)) return undefined;
+    for (const item of row.legalAuctionActions ?? []) {
+      const action = this.parseAuctionAction(this.object(item)?.action);
+      if (action === undefined) return undefined;
+      legalAuctionActions.push({ action });
+    }
+
+    const currentTrick = this.parseTrickEntries(row.currentTrick, false);
+    if (currentTrick === undefined) return undefined;
+    const completedTricks: CompletedGameplayTrick[] = [];
+    for (const item of row.completedTricks) {
+      const trick = this.parseCompletedTrick(item);
+      if (trick === undefined) return undefined;
+      completedTricks.push(trick);
+    }
+
+    const nextBidSeat = row.nextBidSeat === null || row.nextBidSeat === undefined
+      ? undefined : this.seat(row.nextBidSeat);
+    const currentTurnSeat = row.currentTurnSeat === null || row.currentTurnSeat === undefined
+      ? undefined : this.seat(row.currentTurnSeat);
+    const currentWinningSeat = row.currentWinningSeat === null || row.currentWinningSeat === undefined
+      ? undefined : this.seat(row.currentWinningSeat);
+    const scoreHistory = this.parseScoreHistory(row.scoreHistory);
+    const cumulativeScoresBySeat = this.parseSeatScores(row.cumulativeScoresBySeat);
+    const estimateOptions = this.parseEstimateOptions(row.estimateOptions);
+    if (
+      row.nextBidSeat !== null && row.nextBidSeat !== undefined && nextBidSeat === undefined
+      || row.currentTurnSeat !== null && row.currentTurnSeat !== undefined && currentTurnSeat === undefined
+      || row.currentWinningSeat !== null && row.currentWinningSeat !== undefined && currentWinningSeat === undefined
+      || scoreHistory === undefined
+      || cumulativeScoresBySeat === undefined
+      || estimateOptions === undefined
+    ) return undefined;
+
+    const scoreResult = row.scoreResult === null || row.scoreResult === undefined
+      ? undefined : this.parseScoreResult(row.scoreResult);
+    if (row.scoreResult !== null && row.scoreResult !== undefined && scoreResult === undefined) return undefined;
+
+    return {
+      tableId,
+      roundNumber,
+      phase,
+      version,
+      viewerSeat,
+      ...(dealerSeat === undefined ? {} : { dealerSeat }),
+      ...(bidOwnerSeat === undefined ? {} : { bidOwnerSeat }),
+      ...(callerSeat === undefined ? {} : { callerSeat }),
+      ...(trumpSuit === undefined ? {} : { trumpSuit }),
+      ...(riskSeat === undefined ? {} : { riskSeat }),
+      ...(passedAuctionSeats === undefined ? {} : { passedAuctionSeats }),
+      ...(consecutiveAuctionPasses === undefined ? {} : { consecutiveAuctionPasses }),
+      ...(auctionHistory === undefined ? {} : { auctionHistory }),
+      ...(currentHighestContract === undefined ? {} : { currentHighestContract }),
+      ...(dealCommitment === undefined ? {} : { dealCommitment }),
+      ...(nextBidSeat === undefined ? {} : { nextBidSeat }),
+      ...(currentTurnSeat === undefined ? {} : { currentTurnSeat }),
+      ...(currentWinningSeat === undefined ? {} : { currentWinningSeat }),
+      players,
+      ownHand,
+      legalNormalEstimates,
+      ...(estimateOptions.length === 0 ? {} : { estimateOptions }),
+      legalAuctionActions,
+      legalCards,
+      currentTrick,
+      completedTricks,
+      ...(scoreHistory.length === 0 ? {} : { scoreHistory }),
+      ...(cumulativeScoresBySeat === undefined ? {} : { cumulativeScoresBySeat }),
+      ...(scoreResult === undefined ? {} : { scoreResult }),
+    };
+  }
+
+  private parsePlayer(value: unknown): OnlineGameplayRoundPlayer | undefined {
+    const row = this.object(value);
+    if (row === undefined) return undefined;
+    const seat = this.seat(row.seat);
+    const playerId = this.string(row.playerId);
+    const cardCount = this.nonNegativeInteger(row.cardCount);
+    const actualTricks = this.nonNegativeInteger(row.actualTricks);
+    const displayName = row.displayName === undefined ? undefined : this.string(row.displayName);
+    const isBot = row.isBot === undefined ? undefined : row.isBot === true || row.isBot === false ? row.isBot : undefined;
+    const cumulativeScore = row.cumulativeScore === undefined ? undefined : this.integer(row.cumulativeScore);
+    if (
+      seat === undefined
+      || playerId === undefined
+      || cardCount === undefined
+      || cardCount > 13
+      || actualTricks === undefined
+      || actualTricks > 13
+      || row.displayName !== undefined && displayName === undefined
+      || row.isBot !== undefined && isBot === undefined
+      || row.cumulativeScore !== undefined && cumulativeScore === undefined
+    ) return undefined;
+    const bid = row.bid === null || row.bid === undefined ? undefined : this.parseBid(row.bid);
+    if (row.bid !== null && row.bid !== undefined && bid === undefined) return undefined;
+    return {
+      seat,
+      playerId,
+      ...(displayName === undefined ? {} : { displayName }),
+      ...(isBot === undefined ? {} : { isBot }),
+      cardCount,
+      ...(bid === undefined ? {} : { bid }),
+      actualTricks,
+      ...(cumulativeScore === undefined ? {} : { cumulativeScore }),
+    };
+  }
+
+  private parseBid(value: unknown): EstimationBid | undefined {
+    const row = this.object(value);
+    if (row === undefined) return undefined;
+    const playerId = this.string(row.playerId);
+    const bidType = this.oneOf(row.bidType, BID_TYPES);
+    const tricks = this.nonNegativeInteger(row.tricks);
+    if (playerId === undefined || bidType === undefined || tricks === undefined || tricks > 13) {
+      return undefined;
+    }
+    const trumpSuit = row.trumpSuit === null || row.trumpSuit === undefined
+      ? undefined : this.contractSuit(row.trumpSuit);
+    const withTargetPlayerId = row.withTargetPlayerId === null || row.withTargetPlayerId === undefined
+      ? undefined : this.string(row.withTargetPlayerId);
+    if (
+      row.trumpSuit !== null && row.trumpSuit !== undefined && trumpSuit === undefined
+      || row.withTargetPlayerId !== null
+        && row.withTargetPlayerId !== undefined
+        && withTargetPlayerId === undefined
+    ) return undefined;
+    return {
+      playerId,
+      bidType,
+      tricks,
+      ...(trumpSuit === undefined ? {} : { trumpSuit }),
+      ...(withTargetPlayerId === undefined ? {} : { withTargetPlayerId }),
+    };
+  }
+
+  private parseCard(value: unknown): Card | undefined {
+    const row = this.object(value);
+    if (row === undefined || typeof row.suit !== 'string' || typeof row.rank !== 'string') return undefined;
+    return isValidSuit(row.suit) && isValidRank(row.rank)
+      ? { suit: row.suit, rank: row.rank }
+      : undefined;
+  }
+
+  private parseCards(value: readonly unknown[]): Card[] | undefined {
+    const cards: Card[] = [];
+    const ids = new Set<string>();
+    for (const item of value) {
+      const card = this.parseCard(item);
+      if (card === undefined || ids.has(cardId(card))) return undefined;
+      ids.add(cardId(card));
+      cards.push(card);
+    }
+    return cards;
+  }
+
+  private parseTrickEntries(value: readonly unknown[], requireFour: boolean): GameplayTrickEntry[] | undefined {
+    if (value.length > 4 || requireFour && value.length !== 4) return undefined;
+    const entries: GameplayTrickEntry[] = [];
+    const seats = new Set<SeatIndex>();
+    for (const item of value) {
+      const row = this.object(item);
+      if (row === undefined) return undefined;
+      const seat = this.seat(row.seat);
+      const card = this.parseCard(row.card);
+      if (seat === undefined || card === undefined || seats.has(seat)) return undefined;
+      seats.add(seat);
+      entries.push({ seat, card });
+    }
+    return entries;
+  }
+
+  private parseCompletedTrick(value: unknown): CompletedGameplayTrick | undefined {
+    const row = this.object(value);
+    if (row === undefined || !Array.isArray(row.entries)) return undefined;
+    const trickNumber = this.positiveInteger(row.trickNumber);
+    const leaderSeat = this.seat(row.leaderSeat);
+    const winnerSeat = this.seat(row.winnerSeat);
+    const entries = this.parseTrickEntries(row.entries, true);
+    return trickNumber === undefined || leaderSeat === undefined || winnerSeat === undefined || entries === undefined
+      ? undefined
+      : { trickNumber, leaderSeat, entries, winnerSeat };
+  }
+
+  private parseScoreResult(value: unknown): MvpRoundResult | undefined {
+    const row = this.object(value);
+    if (
+      row === undefined
+      || this.positiveInteger(row.roundNumber) === undefined
+      || typeof row.valid !== 'boolean'
+      || !Array.isArray(row.errors)
+      || this.object(row.bidValidation) === undefined
+    ) return undefined;
+    return value as MvpRoundResult;
+  }
+
+  private containsProhibitedField(value: unknown): boolean {
+    if (Array.isArray(value)) return value.some((item) => this.containsProhibitedField(item));
+    const row = this.object(value);
+    if (row === undefined) return false;
+    return Object.entries(row).some(([key, item]) => (
+      PROHIBITED_KEYS.has(key) || this.containsProhibitedField(item)
+    ));
+  }
+
+  private validateTableId(tableId: string): string[] {
+    return tableId.trim().length === 0 ? ['Gameplay table ID is required.'] : [];
+  }
+
+  private validateCommand(tableId: string, expectedVersion: number, commandId: string): string[] {
+    const errors = this.validateTableId(tableId);
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
+      errors.push('Expected gameplay version must be a non-negative integer.');
+    }
+    if (!commandId.trim()) errors.push('Gameplay command ID is required.');
+    return errors;
+  }
+
+  private parseScoreHistory(value: unknown): GameplayRoundScoreHistoryRow[] | undefined {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) return undefined;
+    const rows: GameplayRoundScoreHistoryRow[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const roundNumber = this.positiveInteger(row?.roundNumber);
+      const deltas = row?.deltasBySeat;
+      if (roundNumber === undefined || !Array.isArray(deltas) || deltas.length !== 4) return undefined;
+      const parsed = deltas.map((delta) => this.integer(delta));
+      if (parsed.some((delta) => delta === undefined)) return undefined;
+      rows.push({ roundNumber, deltasBySeat: parsed as [number, number, number, number] });
+    }
+    return rows;
+  }
+
+  private parseSeatScores(value: unknown): [number, number, number, number] | undefined {
+    if (value === undefined) return [0, 0, 0, 0];
+    if (!Array.isArray(value) || value.length !== 4) return undefined;
+    const scores = value.map((score) => this.integer(score));
+    return scores.some((score) => score === undefined)
+      ? undefined
+      : scores as [number, number, number, number];
+  }
+
+  private parseEstimateOptions(value: unknown): OnlineGameplayRoundSnapshot['estimateOptions'] {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) return undefined;
+    const options: OnlineGameplayEstimateOption[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const optionValue = this.nonNegativeInteger(row?.value);
+      if (optionValue === undefined || typeof row?.enabled !== 'boolean') return undefined;
+      const reason = row.reason === undefined ? undefined : row.reason === 'would_total_13' ? row.reason : undefined;
+      if (row.reason !== undefined && reason === undefined) return undefined;
+      if (row.enabled === false && reason === undefined) return undefined;
+      options.push({ value: optionValue, enabled: row.enabled, ...(reason === undefined ? {} : { reason }) });
+    }
+    return options;
+  }
+
+  private parseSeats(value: unknown): SeatIndex[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const seats: SeatIndex[] = [];
+    for (const item of value) {
+      const seat = this.seat(item);
+      if (seat === undefined || seats.includes(seat)) return undefined;
+      seats.push(seat);
+    }
+    return seats;
+  }
+
+  private parseAuctionAction(value: unknown): GameplayAuctionAction | undefined {
+    const row = this.object(value);
+    if (row === undefined || typeof row.type !== 'string') return undefined;
+    if (row.type === 'pass') return { type: 'pass' };
+    if (row.type === 'contract') {
+      const tricks = this.nonNegativeInteger(row.tricks);
+      const trumpSuit = this.contractSuit(row.trumpSuit);
+      return tricks === undefined || tricks < 4 || tricks > 13 || trumpSuit === undefined
+        ? undefined
+        : { type: 'contract', tricks, trumpSuit };
+    }
+    if (row.type === 'with') {
+      const referenceSeat = this.seat(row.referenceSeat);
+      return referenceSeat === undefined ? undefined : { type: 'with', referenceSeat };
+    }
+    return undefined;
+  }
+
+  private parseAuctionContract(value: unknown): GameplayAuctionContract | undefined {
+    const row = this.object(value);
+    const seat = this.seat(row?.seat);
+    const playerId = this.string(row?.playerId);
+    const tricks = this.nonNegativeInteger(row?.tricks);
+    const trumpSuit = this.contractSuit(row?.trumpSuit);
+    return seat === undefined || playerId === undefined || tricks === undefined || tricks < 4 || tricks > 13 || trumpSuit === undefined
+      ? undefined
+      : { seat, playerId, tricks, trumpSuit };
+  }
+
+  private parseAuctionHistory(value: unknown): GameplayAuctionHistoryEntry[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const history: GameplayAuctionHistoryEntry[] = [];
+    for (const item of value) {
+      const row = this.object(item);
+      const seat = this.seat(row?.seat);
+      const playerId = this.string(row?.playerId);
+      const action = this.parseAuctionAction(row?.action);
+      const referencedContract = row?.referencedContract === undefined
+        ? undefined
+        : this.parseAuctionContract(row.referencedContract);
+      if (seat === undefined || playerId === undefined || action === undefined || row?.referencedContract !== undefined && referencedContract === undefined) return undefined;
+      history.push({ seat, playerId, action, ...(referencedContract === undefined ? {} : { referencedContract }) });
+    }
+    return history;
+  }
+
+  private validateNextRoundCommand(
+    tableId: string,
+    expectedRoundNumber: number,
+    expectedRoundVersion: number,
+    expectedControlVersion: number,
+    commandId: string,
+  ): string[] {
+    const errors = this.validateTableId(tableId);
+    if (!Number.isInteger(expectedRoundNumber) || expectedRoundNumber <= 0) {
+      errors.push('Expected round number must be a positive integer.');
+    }
+    if (!Number.isInteger(expectedRoundVersion) || expectedRoundVersion < 0) {
+      errors.push('Expected round version must be a non-negative integer.');
+    }
+    if (!Number.isInteger(expectedControlVersion) || expectedControlVersion < 0) {
+      errors.push('Expected active-control version must be a non-negative integer.');
+    }
+    if (!commandId.trim()) errors.push('Gameplay command ID is required.');
+    return errors;
+  }
+
+  private nextRoundError(errors: readonly string[]): string {
+    return errors.some((error) => /NEXT_ROUND_STALE|NEXT_ROUND_COMMAND_CONFLICT|stale|concurrent|version/i.test(error))
+      ? 'Next round state changed. Refresh and try again.'
+      : 'Next round could not be started. Refresh and try again.';
+  }
+
+  private nextRoundFailure(
+    errors: readonly string[],
+    failureKind: NextRoundFailureKind,
+  ): OnlineStartNextRoundResult {
+    return {
+      valid: false,
+      errors: [this.nextRoundError(errors)],
+      failureKind,
+    };
+  }
+
+  private contractSuit(value: unknown): ContractSuit | undefined {
+    return typeof value === 'string' && isValidContractSuit(value) ? value : undefined;
+  }
+
+  private sha256Hex(value: unknown): string | undefined {
+    return typeof value === 'string' && SHA256_HEX.test(value) ? value.toLowerCase() : undefined;
+  }
+
+  private seat(value: unknown): SeatIndex | undefined {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 3
+      ? value as SeatIndex : undefined;
+  }
+
+  private oneOf<const T extends readonly string[]>(value: unknown, values: T): T[number] | undefined {
+    return typeof value === 'string' && values.includes(value as T[number])
+      ? value as T[number] : undefined;
+  }
+
+  private object(value: unknown): Readonly<Record<string, unknown>> | undefined {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? value as Readonly<Record<string, unknown>> : undefined;
+  }
+
+  private string(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+  }
+
+  private nonNegativeInteger(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined;
+  }
+
+  private integer(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isInteger(value) ? value : undefined;
+  }
+
+  private positiveInteger(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+  }
+
+  private stringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private failure<T>(errors: readonly string[]): OnlineGameplayResult<T> {
+    return { valid: false, errors };
+  }
+}

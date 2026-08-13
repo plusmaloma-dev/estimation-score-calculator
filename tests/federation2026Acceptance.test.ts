@@ -354,8 +354,8 @@ test('Federation 2026 applies the Only Loser penalty', () => {
   assert.equal(onlyLoser.isOnlyLoser, true);
 });
 
-test('Federation 2026 all-loser rounds retain calculated negative scores without a multiplier', () => {
-  const round: MvpRoundInput = {
+test('Federation 2026 all-loser rounds are skipped and carry x2 to the next scored round', () => {
+  const allLoserRound: MvpRoundInput = {
     roundNumber: 1,
     bidOwnerPlayerId: 'A',
     profile: federationProfile,
@@ -372,11 +372,25 @@ test('Federation 2026 all-loser rounds retain calculated negative scores without
       { playerId: 'D', actualTricks: 4 },
     ],
   };
+  const scoredRound = ownerAndNormalRound([4, 4, 1, 4]);
+  const base = new EstimationMvpService().calculateGame({
+    ruleSet: FEDERATION_2026,
+    playerOrder: ['A', 'B', 'C', 'D'],
+    rounds: [{ ...scoredRound, roundNumber: 1 }],
+  });
+  const result = new EstimationMvpService().calculateGame({
+    ruleSet: FEDERATION_2026,
+    playerOrder: ['A', 'B', 'C', 'D'],
+    rounds: [allLoserRound, { ...scoredRound, roundNumber: 2 }],
+  });
 
-  const result = calculateRound(round);
-
-  assert.deepEqual(result.playerScores.map((score) => score.score), [-11, -1, -1, -14]);
-  assert.equal(result.nextRoundMultiplier, undefined);
+  assert.deepEqual(result.rounds[0]?.scoreResult?.playerScores.map((score) => score.score), [0, 0, 0, 0]);
+  assert.equal(result.rounds[0]?.isAllLoserRound, true);
+  assert.equal(result.rounds[1]?.carriedAllLoserMultiplier, 2);
+  assert.deepEqual(
+    result.rounds[1]?.scoreResult?.playerScores.map((score) => score.score),
+    base.rounds[0]?.scoreResult?.playerScores.map((score) => score.score * 2),
+  );
 });
 
 test('House Rules V1 keeps its all-loser zero scores and next-round multiplier', () => {

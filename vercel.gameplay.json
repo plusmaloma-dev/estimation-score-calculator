@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build:gameplay",
+  "outputDirectory": "dist-gameplay",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}

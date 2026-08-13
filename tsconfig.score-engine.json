@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.engine.json",
+  "compilerOptions": {
+    "composite": false,
+    "rootDir": ".",
+    "outDir": "dist-score-engine"
+  },
+  "include": [
+    "src/domain/**/*.ts",
+    "src/scoring/**/*.ts",
+    "src/services/BidValidationService.ts",
+    "src/services/LeaderboardService.ts",
+    "src/services/EstimationMvpService.ts",
+    "tests/score-engine/**/*.test.ts"
+  ],
+  "exclude": [
+    "src/gameplay/**/*",
+    "src/online/**/*",
+    "src/app/**/*"
+  ]
+}

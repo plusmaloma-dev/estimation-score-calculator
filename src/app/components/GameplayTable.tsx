@@ -1,0 +1,276 @@
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { cardId } from '../../domain/card.js';
+import type { Card, CardSuit } from '../../domain/card.js';
+import type { GameplayAuctionAction } from '../../gameplay/types.js';
+import { GameplayHand } from './GameplayHand.js';
+import type { GameplayTablePresentation } from '../gameplay/GameplayTablePresentation.js';
+import { useI18n } from '../i18n/I18nContext.js';
+import type { TranslationKey } from '../i18n/translations.js';
+
+const SUIT_SYMBOLS: Readonly<Record<CardSuit, string>> = {
+  spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣',
+};
+
+function suitKey(suit: string): TranslationKey {
+  return suit === 'no-trump' ? 'noTrump' : suit as TranslationKey;
+}
+
+function suitClass(suit: string): string {
+  return suit === 'hearts' || suit === 'diamonds' ? 'gameplay-suit--red' : 'gameplay-suit--black';
+}
+
+function SuitLabel({ suit, t, trump = false }: {
+  readonly suit: string;
+  readonly t: (key: TranslationKey) => string;
+  readonly trump?: boolean;
+}) {
+  return (
+    <span className={`gameplay-suit ${suitClass(suit)}${trump ? ' gameplay-suit--trump' : ''}`}>
+      {suit === 'no-trump' ? '·' : SUIT_SYMBOLS[suit as CardSuit]}{' '}{t(suitKey(suit))}
+    </span>
+  );
+}
+
+function actionKey(action: GameplayAuctionAction): string {
+  return JSON.stringify(action);
+}
+
+function riskLabel(type: NonNullable<GameplayTablePresentation['risk']>['type']): string {
+  if (type === 'pending') return 'pending';
+  if (type === 'round-risk') return 'roundRisk';
+  if (type === 'dash-call') return 'dashCall';
+  if (type === 'high-contract') return 'highContract';
+  return type;
+}
+
+function actionLabel(
+  action: GameplayTablePresentation['auctionHistory'][number]['action'],
+  t: (key: TranslationKey) => string,
+): ReactNode {
+  if (action.type === 'pass') return t('pass');
+  if (action.type === 'with') return t('with');
+  return <>{action.tricks} <SuitLabel suit={action.trumpSuit} t={t} /></>;
+}
+
+function seatDisplayName(model: GameplayTablePresentation, seat: number): string {
+  return model.seats.find((candidate) => candidate.seat === seat)?.displayName ?? `${seat + 1}`;
+}
+
+export function GameplayTable({
+  model,
+  busy,
+  onEstimate,
+  onAuctionAction,
+  onPlay,
+}: {
+  readonly model: GameplayTablePresentation;
+  readonly busy: boolean;
+  readonly onEstimate: (tricks: number) => Promise<void>;
+  readonly onAuctionAction: (action: GameplayAuctionAction) => Promise<void>;
+  readonly onPlay: (card: Card) => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const [estimate, setEstimate] = useState('');
+  const [auction, setAuction] = useState('');
+  const auctionActions = model.legalAuctionActions.map((option) => option.action);
+  const currentAction = model.phase === 'auction'
+    ? t('auction')
+    : model.phase === 'estimate'
+      ? t('estimate')
+      : model.phase === 'playing'
+        ? t('cardPlay')
+        : t('roundScored');
+
+  async function submitEstimate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = model.estimateOptions.find((option) => String(option.value) === estimate);
+    if (value === undefined || !value.enabled) return;
+    await onEstimate(value.value);
+  }
+
+  async function submitAuction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const action = auctionActions.find((candidate) => actionKey(candidate) === auction);
+    if (action === undefined) return;
+    await onAuctionAction(action);
+  }
+
+  return (
+    <section className={`gameplay-table gameplay-table--${model.phase}`} aria-label={t('gameTable')}>
+      <header className="gameplay-table__topbar">
+        <div className="gameplay-table__context">
+          <h3>{t('round')} {model.roundNumber ?? '—'}</h3>
+          {model.dealerSeat !== undefined && <span>{t('dealer')} {t('seat')} {model.dealerSeat + 1}</span>}
+          {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('caller')} {t('seat')} {model.callerSeat + 1}</span>}
+          {model.phase !== 'auction' && model.callerSeat !== undefined && <span>{t('callerEstimate')}: {model.seats.find((seat) => seat.seat === model.callerSeat)?.bid ?? t('pending')}</span>}
+          {model.phase !== 'auction' && model.trump !== undefined && <span>{t('trump')}: <SuitLabel suit={model.trump} t={t} trump /></span>}
+          {model.risk !== undefined && <span>{t('risk')}: {t('seat')} {model.risk.seat + 1} ({t(riskLabel(model.risk.type) as TranslationKey)})</span>}
+          {model.riskCandidateSeat !== undefined && model.phase !== 'scored' && (
+            <span>{t('riskCandidate')}: {t('seat')} {model.riskCandidateSeat + 1}</span>
+          )}
+        </div>
+        <div className="gameplay-table__scores" aria-label={t('overallScores')}>
+          {model.seats.map((seat) => <span key={seat.seat}>{seat.displayName} {seat.score}</span>)}
+        </div>
+      </header>
+
+      {model.phase === 'auction' ? (
+        <section className="gameplay-table__auction" aria-label={t('auction')}>
+          <div className="gameplay-table__auction-summary">
+            <span>{t('activeAuctionPlayer')}: {model.auctionActiveSeat === undefined ? t('waiting') : seatDisplayName(model, model.auctionActiveSeat)}</span>
+            <span>{t('currentContract')}: {model.currentHighestContract === undefined
+              ? t('pending')
+              : <>{model.currentHighestContract.tricks} <SuitLabel suit={model.currentHighestContract.trumpSuit} t={t} /></>}</span>
+            {model.currentHighestContract !== undefined && (
+              <span>{t('auctionOwner')}: {seatDisplayName(model, model.currentHighestContract.seat)}</span>
+            )}
+            <span>{t('passStatus')}: {model.passedAuctionSeats.length}</span>
+          </div>
+          <ol className="gameplay-table__auction-history" aria-label={t('auctionHistory')}>
+            {model.auctionHistory.map((entry, index) => (
+              <li key={`${entry.seat}-${index}`}>
+                <span>{seatDisplayName(model, entry.seat)}</span>
+                <strong>{actionLabel(entry.action, t)}</strong>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <>
+          <ul className="gameplay-table__estimates" aria-label={t('estimatesBySeat')}>
+            {model.seats.map((seat) => (
+              <li key={seat.seat}>
+                <span>{seat.displayName}</span>
+                <span>{t('estimate')}: {seat.bid ?? t('pending')}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="gameplay-table__round-status" aria-label={t('underOver')}>
+            <span>{t('totalEstimates')}: {model.totalEstimatedTricks}</span>
+            <span>{t('underOver')}: {model.estimateStatus === 'under' ? t('under') : model.estimateStatus === 'over' ? t('over') : t('atThirteen')}</span>
+            <span>{model.estimateStatus === 'under' ? `${t('underBy')} ${model.estimateDistanceFrom13}` : model.estimateStatus === 'over' ? `${t('overBy')} ${model.estimateDistanceFrom13}` : t('atThirteen')}</span>
+          </div>
+        </>
+      )}
+
+      <div className="gameplay-table__surface">
+        {model.seats.map((seat) => (
+          <article
+            key={seat.seat}
+            className={`gameplay-table-seat gameplay-table-seat--${seat.position}${seat.isActive ? ' gameplay-table-seat--active' : ''}`}
+          >
+            <strong>{seat.displayName}</strong>
+            <span className="gameplay-table-seat__badges">
+              {seat.isDealer && <small>{t('dealer')}</small>}
+              {seat.isCaller && <small>{t('caller')}</small>}
+              {seat.isWith && <small>{t('with')}</small>}
+              {seat.isRisk && <small>{t('risk')}</small>}
+            </span>
+            {model.phase === 'auction' ? (
+              <span>{t('latestAuctionAction')}: {(() => {
+                const latest = [...model.auctionHistory].reverse().find((entry) => entry.seat === seat.seat);
+                return latest === undefined ? t('waiting') : actionLabel(latest.action, t);
+              })()}</span>
+            ) : (
+              <span>{t('bid')} {seat.bid ?? '—'} · {t('won')} {seat.won}</span>
+            )}
+            <span>{t('score')} {seat.score}</span>
+          </article>
+        ))}
+
+        <section className="gameplay-table__trick" aria-label={t('currentTrick')}>
+          <h3>{t('currentTrick')}</h3>
+          <span>{t('trick')} {model.currentTrick.length > 0 ? (model.lastCompletedTrick?.trickNumber ?? 1) : '—'}</span>
+          {model.phase === 'playing' && (
+            <div className="gameplay-table__trick-context">
+              {model.trump !== undefined && <span>{t('trump')}: <SuitLabel suit={model.trump} t={t} trump /></span>}
+              {model.leadSuit !== undefined && <span>{t('leadSuit')}: <SuitLabel suit={model.leadSuit} t={t} /></span>}
+            </div>
+          )}
+          {model.activeSeat !== undefined && <small>{t('active')}: {t('seat')} {model.activeSeat + 1}</small>}
+        </section>
+        <div className="gameplay-table__cards" aria-label={t('currentTrickCards')}>
+          {model.currentTrick.map((entry) => {
+            const seat = model.seats.find((candidate) => candidate.seat === entry.seat);
+            const winner = entry.seat === model.currentWinningSeat;
+            const trump = model.trump !== undefined && model.trump !== 'no-trump' && entry.card.suit === model.trump;
+            return (
+              <span
+                key={entry.seat}
+                data-testid={`played-card-seat-${entry.seat}`}
+                aria-label={`${seat?.displayName ?? `${t('seat')} ${entry.seat + 1}`} ${entry.card.rank} ${t(suitKey(entry.card.suit))}`}
+                className={[
+                  'gameplay-table__played-card',
+                  `gameplay-table__played-card--${seat?.position ?? 'bottom'}`,
+                  suitClass(entry.card.suit),
+                  entry.card.suit === 'hearts' || entry.card.suit === 'diamonds' ? 'playing-card--red' : 'playing-card--black',
+                  winner ? 'gameplay-card--winner' : '',
+                  trump ? 'gameplay-card--trump' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                <strong>{entry.card.rank}{SUIT_SYMBOLS[entry.card.suit]}</strong>
+                <small>{seat?.displayName ?? `${t('seat')} ${entry.seat + 1}`}</small>
+                {winner && <em>{t('winner')}</em>}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {model.lastCompletedTrick !== undefined && (
+      <div className="gameplay-table__last-trick" aria-label={t('finalTrickCards')}>
+          {t('lastCompletedTrick')} · {model.lastCompletedTrick.entries.map((entry) => `${t('seat')} ${entry.seat + 1} ${entry.card.rank}${SUIT_SYMBOLS[entry.card.suit]}`).join(' · ')} → {t('winner')}: {t('seat')} {model.lastCompletedTrick.winnerSeat + 1}
+        </div>
+      )}
+
+      <section className="gameplay-table__hand">
+        <h3>{t('yourHand')}</h3>
+        <GameplayHand
+          ownHand={model.ownHand}
+          mode={model.isSynchronizing
+            ? 'disabled'
+            : model.phase === 'playing' && model.viewerActionRequired ? 'play' : 'read-only'}
+          legalCardIds={new Set(model.legalCards.map(cardId))}
+          trumpSuit={model.trump}
+          onPlay={onPlay}
+        />
+      </section>
+
+      <section className="gameplay-table__action-tray" aria-label={t('currentAction')}>
+        <h3>{currentAction}</h3>
+        {model.phase === 'auction' && model.viewerActionRequired && (
+          <form onSubmit={(event) => void submitAuction(event)}>
+            <select aria-label={t('auction')} value={auction} onChange={(event) => setAuction(event.target.value)} disabled={busy}>
+              <option value="">{t('selectContract')}</option>
+              {auctionActions.map((action) => <option key={actionKey(action)} value={actionKey(action)}>
+                {action.type === 'pass' ? t('pass') : action.type === 'with' ? t('with') : `${action.tricks} ${t(suitKey(action.trumpSuit))}`}
+              </option>)}
+            </select>
+            <button type="submit" className="primary-button" disabled={busy || auction === ''}>{t('submitAuctionAction')}</button>
+          </form>
+        )}
+        {model.phase === 'estimate' && model.viewerActionRequired && (
+          <form onSubmit={(event) => void submitEstimate(event)}>
+            <select aria-label={t('estimate')} value={estimate} onChange={(event) => setEstimate(event.target.value)} disabled={busy}>
+              <option value="">{t('estimate')}</option>
+              {model.estimateOptions.map((option) => (
+                <option key={option.value} value={String(option.value)} disabled={!option.enabled}>
+                  {option.value}{option.reason === 'would_total_13' ? ` — ${t('finalEstimateMustMove')}` : ''}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="primary-button" disabled={busy || estimate === ''}>{t('submitEstimate')}</button>
+          </form>
+        )}
+      </section>
+
+      <details className="gameplay-table__history">
+        <summary>{t('scoreHistory')}</summary>
+        {model.scoreHistory.length === 0 ? <p>{t('noScoreHistory')}</p> : (
+          <ul>{model.scoreHistory.map((row) => <li key={row.roundNumber}>{t('round')} {row.roundNumber}: {row.deltasBySeat.join(' · ')}</li>)}</ul>
+        )}
+      </details>
+    </section>
+  );
+}

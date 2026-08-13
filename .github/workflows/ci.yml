@@ -24,7 +24,24 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Validate package
-        run: npm run ci
+        shell: bash
+        run: |
+          set +e
+          npm run ci > ci-output.log 2>&1
+          status=$?
+          cat ci-output.log
+          exit "$status"
+
+      - name: Validate isolation boundaries
+        run: npm run ci:isolation
+
+      - name: Upload failed validation log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-${{ github.run_number }}
+          path: ci-output.log
+          if-no-files-found: error

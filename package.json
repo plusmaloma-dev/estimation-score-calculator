@@ -5,15 +5,49 @@
   "description": "MVP score calculation app for the Egyptian Estimation card game.",
   "type": "module",
   "scripts": {
-    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
-    "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "test": "npm run clean && tsc --outDir dist && node --test dist/tests/*.test.js",
-    "build": "tsc --noEmit",
-    "ci": "npm run typecheck && npm test && npm run build"
+    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true }); fs.rmSync('dist-app', { recursive: true, force: true })\"",
+    "clean:score-engine": "node -e \"fs.rmSync('dist-score-engine', { recursive: true, force: true })\"",
+    "dev": "vite",
+    "typecheck:score-engine": "tsc -p tsconfig.score-engine.json --noEmit",
+    "typecheck:engine": "tsc -p tsconfig.engine.json --noEmit",
+    "typecheck:app": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "npm run typecheck:engine && npm run typecheck:app",
+    "test:score-engine": "npm run clean:score-engine && tsc -p tsconfig.score-engine.json && node --test dist-score-engine/tests/score-engine/*.test.js",
+    "test:engine": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/*.test.js",
+    "test:ui": "vitest run",
+    "test:app": "vitest",
+    "test": "npm run test:engine && npm run test:ui",
+    "build": "vite build",
+    "build:gameplay": "vite build --config vite.gameplay.config.ts",
+    "prepare:gameplay-functions": "node scripts/isolation/prepare-gameplay-functions.mjs",
+    "deploy:gameplay-migrations": "node scripts/isolation/deploy-gameplay-migrations.mjs",
+    "deploy:gameplay-function": "node scripts/isolation/deploy-gameplay-function.mjs",
+    "deploy:gameplay-vercel": "node scripts/isolation/deploy-gameplay-vercel.mjs",
+    "test:gameplay-vercel-deploy": "node --test tests/isolation/gameplayVercelDeployment.test.mjs",
+    "test:gameplay-boundary": "npm run build:gameplay && npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayFrontendImportBoundary.test.js",
+    "test:isolation-static": "npm run clean && tsc -p tsconfig.engine.json --outDir dist && node --test dist/tests/gameplayIsolationSpecification.test.js dist/tests/gameplaySupabaseWorkspaceIsolation.test.js dist/tests/gameplayTargetGuard.test.js dist/tests/gameplayMigrationDeploymentWorkspace.test.js dist/tests/gameplayEdgeFunctionDeploymentWorkspace.test.js dist/tests/gameplayVercelDeployment.test.js dist/tests/gameplayVercelDeploymentWorkspace.test.js dist/tests/scoreUatBaseline.test.js dist/tests/scoreEngineImportBoundary.test.js && node --test tests/isolation/gameplayMigrationDeployment.test.mjs && npm run test:gameplay-vercel-deploy",
+    "verify:gameplay-target": "node scripts/isolation/gameplay-target-guard.mjs",
+    "ci:score-engine": "npm run typecheck:score-engine && npm run test:score-engine",
+    "ci:isolation": "npm run ci:score-engine && npm run test:gameplay-boundary && npm run test:isolation-static",
+    "ci": "npm run typecheck && npm test && npm run build && npm run build:gameplay"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.0.0",
-    "typescript": "^5.5.4"
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.5.4",
+    "vite": "^7.1.3",
+    "vitest": "^3.2.4"
   }
 }

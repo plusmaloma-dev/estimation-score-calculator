@@ -3,6 +3,8 @@ import type { PersistedScoreSheet } from '../../persistence/types.js';
 import { EstimationMvpService, type MvpGameResult, type MvpRoundResult } from '../../services/EstimationMvpService.js';
 import type { GameSummaryAction, GameSummaryLeaderboardRow, GameSummaryModel, GameSummaryRecentRoundRow } from './GameSummaryModel.js';
 
+export type { GameSummaryModel } from './GameSummaryModel.js';
+
 export interface GameSummaryViewOptions {
   readonly generatedAt?: Date | string;
   readonly recentRoundLimit?: number;

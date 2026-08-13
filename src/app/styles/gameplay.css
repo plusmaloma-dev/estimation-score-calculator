@@ -1,0 +1,913 @@
+.home-primary-actions,
+.gameplay-lobby-actions,
+.screen-actions,
+.active-host-controls,
+.gameplay-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+
+.gameplay-lobby-actions,
+.gameplay-table-heading,
+.gameplay-round-heading {
+  justify-content: space-between;
+}
+
+.gameplay-create-form,
+.gameplay-table-settings,
+.gameplay-join-form {
+  box-shadow: 0 .5rem 1.5rem rgb(20 50 44 / 6%);
+}
+
+.gameplay-create-form h3,
+.gameplay-table-settings h3,
+.gameplay-table-heading h2,
+.active-game-screen h2,
+.active-turn-card h3,
+.gameplay-bid-panel h3,
+.gameplay-card-panel h3,
+.gameplay-card-panel h4 {
+  margin: 0;
+}
+
+.gameplay-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.gameplay-form-grid label,
+.gameplay-join-form label {
+  display: grid;
+  gap: .4rem;
+  font-weight: 700;
+}
+
+.gameplay-form-grid select,
+.gameplay-join-form select,
+.gameplay-join-form input,
+.gameplay-create-form select {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid #bcc9c6;
+  border-radius: .75rem;
+  background: white;
+  padding: .65rem .8rem;
+  color: inherit;
+}
+
+.gameplay-lobby-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.gameplay-table-heading,
+.gameplay-round-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.gameplay-table-heading p {
+  margin: .35rem 0 0;
+  color: #64706d;
+}
+
+.gameplay-seat-grid,
+.active-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-seat,
+.active-seat-card {
+  display: grid;
+  gap: .35rem;
+  min-height: 7rem;
+  align-content: center;
+  border: 1px solid #cad6d2;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 .35rem 1rem rgb(20 50 44 / 5%);
+}
+
+.gameplay-seat span,
+.active-seat-card span {
+  color: #62706c;
+  font-size: .9rem;
+}
+
+.gameplay-seat--vacant {
+  border-style: dashed;
+  background: #f7faf9;
+}
+
+.gameplay-request-list {
+  display: grid;
+  gap: .75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-request-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #d8e1df;
+  border-radius: .8rem;
+  padding: .75rem;
+}
+
+.active-game-screen {
+  width: min(100%, 68rem);
+  margin: 0 auto;
+}
+
+.active-lifecycle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #bdd2cc;
+  border-radius: .9rem;
+  background: #eaf5f1;
+  padding: .8rem 1rem;
+}
+
+.active-lifecycle--paused {
+  border-color: #d8bd7c;
+  background: #fff8e7;
+}
+
+.active-lifecycle--terminated {
+  border-color: #d7b3b3;
+  background: #fff1f1;
+}
+
+.active-lifecycle span {
+  color: #5d6b67;
+  font-size: .85rem;
+}
+
+.active-turn-card {
+  display: grid;
+  gap: .35rem;
+  border: 1px solid #cbd8d4;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
+}
+
+.active-turn-card p {
+  margin: 0;
+  color: #5e6b68;
+}
+
+.gameplay-action-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 2px solid #087846;
+  border-radius: 1rem;
+  background: #eef8f4;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 .45rem 1.2rem rgb(0 98 56 / 12%);
+}
+
+.gameplay-action-banner > strong {
+  font-size: clamp(1rem, 2.5vw, 1.35rem);
+}
+
+.gameplay-action-banner--loading,
+.gameplay-action-banner--synchronizing,
+.gameplay-action-banner--paused,
+.gameplay-action-banner--scored,
+.gameplay-action-banner--terminated {
+  border-color: #c7d4d0;
+  background: #f5f8f7;
+}
+
+.gameplay-countdown {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #087846;
+  color: white;
+  padding: .55rem .85rem;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.active-seat-card--turn {
+  border-color: #087846;
+  box-shadow: inset 0 0 0 1px #087846, 0 .45rem 1.2rem rgb(0 98 56 / 12%);
+}
+
+.gameplay-bid-panel,
+.gameplay-card-panel,
+.gameplay-round-status {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #cbd8d4;
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
+}
+
+.gameplay-round-status {
+  position: sticky;
+  top: .75rem;
+  z-index: 10;
+  background: white;
+}
+
+.gameplay-round-heading {
+  align-items: center;
+}
+
+.gameplay-estimate-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-estimate-list > li {
+  display: grid;
+  gap: .3rem;
+  min-width: 0;
+  border: 1px solid #d9e1df;
+  border-radius: .8rem;
+  background: #fafcfb;
+  padding: .75rem;
+  text-align: center;
+}
+
+.gameplay-estimate-list span {
+  color: #62706c;
+  font-size: .82rem;
+}
+
+.gameplay-estimate-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameplay-estimate--active {
+  border-color: #087846 !important;
+  background: #eef8f4 !important;
+  box-shadow: inset 0 0 0 1px #087846;
+}
+
+.gameplay-estimate-list small {
+  min-height: 1rem;
+  color: #087443;
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.gameplay-table__auction {
+  display: grid;
+  gap: .75rem;
+  border: 1px solid #d8e1df;
+  border-radius: .9rem;
+  background: #f8fbfa;
+  padding: .85rem;
+}
+
+.gameplay-table__auction-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+  color: #43514d;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.gameplay-table__auction-history {
+  display: grid;
+  gap: .4rem;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.gameplay-table__auction-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #e2e9e7;
+  padding: .35rem 0;
+}
+
+.gameplay-round-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+}
+
+.gameplay-round-summary > div {
+  border: 1px solid #d9e1df;
+  border-radius: .8rem;
+  background: #fafcfb;
+  padding: .75rem;
+}
+
+.gameplay-round-summary dt {
+  color: #62706c;
+  font-size: .78rem;
+}
+
+.gameplay-round-summary dd {
+  margin: .25rem 0 0;
+  font-weight: 800;
+}
+
+.gameplay-round-summary--balance {
+  border-color: #087846 !important;
+  background: #eef8f4 !important;
+}
+
+.gameplay-bid-form {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid #e0e6e4;
+  padding-top: 1rem;
+}
+
+.gameplay-turn-status {
+  margin: 0;
+  color: #087443;
+  font-weight: 800;
+}
+
+.gameplay-bid-form > .primary-button {
+  justify-self: end;
+  min-width: 10rem;
+}
+
+.gameplay-current-trick {
+  display: grid;
+  gap: .75rem;
+  border: 1px solid #d8e1df;
+  border-radius: .9rem;
+  background: #f8fbfa;
+  padding: 1rem;
+}
+
+.gameplay-current-trick > p {
+  margin: 0;
+  color: #62706c;
+}
+
+.gameplay-current-trick ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-current-trick li {
+  display: grid;
+  gap: .35rem;
+  border: 1px solid #d8e1df;
+  border-radius: .75rem;
+  background: white;
+  padding: .7rem;
+  text-align: center;
+}
+
+.gameplay-current-trick li span,
+.gameplay-trick-totals {
+  color: #62706c;
+  font-size: .85rem;
+}
+
+.gameplay-current-trick li strong {
+  font-size: 1.3rem;
+}
+
+.gameplay-final-trick {
+  display: grid;
+  gap: .75rem;
+  border: 2px solid #087846;
+  border-radius: .9rem;
+  background: #eef8f4;
+  padding: 1rem;
+}
+
+.gameplay-final-trick h4 {
+  margin: 0;
+}
+
+.gameplay-final-trick ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-final-trick li {
+  display: grid;
+  gap: .3rem;
+  border: 1px solid #d8e1df;
+  border-radius: .75rem;
+  background: white;
+  padding: .7rem;
+  text-align: center;
+}
+
+.gameplay-final-trick li > span,
+.gameplay-final-trick small {
+  color: #62706c;
+  font-size: .8rem;
+}
+
+.gameplay-final-trick li > strong {
+  font-size: 1.3rem;
+}
+
+.gameplay-final-trick--winner {
+  border-color: #087846 !important;
+  box-shadow: inset 0 0 0 1px #087846;
+}
+
+.gameplay-result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+
+.gameplay-result-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-result-card {
+  display: grid;
+  gap: .8rem;
+  border: 1px solid #cbd8d4;
+  border-radius: .9rem;
+  background: white;
+  padding: .9rem;
+  box-shadow: 0 .3rem .75rem rgb(20 50 44 / 7%);
+}
+
+.gameplay-result-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.gameplay-result-card-heading h4 {
+  margin: 0;
+}
+
+.gameplay-result-card-heading > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .35rem;
+}
+
+.gameplay-result-card-heading span {
+  border-radius: 999px;
+  background: #e8f3ef;
+  color: #07603a;
+  padding: .2rem .45rem;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.gameplay-result-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  margin: 0;
+}
+
+.gameplay-result-card dl > div {
+  min-width: 0;
+}
+
+.gameplay-result-card-risk {
+  grid-column: 1 / -1;
+}
+
+.gameplay-result-card dt {
+  color: #62706c;
+  font-size: .76rem;
+}
+
+.gameplay-result-card dd {
+  margin: .2rem 0 0;
+  font-weight: 800;
+}
+
+.gameplay-next-round-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #cbd8d4;
+  border-radius: .9rem;
+  background: #f7faf9;
+  padding: 1rem;
+}
+
+.gameplay-next-round-panel h3,
+.gameplay-next-round-panel p {
+  margin: 0;
+}
+
+.gameplay-next-round-panel > div {
+  display: grid;
+  gap: .3rem;
+  min-width: min(100%, 18rem);
+}
+
+.gameplay-next-round-panel p {
+  color: #62706c;
+}
+
+.gameplay-next-round-error {
+  flex-basis: 100%;
+  color: #a0341d !important;
+  font-weight: 700;
+}
+
+.gameplay-score--positive {
+  color: #087443;
+}
+
+.gameplay-score--negative {
+  color: #b42318;
+}
+
+.gameplay-table {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #cbd8d4;
+  border-radius: 1rem;
+  background: #f7faf9;
+  padding: 1rem;
+  box-shadow: 0 .45rem 1.2rem rgb(20 50 44 / 7%);
+}
+
+.gameplay-table__topbar,
+.gameplay-table__context,
+.gameplay-table__scores,
+.gameplay-table__action-tray form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+}
+
+.gameplay-table__topbar {
+  justify-content: space-between;
+}
+
+.gameplay-table__topbar h3,
+.gameplay-table__trick h3,
+.gameplay-table__hand h3,
+.gameplay-table__action-tray h3 {
+  margin: 0;
+}
+
+.gameplay-table__context span,
+.gameplay-table__scores span {
+  border-radius: 999px;
+  background: white;
+  padding: .35rem .6rem;
+  color: #4f615b;
+  font-size: .82rem;
+}
+
+.gameplay-table__estimates {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-table__estimates li {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+  border: 1px solid #d9e1df;
+  border-radius: .7rem;
+  background: white;
+  padding: .6rem;
+  font-size: .85rem;
+}
+
+.gameplay-table__round-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+}
+
+.gameplay-table__round-status span {
+  border-radius: .65rem;
+  background: #eaf5f1;
+  padding: .5rem .7rem;
+  font-weight: 800;
+}
+
+.gameplay-table__surface {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(12rem, 2fr) minmax(7rem, 1fr);
+  grid-template-rows: auto minmax(10rem, auto) auto;
+  gap: .75rem;
+  align-items: center;
+  border: 1px solid #d8e1df;
+  border-radius: .9rem;
+  background: #eaf5f1;
+  padding: .75rem;
+}
+
+.gameplay-table-seat {
+  display: grid;
+  gap: .25rem;
+  min-width: 0;
+  border: 1px solid #cbd8d4;
+  border-radius: .75rem;
+  background: white;
+  padding: .65rem;
+  font-size: .82rem;
+}
+
+.gameplay-table-seat--bottom { grid-column: 2; grid-row: 3; }
+.gameplay-table-seat--top { grid-column: 2; grid-row: 1; }
+.gameplay-table-seat--left { grid-column: 1; grid-row: 2; }
+.gameplay-table-seat--right { grid-column: 3; grid-row: 2; }
+.gameplay-table-seat--active { border-color: #087846; box-shadow: inset 0 0 0 1px #087846; }
+
+.gameplay-table-seat__badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+.gameplay-table-seat__badges small { color: #087443; font-weight: 800; }
+
+.gameplay-table__trick {
+  display: grid;
+  grid-column: 2;
+  grid-row: 2;
+  gap: .5rem;
+  min-height: 10rem;
+  align-content: center;
+  border: 1px dashed #8db6a9;
+  border-radius: .9rem;
+  background: rgb(255 255 255 / 60%);
+  padding: 1rem;
+  text-align: center;
+}
+
+.gameplay-table__cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.gameplay-table__played-card {
+  position: absolute;
+  display: grid;
+  min-width: 3.8rem;
+  gap: .15rem;
+  border: 1px solid #b8c8c2;
+  border-radius: .55rem;
+  background: white;
+  padding: .4rem;
+  text-align: center;
+  box-shadow: 0 .2rem .55rem rgb(20 50 44 / 18%);
+}
+.gameplay-table__played-card--top { top: 18%; left: 50%; transform: translateX(-50%); }
+.gameplay-table__played-card--right { top: 50%; right: 20%; transform: translateY(-50%); }
+.gameplay-table__played-card--bottom { bottom: 18%; left: 50%; transform: translateX(-50%); }
+.gameplay-table__played-card--left { top: 50%; left: 20%; transform: translateY(-50%); }
+.gameplay-table__played-card small { font-size: .68rem; font-weight: 700; }
+.gameplay-table__played-card em { color: #087846; font-size: .65rem; font-style: normal; font-weight: 800; }
+.gameplay-table__trick-context { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted-text); }
+.gameplay-suit { font-weight: 800; white-space: nowrap; }
+.gameplay-suit--red, .playing-card--red { color: #b42318; }
+.gameplay-suit--black, .playing-card--black { color: #17201d; }
+.gameplay-suit--trump { display: inline-flex; align-items: center; gap: .2rem; border: 1px solid currentColor; border-radius: 999px; background: #fff9df; padding: .15rem .45rem; }
+.gameplay-card--trump { box-shadow: 0 0 0 2px rgb(180 140 0 / 22%), 0 .2rem .55rem rgb(20 50 44 / 18%); }
+.gameplay-table__cards span { border-radius: .55rem; background: white; padding: .4rem; }
+.gameplay-card--winner { border: 2px solid #087846; font-weight: 800; }
+.gameplay-table__last-trick { border-left: 4px solid #087846; background: #eef8f4; padding: .65rem .8rem; font-size: .85rem; }
+.gameplay-table__hand,
+.gameplay-table__action-tray,
+.gameplay-table__history { display: grid; gap: .75rem; border-top: 1px solid #d8e1df; padding-top: .8rem; }
+.gameplay-table__action-tray select { min-height: 2.6rem; border: 1px solid #bcc9c6; border-radius: .65rem; background: white; padding: .5rem .65rem; }
+.gameplay-table__action-tray .primary-button { min-height: 2.6rem; }
+.gameplay-table__history summary { cursor: pointer; font-weight: 800; }
+.gameplay-table__history ul { margin: 0; padding-left: 1.2rem; }
+
+.gameplay-trick-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+}
+
+.gameplay-trick-totals span {
+  border-radius: .65rem;
+  background: #eef4f2;
+  padding: .55rem;
+  text-align: center;
+}
+
+.gameplay-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .55rem;
+  border-top: 1px solid #e0e6e4;
+  padding-top: 1rem;
+}
+
+.playing-card {
+  display: grid;
+  min-width: 3.15rem;
+  min-height: 4.6rem;
+  place-content: center;
+  gap: .2rem;
+  border: 1px solid #aebbb7;
+  border-radius: .55rem;
+  background: white;
+  color: #17201d;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 .25rem .6rem rgb(20 50 44 / 10%);
+}
+
+.playing-card--red {
+  color: #b42318;
+}
+
+.playing-card--legal:not(:disabled) {
+  border-color: #087846;
+  box-shadow: inset 0 0 0 1px #087846, 0 .35rem .8rem rgb(0 98 56 / 15%);
+  cursor: pointer;
+}
+
+.playing-card--legal:not(:disabled):hover,
+.playing-card--legal:not(:disabled):focus-visible {
+  transform: translateY(-.15rem);
+}
+
+.playing-card:disabled {
+  opacity: .48;
+}
+
+.gameplay-hand--read-only .playing-card {
+  opacity: 1;
+}
+
+.active-host-controls {
+  justify-content: flex-end;
+  border-top: 1px solid #d8e1df;
+  padding-top: 1rem;
+}
+
+.termination-confirmation {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin: 1rem 0;
+  border: 1px solid #ead3a7;
+  border-radius: .75rem;
+  background: #fff9ec;
+  padding: .8rem;
+  font-weight: 700;
+}
+
+.termination-confirmation input {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+@media (max-width: 48rem) {
+  .gameplay-form-grid,
+  .gameplay-seat-grid,
+  .active-seat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gameplay-estimate-list,
+  .gameplay-current-trick ol,
+  .gameplay-trick-totals,
+  .gameplay-round-summary,
+  .gameplay-final-trick ol,
+  .gameplay-result-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gameplay-table__estimates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .gameplay-table-heading,
+  .gameplay-request-list > li,
+  .active-lifecycle,
+  .gameplay-action-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gameplay-request-actions,
+  .active-host-controls {
+    justify-content: stretch;
+  }
+
+  .gameplay-request-actions > button,
+  .active-host-controls > button {
+    flex: 1 1 10rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .home-primary-actions,
+  .gameplay-lobby-actions,
+  .screen-actions,
+  .gameplay-request-actions,
+  .active-host-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .home-primary-actions > button,
+  .gameplay-lobby-actions > button,
+  .screen-actions > button,
+  .gameplay-request-actions > button,
+  .active-host-controls > button,
+  .gameplay-bid-form > .primary-button {
+    width: 100%;
+  }
+
+  .gameplay-seat,
+  .active-seat-card {
+    min-height: 5.5rem;
+  }
+
+  .gameplay-estimate-list,
+  .gameplay-current-trick ol,
+  .gameplay-trick-totals,
+  .gameplay-round-summary,
+  .gameplay-final-trick ol,
+  .gameplay-result-list {
+    grid-template-columns: 1fr;
+  }
+
+  .gameplay-round-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gameplay-table__surface {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto auto;
+  }
+
+  .gameplay-table-seat--top { grid-column: 1 / -1; grid-row: 1; }
+  .gameplay-table-seat--left { grid-column: 1; grid-row: 2; }
+  .gameplay-table-seat--right { grid-column: 2; grid-row: 2; }
+  .gameplay-table__trick { grid-column: 1 / -1; grid-row: 3; }
+  .gameplay-table-seat--bottom { grid-column: 1 / -1; grid-row: 4; }
+
+  .gameplay-hand {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .4rem;
+  }
+
+  .playing-card {
+    flex: 0 0 3.15rem;
+  }
+}

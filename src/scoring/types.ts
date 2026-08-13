@@ -77,6 +77,7 @@ export interface ScoreContext {
   readonly roundType: RoundType;
   readonly roundRiskLevel: number;
   readonly roundMultiplier?: number;
+  readonly multipleWithMultiplier?: 1 | 2;
   readonly winningContractNumber?: number;
   readonly bidOwnerPlayerId?: string;
   readonly ownerOutcome?: OwnerRoundOutcome;
@@ -109,6 +110,7 @@ export interface RoundScoreInput {
   readonly roundNumber: number;
   readonly roundType: RoundType;
   readonly roundMultiplier?: number;
+  readonly multipleWithMultiplier?: 1 | 2;
   readonly riskPlayerId?: string;
   readonly winningContractNumber?: number;
   readonly bidOwnerPlayerId?: string;
@@ -124,6 +126,13 @@ export interface RoundScoreResult {
   readonly ownerOutcome?: OwnerRoundOutcome;
   readonly nextRoundMultiplier?: number;
   readonly playerScores: readonly PlayerScoreResult[];
+}
+
+export interface AllLoserCarryMetadata {
+  readonly isAllLoserRound?: boolean;
+  readonly consecutiveAllLoserCountBeforeRound?: number;
+  readonly carriedAllLoserMultiplier?: number;
+  readonly carryConsumed?: boolean;
 }
 
 export interface ScoringStrategy {

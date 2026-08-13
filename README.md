@@ -1,5 +1,7 @@
 # Estimation Score Calculator
 
+For the shared Supabase/Vercel acceptance environment, use the [online UAT deployment runbook](docs/UAT_DEPLOYMENT.md).
+
 Score calculation engine for the Egyptian Estimation card game (إستيميشن).
 
 ## MVP Capabilities

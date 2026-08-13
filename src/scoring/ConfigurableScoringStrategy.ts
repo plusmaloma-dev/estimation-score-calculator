@@ -1,4 +1,5 @@
 import type { PlayerScoreResult, ScoreContext, ScoringStrategy } from './types.js';
+import { HOUSE_RULES_V1 } from './ruleSets.js';
 
 export class ConfigurableScoringStrategy implements ScoringStrategy {
   calculatePlayerScore(context: ScoreContext): PlayerScoreResult {
@@ -17,6 +18,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
         score = this.applyRisk(score, context, notes);
         score = this.applyOnlyWinnerLoser(score, context, notes);
         score = this.applyRoundMultiplier(score, context, notes);
+        score = this.applyMultipleWithMultiplier(score, context, notes);
 
         return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
       }
@@ -65,11 +67,34 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
       }
     }
 
+    score = this.applyUnderZeroEstimateAdjustment(score, context, notes);
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
+  }
+
+  private applyUnderZeroEstimateAdjustment(
+    score: number,
+    context: ScoreContext,
+    notes: string[],
+  ): number {
+    const eligible = context.profile.ruleSet === HOUSE_RULES_V1
+      && context.roundType === 'under'
+      && context.playerBid.bidType === 'normal'
+      && context.playerBid.tricks === 0;
+
+    if (!eligible) {
+      return score;
+    }
+
+    const adjustment = context.evaluation.didMatchBid ? 10 : -10;
+    notes.push(
+      `Under zero estimate ${context.evaluation.didMatchBid ? 'successful: +10' : 'failed: -10'} adjustment applied.`,
+    );
+    return score + adjustment;
   }
 
   private calculateHighContractScore(context: ScoreContext): PlayerScoreResult | undefined {
@@ -94,7 +119,8 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
 
       score = this.applyRisk(score, context, notes);
       score = this.applyOnlyWinnerLoser(score, context, notes);
-      // x2 deliberately not applied to high contracts.
+      // The carried all-loser round multiplier remains excluded for high contracts.
+      score = this.applyMultipleWithMultiplier(score, context, notes);
       return this.result(context, score, 'success', notes);
     }
 
@@ -119,7 +145,8 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     notes.push(`Difference from bid: ${evaluation.delta}.`);
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
-    // x2 deliberately not applied to high contracts.
+    // The carried all-loser round multiplier remains excluded for high contracts.
+    score = this.applyMultipleWithMultiplier(score, context, notes);
     return this.result(context, score, 'failed', notes);
   }
 
@@ -140,6 +167,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -161,6 +189,7 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     score = this.applyRisk(score, context, notes);
     score = this.applyOnlyWinnerLoser(score, context, notes);
     score = this.applyRoundMultiplier(score, context, notes);
+    score = this.applyMultipleWithMultiplier(score, context, notes);
 
     return this.result(context, score, evaluation.didMatchBid ? 'success' : 'failed', notes);
   }
@@ -201,6 +230,16 @@ export class ConfigurableScoringStrategy implements ScoringStrategy {
     }
 
     notes.push(`Round multiplier applied: x${multiplier}.`);
+    return score * multiplier;
+  }
+
+  private applyMultipleWithMultiplier(score: number, context: ScoreContext, notes: string[]): number {
+    const multiplier = context.multipleWithMultiplier ?? 1;
+    if (multiplier === 1) {
+      return score;
+    }
+
+    notes.push('Multiple With multiplier applied: x2.');
     return score * multiplier;
   }
 

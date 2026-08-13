@@ -46,11 +46,11 @@
 | Federation 2026 acceptance coverage | Done | 100% |
 | Federation All-Pass Round | Done | 100% |
 | Federation backend rule-set support | Done | 100% |
-| React/Vite frontend prototype | Ready | 0% |
+| React/Vite frontend prototype | In Progress | 90% |
 
 MVP progress: **100%**
 
-Post-MVP progress: **98%**
+Post-MVP progress: **99%**
 
 ## Completed MVP Items
 
@@ -147,7 +147,7 @@ Status: **Done**
   - Federation does not create a next-round x2/x4 multiplier.
   - House Rules V1 keeps zero scores and its next-round multiplier.
 - Prevented the Federation Dash Under table score from receiving a second automatic Risk adjustment.
-- Corrected the test command so all top-level compiled tests execute.
+- Corrected the test command so all top-level compiled test files execute.
 - Repaired five previously dormant rule-selection fixtures to use valid Estimation bids.
 - GitHub Actions CI run 406 passed with all 128 tests executing.
 
@@ -178,17 +178,28 @@ Status: **Done**
 ### US-219 — Game Summary and Leaderboard Compatibility Fixes
 Status: **Done**
 
-## Ready
+## In Progress
 
 ### US-220 — React/Vite Frontend Prototype
-Status: **Ready**
+Status: **In Progress — 90%**
 
-- Create a browser app shell using the existing framework-neutral Browser UI Shell services.
-- Allow four-player score-sheet creation.
-- Allow game-level rule-set selection before starting.
-- Show the selected rule set on game summaries and reopened sessions.
-- Add Federation auction pass/bid entry and redeal guidance.
-- Allow round entry and validation preview.
-- Show round results, running balances, leaderboard, analytics, and export actions.
-- Use local storage for the first browser prototype.
-- Keep the scoring engine framework-agnostic.
+Completed frontend slices:
+
+- React/Vite application foundation, bilingual setup flow, local-storage sessions, and responsive score sheet.
+- Current-round estimate confirmation, actual-trick entry, score calculation, and persistence.
+- Explicit bid-winner/trump ownership with multiple WITH players.
+- Follow or Hold decisions after the bid winner raises.
+- Hold annotations and normal scoring.
+- Owner-anchored Risk assignment that skips Hold players.
+- Multiple-WITH x2 applied last to every player's calculated score.
+- Frozen round serialization for owner, trump, W/H, Risk, and multiplier.
+- Audited completed-round score editing, restore-original, downstream totals/rankings, persistence, and backup preservation.
+- Responsive fit-to-screen table and visible score-override markers.
+- This delivery is covered by passing GitHub Actions validation.
+
+Remaining prototype slices:
+
+- Add Federation auction pass/bid and redeal controls to the React score sheet.
+- Wire the History and New Round header actions to final navigation behavior.
+- Expose analytics and export actions in the React interface.
+- Complete final accessibility review and release preparation.
